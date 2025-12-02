@@ -1,0 +1,1361 @@
+{
+  "course_title": "Bayesian Regression and Time Series Forecasting for Commodities Trading",
+  "research_date": "2025-12-02",
+  "search_summary": {
+    "platforms_searched": ["web_search", "github", "academic_sources", "documentation"],
+    "repositories_analyzed": 8,
+    "docs_reviewed": 45,
+    "total_sources": 135
+  },
+
+  "module_1_bayesian_fundamentals": {
+    "title": "Bayesian Fundamentals for Time Series",
+    "key_topics": [
+      "Prior distributions and posterior inference in time series context",
+      "Conjugate priors for linear Gaussian state space models",
+      "MCMC methods (Metropolis-Hastings, Hamiltonian Monte Carlo, NUTS)",
+      "Variational inference (ADVI) and when to use it vs MCMC",
+      "Bayesian workflow: prior predictive checks, posterior diagnostics, model comparison",
+      "Comparison with frequentist approaches (confidence intervals vs credible intervals)",
+      "When Bayesian methods excel: small datasets, uncertainty quantification, incorporating domain knowledge"
+    ],
+    "key_concepts": {
+      "priors": {
+        "description": "Prior distributions encode domain knowledge before seeing data",
+        "importance": "Critical for regularization and stability in time series with limited data",
+        "pitfalls": "Default uniform priors can lead to poor forecast stability; AR coefficient priors need careful specification to ensure stationarity"
+      },
+      "posteriors": {
+        "description": "Updated beliefs after observing data via Bayes theorem",
+        "computation": "MCMC sampling or variational approximation"
+      },
+      "mcmc_vs_vi": {
+        "mcmc": {
+          "when_to_use": "Small to medium datasets, need precise uncertainty estimates, computational time available",
+          "advantages": "Unbiased, asymptotically exact, full posterior characterization",
+          "disadvantages": "Slow for large datasets or high-dimensional models",
+          "speed": "Baseline (1x)"
+        },
+        "variational_inference": {
+          "when_to_use": "Large datasets, need fast inference, can tolerate slight bias",
+          "advantages": "4 orders of magnitude faster than MCMC, guaranteed convergence",
+          "disadvantages": "Underestimates uncertainty, deterministic approximation",
+          "speed": "10,000x faster than MCMC"
+        }
+      }
+    },
+    "libraries": {
+      "pymc": {
+        "description": "Python probabilistic programming with NUTS sampler and ADVI",
+        "backend": "PyTensor (formerly Theano/Aesara)",
+        "strengths": "User-friendly API, extensive documentation, active community",
+        "best_for": "General Bayesian modeling, educational purposes, rapid prototyping",
+        "citation": "[1] PyMC Development Team. 'PyMC: Probabilistic Programming in Python.' https://www.pymc.io/"
+      },
+      "stan": {
+        "description": "Probabilistic programming language with own autodiff library",
+        "interface": "PyStan (Python wrapper)",
+        "strengths": "Robust error/warning messages, excellent defaults, proven at scale",
+        "best_for": "Production systems, rigorous statistical analysis",
+        "limitations": "Cannot sample discrete variables, requires learning Stan language",
+        "citation": "[2] Stan Development Team. 'Stan Modeling Language.' https://mc-stan.org/"
+      },
+      "numpyro": {
+        "description": "Probabilistic programming with NumPy powered by JAX",
+        "backend": "JAX for JIT compilation to GPU/TPU/CPU",
+        "strengths": "Fastest sampling via JIT compilation, simpler than PyStan",
+        "best_for": "Large-scale problems, GPU acceleration, researchers",
+        "speedup": "Faster than PyStan for medium/large datasets, especially on GPU",
+        "citation": "[3] Uber AI. 'NumPyro: Probabilistic programming with NumPy.' https://num.pyro.ai/"
+      },
+      "tensorflow_probability": {
+        "description": "Probabilistic modeling on TensorFlow",
+        "backend": "TensorFlow",
+        "strengths": "Modular, allows custom algorithms, deep learning integration",
+        "best_for": "Researchers developing new methods, deep probabilistic models",
+        "limitations": "More verbose API, requires TF knowledge",
+        "citation": "[4] TensorFlow Team. 'TensorFlow Probability.' https://www.tensorflow.org/probability"
+      }
+    },
+    "recommended_readings": [
+      "Bayesian Modeling and Computation in Python - Chapter 6: Time Series",
+      "PyMC Labs blog on probabilistic forecasting",
+      "Comparison of Python PPLs by Nelson Tang"
+    ],
+    "citations": [
+      "[1] PyMC Development Team. 'Introduction to Bayesian Time Series Analysis with PyMC.' PyData London 2025. https://cfp.pydata.org/london2025/talk/T9KEHN/",
+      "[2] Nelson Tang. 'A Trivial Comparison of Python Probabilistic Programming Languages.' banditkings. https://www.nelsontang.com/blog/python_ppls_compared/python-ppls-compared.html",
+      "[3] Bayesian Modeling and Computation in Python. 'Chapter 6: Time Series.' https://bayesiancomputationbook.com/markdown/chp_06.html"
+    ]
+  },
+
+  "module_2_bayesian_time_series_models": {
+    "title": "Bayesian Time Series Models",
+    "models": {
+      "bayesian_structural_time_series": {
+        "abbreviation": "BSTS",
+        "description": "Decompose time series into trend, seasonality, and regression components with Bayesian inference",
+        "advantages": [
+          "Transparent representation without differencing or lags",
+          "Visual inspection of underlying components",
+          "Quantify posterior uncertainty of individual components",
+          "Control variance of components",
+          "Impose prior beliefs on model structure"
+        ],
+        "applications": [
+          "Demand forecasting",
+          "Anomaly detection",
+          "Causal impact analysis",
+          "Nowcasting economic indicators"
+        ],
+        "python_libraries": {
+          "tensorflow_probability": {
+            "module": "tfp.sts",
+            "description": "Convenient BSTS building with helper functions for decomposition, forecasts, inference",
+            "example": "Model monthly births with local linear trend + seasonal component"
+          },
+          "pybuc": {
+            "description": "Python port of R's bsts package by Steven L. Scott",
+            "method": "Gibbs sampling for fast estimation",
+            "components": "Level, trend, seasonality, regression",
+            "limitation": "Python >= 3.9 required; uses standard Gaussian prior instead of spike-and-slab",
+            "citation": "[5] pybuc. 'Python Bayesian Unobserved Components.' PyPI. https://pypi.org/project/pybuc/"
+          },
+          "pyflux": {
+            "description": "Easy-to-use interface for BSTS analysis",
+            "features": "Decomposition into trend, seasonality, irregularity"
+          },
+          "pydlm": {
+            "description": "Bayesian Dynamic Linear Models based on Harrison and West (1999)",
+            "optimization": "Fast model fitting and inference",
+            "citation": "[6] wwrechard. 'pydlm: A python library for Bayesian time series modeling.' GitHub. https://github.com/wwrechard/pydlm"
+          },
+          "pystan": {
+            "description": "Custom BSTS implementation via Stan interface",
+            "flexibility": "Full control over model specification"
+          }
+        },
+        "citations": [
+          "[7] Kyle Jones. 'Bayesian Time Series Analysis in Python (BSTS, BDLM, BNN, B Arima).' Medium. https://medium.com/@kylejones_47003/bayesian-time-series-analysis-in-python-bsts-bdlm-bnn-b-arima-1ca74d6cc3de"
+        ]
+      },
+      "bayesian_var_models": {
+        "abbreviation": "BVAR",
+        "description": "Vector autoregression with Bayesian parameter estimation",
+        "key_difference": "Parameters treated as random variables with priors rather than fixed values",
+        "advantages": [
+          "Handles over-parameterization via informative priors",
+          "Shrinks unrestricted model towards parsimonious benchmark",
+          "Better for limited data with many variables"
+        ],
+        "minnesota_prior": {
+          "description": "Standard prior assuming each variable follows random walk",
+          "components": "Normal prior on parameters with fixed, known covariance matrix"
+        },
+        "hierarchical_extension": {
+          "description": "Estimate BVAR over multiple related time series (e.g., multiple countries/commodities)",
+          "parameter": "rho controls share of impact each series contributes to covariance estimation"
+        },
+        "python_libraries": {
+          "pymc": {
+            "features": "Full BVAR with impulse response analysis, forecasting, hierarchical priors",
+            "citation": "[8] PyMC Labs. 'How to Build a Bayesian Vector Autoregression (BVAR) Model in PyMC.' https://www.pymc-labs.com/blog-posts/bayesian-vector-autoregression"
+          },
+          "pybvar": {
+            "status": "Preliminary development stage",
+            "citation": "[9] Joerg Rieger. 'pybvar: Bayesian Vector Autoregression in Python.' GitHub. https://github.com/joergrieger/pybvar"
+          },
+          "statsmodels": {
+            "model": "TVP-VAR (Time-Varying Parameter VAR) with MCMC",
+            "visualization": "ArviZ for credible intervals"
+          }
+        },
+        "use_cases_commodities": [
+          "Model relationships between related commodities (e.g., crude oil and gasoline)",
+          "Analyze spillover effects between energy markets",
+          "Forecast multiple commodity prices jointly"
+        ]
+      },
+      "gaussian_processes": {
+        "abbreviation": "GP",
+        "description": "Non-parametric Bayesian approach for time series with flexible kernels",
+        "advantages": [
+          "Probabilistic predictions with uncertainty quantification",
+          "Flexible kernel functions capture complex patterns",
+          "No need to specify parametric form"
+        ],
+        "challenges": [
+          "Can get stuck in local optima",
+          "Computational cost scales O(n^3) with data size",
+          "Flat forecasts if kernel/hyperparameters poorly chosen"
+        ],
+        "python_libraries": {
+          "gpflow": {
+            "backend": "TensorFlow 2.4+",
+            "features": "GPU acceleration, state-of-art methods (Variational Fourier Features, Convolutional GPs)",
+            "prerequisites": "Familiarity with TensorFlow/autodiff",
+            "citation": "[10] GPflow Team. 'GPflow: Gaussian processes in TensorFlow.' https://www.gpflow.org/"
+          },
+          "gpy": {
+            "description": "Mature GP library for Python"
+          },
+          "scikit_learn": {
+            "module": "sklearn.gaussian_process",
+            "use_case": "Basic GP regression and classification",
+            "citation": "[11] Juan Camilo Orduz. 'PyData Berlin 2019: Gaussian Processes for Time Series Forecasting.' https://juanitorduz.github.io/gaussian_process_time_series/"
+          },
+          "pymc": {
+            "features": "GP priors for Bayesian time series",
+            "citation": "[12] Juan Camilo Orduz. 'Gaussian Processes for Time Series Forecasting with PyMC3.' https://juanitorduz.github.io/gp_ts_pymc3/"
+          }
+        }
+      },
+      "hierarchical_models": {
+        "description": "Multilevel models that share information across related time series",
+        "advantages": [
+          "Leverage shared information across related commodities",
+          "Better estimates for sparse data",
+          "Partial pooling between complete pooling (ignore differences) and no pooling (treat as separate)"
+        ],
+        "applications_commodities": [
+          "Forecast multiple regional commodity prices sharing global trend",
+          "Model related commodities (heating oil, diesel, gasoline) with shared seasonality",
+          "Estimate demand across different product grades"
+        ],
+        "python_libraries": {
+          "pymc": {
+            "features": "Native hierarchical modeling support, non-centered parameterization",
+            "citation": "[13] PyMC. 'A Primer on Bayesian Methods for Multilevel Modeling.' https://www.pymc.io/projects/examples/en/latest/generalized_linear_models/multilevel_modeling.html"
+          },
+          "bambi": {
+            "description": "Built on PyMC, optimized for hierarchical models",
+            "features": "Formula-based specification like R's lme4"
+          }
+        },
+        "case_study": {
+          "dataset": "Quarterly tourism Australia (1998-2016)",
+          "series_count": 308,
+          "structure": "State, region, purpose hierarchy",
+          "citation": "[14] PyMC Labs. 'Probabilistic Time Series Analysis: Opportunities and Applications.' https://www.pymc-labs.com/blog-posts/probabilistic-forecasting"
+        }
+      },
+      "state_space_models": {
+        "description": "Model observed time series as function of unobserved latent states",
+        "inference": "Kalman filter (linear Gaussian case) or particle filter (nonlinear/non-Gaussian)",
+        "advantages": [
+          "Handle missing observations elegantly",
+          "Integrate external regressors",
+          "Separate observation noise from process noise"
+        ],
+        "python_libraries": {
+          "pymc_extras": {
+            "module": "pymc_extras.statespace",
+            "description": "Official PyMC state space support (formerly pymc_statespace)",
+            "features": "Linear Gaussian state space models",
+            "citation": "[15] PyMC. 'pymc-experimental now includes state spaces models!' PyMC Discourse. https://discourse.pymc.io/t/pymc-experimental-now-includes-state-spaces-models/12773"
+          },
+          "statsmodels": {
+            "module": "statsmodels.tsa.statespace",
+            "features": "Kalman filter with Bayesian parameter estimation via MCMC",
+            "citation": "[16] Chad Fulton. 'Bayesian state space estimation in Python via Metropolis-Hastings.' http://www.chadfulton.com/topics/state_space_mh.html"
+          }
+        },
+        "tutorial": {
+          "event": "PyData Berlin 2025",
+          "title": "A Beginner's Guide to State Space Modeling",
+          "topics": "Handling missing observations, external regressors, forecasting",
+          "citation": "[17] PyData Berlin 2025. 'A Beginner's Guide to State Space Modeling.' https://cfp.pydata.org/berlin2025/talk/GRZ3RG/"
+        }
+      },
+      "prophet": {
+        "description": "Facebook's additive model for time series with trend, seasonality, and holidays",
+        "bayesian_foundation": "Uses Stan for MAP optimization, optional full sampling",
+        "components": [
+          "Piecewise linear or logistic trend with automatic changepoint detection",
+          "Yearly, weekly, daily seasonality via Fourier series",
+          "Holiday effects with custom calendars"
+        ],
+        "advantages": [
+          "Fully automated with good defaults",
+          "Fast estimation",
+          "Handles missing data and outliers robustly",
+          "Intuitive parameter tuning for non-experts"
+        ],
+        "disadvantages": [
+          "Rarely beats custom models on forecast accuracy",
+          "Less flexible than building custom Bayesian model"
+        ],
+        "commodities_application": {
+          "study": "Forecasting Raw Materials Prices using Prophet Model",
+          "results": "MAPE of 5.14% for glass fiber, resin, metal, energy, paint prices",
+          "citation": "[18] ResearchGate. 'Forecasting Raw Materials Prices using Prophet Model.' https://www.researchgate.net/publication/376799376_Forecasting_Raw_Materials_Prices_using_Prophet_Model"
+        },
+        "alternative_study": {
+          "method": "Bayesian Symbolic Regression vs Prophet for commodities",
+          "commodities": "56 spot-based commodity prices",
+          "competitors": "Bayesian Model Averaging, LASSO, ridge, elastic net",
+          "citation": "[19] MDPI. 'Forecasting Selected Commodities' Prices with the Bayesian Symbolic Regression.' https://www.mdpi.com/2227-7072/12/2/34"
+        },
+        "python_implementation": {
+          "library": "fbprophet / prophet",
+          "pymc_alternative": "pm-prophet (Prophet-like model in PyMC3 with more flexibility)",
+          "citation": "[20] Ritchie Vink. 'Build Facebook's Prophet in PyMC3.' https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/"
+        }
+      }
+    },
+    "citations": [
+      "[21] Bayesian Modeling and Computation in Python. 'Chapter 6: Time Series - State Space Models and BSTS.' https://bayesiancomputationbook.com/markdown/chp_06.html",
+      "[22] Charles Copley. 'Heirarchical Time Series Using PyMC.' Medium. https://charlescopley.medium.com/heirarchical-time-series-using-pymc-29acd6a7c401"
+    ]
+  },
+
+  "module_3_commodities_trading": {
+    "title": "Commodities Trading Specific Applications",
+    "commodity_types": {
+      "energy": {
+        "examples": ["Crude oil (WTI, Brent)", "Natural gas", "Gasoline", "Heating oil", "Coal", "Propane"],
+        "exchange": "NYMEX (CME Group)",
+        "characteristics": "Highly speculative, sensitive to geopolitical events, strong seasonality (heating/cooling seasons)",
+        "mean_reversion": "Less mean-reverting than stocks; trend following works better"
+      },
+      "metals": {
+        "precious": ["Gold", "Silver", "Platinum", "Palladium"],
+        "industrial": ["Copper", "Aluminum", "Lead", "Zinc", "Nickel", "Tin"],
+        "exchanges": "NYMEX, London Metal Exchange",
+        "characteristics": "Gold as store of value and inflation hedge; industrial metals tied to manufacturing"
+      },
+      "agriculture_grains": {
+        "examples": ["Corn", "Wheat", "Soybeans", "Rice"],
+        "characteristics": "Strong seasonal patterns tied to planting/harvest cycles, weather-dependent",
+        "futures_structure": "Often in backwardation near harvest, contango during shortage"
+      },
+      "softs": {
+        "examples": ["Coffee", "Cocoa", "Sugar", "Cotton", "Orange juice"],
+        "exchange": "ICE Futures U.S.",
+        "characteristics": "Perishable, harvest-based, susceptible to weather shocks"
+      },
+      "livestock": {
+        "examples": ["Live cattle", "Lean hogs"],
+        "characteristics": "Tied to feed costs (corn/soy) and consumer demand patterns"
+      }
+    },
+    "data_sources": {
+      "free_sources": {
+        "turtletrader": {
+          "description": "Historical futures data from 1970s",
+          "format": "ASCII/text with OHLCV + Open Interest",
+          "commodities": "Australian Dollar, British Pound, Corn, Crude Oil, Cotton, Gold, Copper, Silver, Soybeans, Sugar, Wheat",
+          "citation": "[23] TurtleTrader. 'Free Historical Futures Price Data.' https://www.turtletrader.com/hpd/"
+        },
+        "quandl_nasdaq_data_link": {
+          "description": "Daily futures prices, some from 1950s",
+          "api": "Python, R, Excel, MATLAB bindings",
+          "formats": "CSV, HTML, JSON, XML",
+          "note": "CHRIS continuous futures discontinued Aug 2024; need API key",
+          "citation": "[24] QuantStart. 'Downloading Historical Futures Data From Quandl.' https://www.quantstart.com/articles/Downloading-Historical-Futures-Data-From-Quandl/"
+        },
+        "world_bank_pink_data": {
+          "description": "Monthly nominal prices since 1960 for 100+ commodities",
+          "citation": "[25] DataHub. 'Commodity Prices - IMF Data.' https://old.datahub.io/dataset/commodity-prices"
+        },
+        "yahoo_finance": {
+          "description": "Recent futures prices via yfinance library",
+          "symbols": "CL=F (Crude Oil), GC=F (Gold), etc.",
+          "limitation": "Limited historical depth for some contracts"
+        },
+        "investpy": {
+          "module": "investpy.commodities",
+          "source": "Investing.com historical data",
+          "returns": "pandas DataFrame"
+        }
+      },
+      "paid_sources": {
+        "databento": {
+          "description": "Real-time and historical commodity futures",
+          "data_types": "Order book, tick data, OHLCV at 1s/1min/1h/daily",
+          "languages": "Python, C++, Rust, raw TCP",
+          "formats": "CSV, JSON, binary",
+          "citation": "[26] Databento. 'Commodity Futures Data & APIs.' https://databento.com/futures/commodity"
+        },
+        "firstratedata": {
+          "description": "1-minute to daily bars from 2007 for 130+ contracts",
+          "features": "Individual contracts + continuous adjusted series",
+          "format": "Zipped CSV"
+        },
+        "bloomberg": {
+          "description": "Professional-grade terminal",
+          "cost": "Very expensive (~$25k/year)",
+          "python_library": "findatapy supports Bloomberg API"
+        }
+      }
+    },
+    "seasonality_patterns": {
+      "description": "Predictable patterns tied to recurring events like weather, holidays, harvest cycles",
+      "key_drivers": [
+        "Weather changes (heating/cooling demand for energy)",
+        "Planting and harvest seasons (agriculture)",
+        "Holiday demand (gold in India, sugar for confections)",
+        "Production cycles (livestock breeding)"
+      ],
+      "examples": {
+        "natural_gas": "Higher demand in winter (heating) and summer (cooling), peaks in Dec-Feb",
+        "crude_oil": "Higher gasoline demand in summer driving season",
+        "corn_wheat": "Prices may rise during planting, fall during harvest",
+        "gold": "Spikes during Indian wedding season and Diwali"
+      },
+      "statistical_models": {
+        "sarima": {
+          "description": "Seasonal ARIMA captures seasonal patterns with seasonal parameters",
+          "advantage": "More reliable predictor than non-seasonal ETS model for commodities",
+          "citation": "[27] HSET Journal. 'Time Series Analysis of Grains Commodity Futures Price Trends.' https://drpress.org/ojs/index.php/HSET/article/view/19766"
+        },
+        "seasonal_indexes": {
+          "method": "Calculate average price movements for specific periods",
+          "data_requirement": "5-10 years minimum for reliable analysis",
+          "technique": "Divide each month's average by year's average to find relative strength"
+        }
+      },
+      "effects": {
+        "monthly_effect": "Higher returns in specific months; variance increases in June-Aug",
+        "annual_effect": "Yearly patterns stronger than monthly for commodities",
+        "front_running": "Trading X-11 seasonality signal outperforms X-12 signal"
+      },
+      "caveats": [
+        "Past performance doesn't guarantee future results",
+        "External factors (weather, politics, global events) can override seasonality",
+        "Must combine with risk management and diversification",
+        "Requires complementary analytical techniques"
+      ],
+      "citations": [
+        "[28] Forecaster. 'Seasonality in Financial Markets.' https://forecaster.biz/seasonality/",
+        "[29] FasterCapital. 'Seasonality in Commodities: Capitalizing on Cyclical Trends.' https://fastercapital.com/content/Seasonality-in-Commodities--Capitalizing-on-Cyclical-Trends.html"
+      ]
+    },
+    "mean_reversion_vs_momentum": {
+      "key_insight": "Commodities are less mean-reverting than stocks; trend following often works better",
+      "time_horizons": {
+        "mean_reversion": "Short-term (< 3 months); works better in spot markets than futures",
+        "momentum": "Medium-term (3-12 months); works better in futures markets than spot",
+        "citation": "[30] ScienceDirect. 'Momentum and mean-reversion in commodity spot and futures markets.' https://www.sciencedirect.com/science/article/abs/pii/S2405851315300416"
+      },
+      "strategy_comparison": {
+        "mean_reversion": {
+          "best_for": "Range-bound markets, more frequent trades, smaller steady profits",
+          "techniques": "Statistical arbitrage, pairs trading, Bollinger bands",
+          "performance": "Works excellent for stocks but not commodities"
+        },
+        "momentum": {
+          "best_for": "Trending markets, fewer trades, larger gains",
+          "performance": "Sharpe ratio higher than market/value/size factors but worst crashes",
+          "commodities_result": "Outperforms in commodity futures"
+        }
+      },
+      "combined_strategy": {
+        "description": "Double-sort strategy exploiting both momentum and reversal signals",
+        "performance": "20.24% annual return vs 11.14% for momentum-only",
+        "cannot_be_explained_by": "Standard risk factors, term structure, volatility, sentiment, transaction costs",
+        "related_to": "Global funding liquidity",
+        "use": "Portfolio diversification tool"
+      },
+      "citations": [
+        "[31] QuantInsti. 'Mean Reversion Strategies: Introduction, Trading, Strategies and More.' https://blog.quantinsti.com/mean-reversion-strategies-introduction-building-blocks/",
+        "[32] QuantShare. 'Mean-reversion vs. Momentum Strategies.' https://www.quantshare.com/blog-497-mean-reversion-vs-momentum-strategies"
+      ]
+    },
+    "spread_trading_cointegration": {
+      "description": "Trade price differential between related commodities expecting convergence",
+      "statistical_foundation": "Cointegration - long-term equilibrium relationship between two non-stationary series",
+      "python_tools": {
+        "statsmodels": {
+          "functions": ["statsmodels.tsa.stattools.coint", "statsmodels.tsa.stattools.adfuller"],
+          "recommendation": "Use coint() for more robust p-value vs manual Engle-Granger two-step",
+          "citation": "[33] PyQuant News. 'Build a pairs trading strategy with Python.' https://www.pyquantnews.com/the-pyquant-newsletter/build-a-pairs-trading-strategy-python"
+        }
+      },
+      "methodology": {
+        "step1": "Test cointegration using Augmented Dickey-Fuller or Engle-Granger",
+        "step2": "Estimate hedge ratio via linear regression (beta coefficient)",
+        "step3": "Calculate spread as linear combination of two assets",
+        "step4": "Compute z-score of spread to identify deviations from mean",
+        "step5": "Trade when z-score exceeds thresholds (e.g., ±2)",
+        "step6": "Exit when spread reverts to mean (z-score near 0)"
+      },
+      "commodities_example": {
+        "pair": "Crude oil and gasoline",
+        "rationale": "Crude oil is primary input for gasoline production",
+        "relationship": "Cointegrated due to stable production linkage despite individual price fluctuations"
+      },
+      "pitfalls": {
+        "multiple_comparisons_bias": "Testing 100 random pairs expect 5 false positives at p<0.05",
+        "solution": "Start with economic rationale for why two commodities should be cointegrated"
+      },
+      "citations": [
+        "[34] Muhammed Burak Bedir. 'Understanding Cointegration and How to Monitor Spread Between Prices with Python.' Medium. https://medium.com/@mburakbedir/understanding-cointegration-and-how-to-monitor-spread-between-prices-with-python-518c66c39ee4"
+      ]
+    },
+    "volatility_modeling": {
+      "importance": "Critical for risk management, option pricing, position sizing in commodities",
+      "approaches": {
+        "stochastic_volatility": {
+          "description": "Model volatility as latent stochastic process",
+          "bayesian_advantage": "Full posterior distribution of volatility over time",
+          "pymc_support": "Built-in examples in PyMC gallery"
+        },
+        "garch_models": {
+          "description": "Generalized AutoRegressive Conditional Heteroskedasticity",
+          "captures": "Volatility clustering, leverage effects"
+        },
+        "realized_volatility": {
+          "description": "Estimate volatility from high-frequency intraday data",
+          "use": "More accurate volatility estimates for liquid contracts"
+        }
+      }
+    },
+    "contango_backwardation": {
+      "definitions": {
+        "contango": {
+          "description": "Forward futures price > spot price (upward sloping curve)",
+          "causes": "Storage costs, financing costs, insurance costs",
+          "roll_yield": "Negative (lose money rolling futures)",
+          "example": "Gold (storage costs justify contango)"
+        },
+        "backwardation": {
+          "description": "Forward futures price < spot price (downward sloping curve)",
+          "causes": "Short-term supply disruptions, high immediate demand, convenience yield",
+          "roll_yield": "Positive (gain money rolling futures)",
+          "example": "Crude oil during supply shocks"
+        }
+      },
+      "impact_on_returns": {
+        "futures_etf_investors": "Contango erodes returns; backwardation enhances returns",
+        "convergence": "Futures price converges to spot price as expiration approaches",
+        "2020_example": "Oil market steep contango during storage crisis; negative roll yields for longs"
+      },
+      "citations": [
+        "[35] Fidelity. 'Commodity ETFs: Contango/Backwardation.' https://www.fidelity.com/learning-center/investment-products/etf/commodity-etfs-contango-backwardation",
+        "[36] CME Group. 'What is Contango and Backwardation.' https://www.cmegroup.com/education/courses/introduction-to-ferrous-metals/what-is-contango-and-backwardation.html"
+      ]
+    }
+  },
+
+  "module_4_practical_implementation": {
+    "title": "Practical Implementation Considerations",
+    "data_preprocessing": {
+      "missing_data": {
+        "approaches": [
+          "Forward fill for infrequent trading (assumes last price still valid)",
+          "Interpolation for systematic gaps",
+          "State space models handle missing data naturally via Kalman filter",
+          "Multiple imputation for uncertainty quantification"
+        ]
+      },
+      "outliers": {
+        "detection": "Z-score, IQR, domain knowledge (e.g., flash crashes)",
+        "handling": [
+          "Robust loss functions (Huber, Student-t likelihood)",
+          "Winsorization (cap at percentiles)",
+          "Explicit outlier modeling as mixture distribution"
+        ]
+      },
+      "structural_breaks": {
+        "examples": "Regime changes, policy shifts, market structure changes",
+        "detection": "Changepoint detection algorithms, CUSUM tests",
+        "bayesian_approach": "Automatic changepoint detection in Prophet, BSTS",
+        "modeling": "Markov switching models for regime changes"
+      },
+      "stationarity": {
+        "importance": "Many time series models assume stationarity",
+        "testing": "Augmented Dickey-Fuller test, KPSS test",
+        "transformations": "Differencing, log-returns, detrending"
+      }
+    },
+    "feature_engineering": {
+      "lagged_features": {
+        "description": "Use past values as predictors (e.g., yesterday's price predicts today's)",
+        "assumption": "Past contains information about future",
+        "example": "Lag 1, 7, 30 days for daily data; Lag 1, 4, 52 weeks for weekly"
+      },
+      "rolling_statistics": {
+        "description": "Moving averages, standard deviations over sliding window",
+        "benefits": "Smooth noise, highlight local trends, capture volatility",
+        "examples": "20-day moving average, 60-day rolling std, Bollinger bands"
+      },
+      "calendar_features": {
+        "temporal": "Day of week, month, quarter, year",
+        "cyclical_encoding": "Sin/cos transformation to preserve continuity (Dec to Jan)",
+        "holidays": "Custom holiday calendars for commodities (harvest holidays, trading holidays)"
+      },
+      "external_variables": {
+        "weather_data": {
+          "use_case": "Energy demand (temperature), agriculture (rainfall, frost)",
+          "aggregation": "Rolling averages over 1, 2, 4 weeks",
+          "citation": "[37] DotData. 'Practical Guide for Feature Engineering of Time Series Data.' https://dotdata.com/blog/practical-guide-for-feature-engineering-of-time-series-data/"
+        },
+        "inventory_levels": {
+          "description": "EIA crude oil inventories, USDA grain stocks",
+          "importance": "Fundamental supply indicator for commodities"
+        },
+        "macroeconomic_indicators": {
+          "examples": "GDP, inflation, interest rates, USD index, manufacturing PMI",
+          "lag_consideration": "Indicators often released with delay"
+        }
+      },
+      "domain_knowledge": {
+        "importance": "Leverage expertise to create informed features",
+        "examples": [
+          "Heating degree days (HDD) / cooling degree days (CDD) for natural gas",
+          "Crack spread (refining margin) for oil products",
+          "Crush spread (soybean processing margin)"
+        ]
+      },
+      "citations": [
+        "[38] Analytics Vidhya. '6 Powerful Feature Engineering Techniques For Time Series Data.' https://www.analyticsvidhya.com/blog/2019/12/6-powerful-feature-engineering-techniques-time-series/",
+        "[39] Microsoft Data Science. 'Introduction to feature engineering for time series forecasting.' Medium. https://medium.com/data-science-at-microsoft/introduction-to-feature-engineering-for-time-series-forecasting-620aa55fcab0"
+      ]
+    },
+    "backtesting": {
+      "time_series_specific_considerations": {
+        "no_random_splits": "Cannot shuffle data; use chronological train/test split",
+        "walk_forward_validation": "Expanding or rolling window cross-validation",
+        "look_ahead_bias": "Ensure no future data leaks into training"
+      },
+      "libraries": {
+        "orbit": {
+          "description": "Uber's Bayesian forecasting library",
+          "feature": "BackTester class for rolling validation and hyperparameter tuning",
+          "citation": "[40] Uber. 'Orbit: A Python package for Bayesian forecasting.' GitHub. https://github.com/uber/orbit"
+        },
+        "pybats": {
+          "approach": "One-step-ahead predictions updating parameters at each step",
+          "advantage": "True out-of-sample predictions with posterior probabilities"
+        },
+        "pyalgotradebt": {
+          "description": "Mature backtesting framework with paper and live trading",
+          "use_case": "Algorithm trading strategies"
+        },
+        {
+          "description": "Portfolio-based strategy testing framework",
+          "features": "Asset weighting and rebalancing algos"
+        }
+      },
+      "walk_forward_example": {
+        "train_period": "5 years rolling window",
+        "test_period": "1 month ahead",
+        "refit_frequency": "Monthly (retrain on most recent 5 years)",
+        "note": "Computationally expensive for Bayesian models"
+      }
+    },
+    "evaluation_metrics": {
+      "point_forecast_metrics": {
+        "mae": "Mean Absolute Error - interpretable in original units",
+        "rmse": "Root Mean Squared Error - penalizes large errors more",
+        "mape": "Mean Absolute Percentage Error - scale-independent but undefined for zero values"
+      },
+      "probabilistic_forecast_metrics": {
+        "crps": {
+          "name": "Continuous Ranked Probability Score",
+          "description": "Generalization of MAE for probability distributions",
+          "advantages": [
+            "Evaluates both sharpness (narrow distributions) and calibration (accuracy)",
+            "Reduces to MAE for point forecasts",
+            "Proper scoring rule (cannot be gamed)"
+          ],
+          "formula": "CRPS(F, y) = integral of (F(x) - 1_{x >= y})^2 dx",
+          "interpretation": "Lower is better; measures distance between predicted CDF and observed value",
+          "python_libraries": {
+            "properscoring": {
+              "description": "Proper scoring rules for probabilistic forecasts",
+              "speedup": "20x faster with numba",
+              "citation": "[41] PropertyScoring. 'properscoring.' PyPI. https://pypi.org/project/properscoring/"
+            },
+            "crps_package": {
+              "functions": "crps, fcrps (fair), acrps (adjusted)",
+              "citation": "[42] CRPS. 'CRPS.' PyPI. https://pypi.org/project/CRPS/"
+            },
+            "torchmetrics": {
+              "description": "PyTorch implementation of CRPS",
+              "use_case": "Deep learning-based forecasting"
+            },
+            "scores": {
+              "function": "crps_cdf for computing CRPS from CDF representations"
+            },
+            "skforecast": {
+              "integration": "Works with predict_bootstrapping for ensemble forecasts"
+            }
+          },
+          "citations": [
+            "[43] Skforecast. 'Continuous Ranked Probability Score (CRPS).' https://skforecast.org/0.15.0/faq/probabilistic-forecasting-crps-score.html",
+            "[44] Eryk Lewinson. 'Essential Guide to Continuous Ranked Probability Score (CRPS) for Forecasting.' Medium. https://medium.com/data-science/essential-guide-to-continuous-ranked-probability-score-crps-for-forecasting-ac0a55dcb30d"
+          ]
+        },
+        "log_likelihood": {
+          "description": "Log probability of observed data under predicted distribution",
+          "advantage": "Directly measures probabilistic fit",
+          "disadvantage": "Not scale-independent; hard to interpret"
+        },
+        "calibration": {
+          "description": "Are 90% prediction intervals actually 90% coverage?",
+          "visualization": "Calibration plots, reliability diagrams",
+          "test": "Coverage percentage should match nominal level"
+        },
+        "sharpness": {
+          "description": "Width of prediction intervals",
+          "goal": "Narrower intervals better (given correct calibration)",
+          "tradeoff": "Must balance with calibration"
+        }
+      },
+      "trading_specific_metrics": {
+        "sharpe_ratio": "Risk-adjusted return",
+        "maximum_drawdown": "Largest peak-to-trough decline",
+        "hit_rate": "Percentage of profitable trades",
+        "profit_factor": "Gross profit / gross loss"
+      }
+    },
+    "computational_considerations": {
+      "mcmc_sampling_time": {
+        "issue": "Can be slow for large datasets or complex models",
+        "solutions": [
+          "Use variational inference (ADVI) for faster approximation",
+          "GPU acceleration (NumPyro, TensorFlow Probability)",
+          "Parallel chains (4-8 chains on multi-core CPU)",
+          "Thinning chains if memory constrained"
+        ]
+      },
+      "model_selection": {
+        "bayesian_approaches": [
+          "WAIC (Widely Applicable Information Criterion)",
+          "LOO-CV (Leave-One-Out Cross-Validation via Pareto-smoothed importance sampling)",
+          "Bayes factors (marginal likelihood ratio)"
+        ],
+        "tools": "ArviZ library for model comparison"
+      },
+      "production_deployment": {
+        "challenges": [
+          "MCMC too slow for real-time updates",
+          "Model retraining frequency",
+          "Version control for Bayesian models"
+        ],
+        "solutions": [
+          "Conjugate priors for closed-form posterior (fast updates)",
+          "Variational inference for real-time applications",
+          "Save posterior as prior for sequential updating",
+          "Model serialization (pickle, joblib, Stan's save/load)"
+        ]
+      }
+    }
+  },
+
+  "module_5_advanced_topics": {
+    "title": "Advanced Topics",
+    "regime_switching_models": {
+      "description": "Model changes in time series behavior across different market regimes",
+      "markov_switching_models": {
+        "description": "Parameters switch between k regimes following Markov process",
+        "examples": "High volatility vs low volatility, bull vs bear market",
+        "python_implementation": {
+          "library": "statsmodels",
+          "classes": [
+            "MarkovRegression - First-order k-regime Markov switching regression",
+            "MarkovAutoregression - Autoregressive model with regime switching (Hamilton 1989)"
+          ],
+          "parameters": {
+            "k_regimes": "Number of regimes (e.g., 2 or 3)",
+            "trend": "'c' (intercept), 't' (time trend), 'ct' (both), 'n' (none)",
+            "switching_variance": "True to allow variance to switch across regimes",
+            "exog_tvtp": "Time-varying transition probabilities"
+          },
+          "estimation": {
+            "method": "Hamilton (1989) filter + Kim (1994) smoother",
+            "optimization_tip": "Use search_reps=20 to find global optimum (many local maxima)"
+          },
+          "citation": "[45] Statsmodels. 'Markov switching dynamic regression models.' https://www.statsmodels.org/stable/examples/notebooks/generated/markov_regression.html"
+        }
+      },
+      "applications_commodities": [
+        "Bull vs bear markets in crude oil",
+        "Contango vs backwardation regimes",
+        "Calm vs turbulent volatility periods"
+      ]
+    },
+    "incorporating_fundamental_data": {
+      "description": "Enhance price forecasts with supply/demand fundamentals",
+      "data_types": {
+        "inventory_reports": {
+          "crude_oil": "EIA Weekly Petroleum Status Report",
+          "natural_gas": "EIA Weekly Natural Gas Storage Report",
+          "agriculture": "USDA Grain Stocks, Crop Production reports"
+        },
+        "production_data": {
+          "oil": "Rig counts (Baker Hughes), OPEC production quotas",
+          "metals": "Mine production, smelter output",
+          "agriculture": "Acreage planted, yield estimates"
+        },
+        "demand_indicators": {
+          "energy": "Refinery utilization, industrial production",
+          "metals": "Manufacturing PMI, construction activity",
+          "agriculture": "Export data, domestic consumption"
+        },
+        "weather_data": {
+          "energy": "Heating/cooling degree days",
+          "agriculture": "Precipitation, temperature, frost events"
+        }
+      },
+      "bayesian_approach": {
+        "advantage": "Natural framework to combine price signals with fundamental priors",
+        "example": "Use inventory levels to inform prior on price direction",
+        "hierarchical_model": "Share information between related fundamentals and prices"
+      }
+    },
+    "multi_output_forecasting": {
+      "description": "Jointly forecast multiple correlated commodities",
+      "approaches": {
+        "bayesian_var": {
+          "description": "Vector autoregression captures cross-commodity dynamics",
+          "example": "Jointly forecast crude oil, gasoline, heating oil (related products)"
+        },
+        "hierarchical_models": {
+          "description": "Share information across commodities with common structure",
+          "example": "Regional gold prices with global trend"
+        },
+        "copula_models": {
+          "description": "Model marginal distributions separately, join with copula",
+          "advantage": "Flexible dependence structure"
+        }
+      },
+      "benefits": [
+        "Improved forecasts via information sharing",
+        "Consistent multi-asset scenarios for portfolio optimization",
+        "Capture spillover effects and contagion"
+      ]
+    },
+    "real_time_updating": {
+      "description": "Update Bayesian models as new data arrives",
+      "sequential_bayesian_inference": {
+        "concept": "Today's posterior becomes tomorrow's prior",
+        "advantage": "Incremental updates without full retraining",
+        "requirement": "Conjugate priors for closed-form updates (fast)"
+      },
+      "particle_filters": {
+        "description": "Sequential Monte Carlo for non-linear/non-Gaussian state space",
+        "use_case": "Real-time tracking of latent states"
+      },
+      "challenges": {
+        "model_drift": "Distribution may shift over time (non-stationarity)",
+        "computational_cost": "Full MCMC too slow for high-frequency updates",
+        "solution": "Variational inference or conjugate models for speed"
+      }
+    },
+    "uncertainty_quantification_for_trading": {
+      "description": "Use Bayesian uncertainty estimates for risk management and decision-making",
+      "applications": {
+        "position_sizing": {
+          "approach": "Size trades inversely to forecast uncertainty (Kelly criterion with uncertainty)",
+          "bayesian_advantage": "Full posterior distribution over returns, not just point estimate"
+        },
+        "value_at_risk": {
+          "description": "Estimate VaR from posterior predictive distribution",
+          "extension": "Conditional Value-at-Risk (CVaR) for tail risk"
+        },
+        "optimal_stopping": {
+          "description": "When to exit trade based on updated beliefs",
+          "framework": "Bayesian decision theory"
+        },
+        "portfolio_optimization": {
+          "bayesian_approach": "Account for parameter uncertainty in mean-variance optimization",
+          "advantage": "More robust allocations vs point estimates"
+        }
+      },
+      "epistemic_vs_aleatoric_uncertainty": {
+        "epistemic": {
+          "description": "Model/parameter uncertainty (reducible with more data)",
+          "bayesian_representation": "Spread in posterior distribution"
+        },
+        "aleatoric": {
+          "description": "Inherent randomness (irreducible)",
+          "representation": "Likelihood variance"
+        },
+        "importance": "Distinguish for better risk management and capital allocation",
+        "methods": "Deep Ensembles, Bayesian Neural Networks"
+      },
+      "frameworks": {
+        "uamdp": {
+          "name": "Uncertainty-Aware Markov Decision Process",
+          "components": "Bayesian forecasting + posterior-sampling RL + CVaR constraint",
+          "applications": "High-frequency equity trading, inventory control",
+          "citation": "[46] arXiv. 'Uncertainty Quantification for Decision-Making.' https://arxiv.org/pdf/2510.08226"
+        },
+        "bayesian_risk_measures": {
+          "description": "Robust risk measures via mixing over probability measures",
+          "interpretation": "Bayesian approach to model uncertainty"
+        }
+      },
+      "citations": [
+        "[47] INFORMS. 'Decisions Under Uncertainty as Bayesian Inference on Choice Options.' Management Science. https://pubsonline.informs.org/doi/10.1287/mnsc.2023.00265",
+        "[48] Wiley. 'Financial Time Series Uncertainty: A Review of Probabilistic AI Applications.' Journal of Economic Surveys. https://onlinelibrary.wiley.com/doi/10.1111/joes.70018"
+      ]
+    },
+    "deep_bayesian_models": {
+      "description": "Combine deep learning with Bayesian uncertainty quantification",
+      "bayesian_neural_networks": {
+        "description": "Place priors on neural network weights",
+        "inference": "Variational inference (ADVI) or dropout approximation",
+        "libraries": ["PyMC", "TensorFlow Probability", "Pyro"],
+        "advantage": "Capture complex nonlinear patterns with uncertainty",
+        "challenge": "Computationally expensive"
+      },
+      "deep_ensembles": {
+        "description": "Train multiple neural networks with different initializations",
+        "uncertainty": "Disagreement between ensemble members",
+        "advantage": "Simple, often works well in practice"
+      }
+    }
+  },
+
+  "recommended_course_structure": {
+    "module_1": {
+      "title": "Bayesian Foundations for Time Series",
+      "duration": "2 weeks",
+      "topics": [
+        "Bayesian inference fundamentals",
+        "MCMC and variational inference",
+        "PyMC/Stan basics",
+        "Prior specification and sensitivity analysis",
+        "Posterior diagnostics (R-hat, ESS, trace plots)"
+      ],
+      "labs": [
+        "Implement Bayesian linear regression for commodity prices",
+        "Compare MCMC vs ADVI on synthetic data",
+        "Prior predictive checks for time series"
+      ]
+    },
+    "module_2": {
+      "title": "Bayesian Time Series Models",
+      "duration": "4 weeks",
+      "topics": [
+        "ARIMA and Bayesian ARIMA",
+        "State space models and Kalman filtering",
+        "Bayesian structural time series (BSTS)",
+        "Prophet and decomposition models",
+        "Gaussian processes for time series"
+      ],
+      "labs": [
+        "Forecast crude oil prices with Bayesian ARIMA",
+        "Build custom Prophet-like model in PyMC",
+        "Compare BSTS components for natural gas seasonality"
+      ]
+    },
+    "module_3": {
+      "title": "Commodities Market Dynamics",
+      "duration": "2 weeks",
+      "topics": [
+        "Commodity types and futures markets",
+        "Seasonality and calendar effects",
+        "Contango, backwardation, and roll yield",
+        "Mean reversion vs momentum in commodities",
+        "Fundamental drivers (inventory, weather, macro)"
+      ],
+      "labs": [
+        "Analyze seasonality in agricultural futures",
+        "Model crude oil-gasoline spread with cointegration",
+        "Detect regime switches in volatility"
+      ]
+    },
+    "module_4": {
+      "title": "Hierarchical and Multivariate Models",
+      "duration": "3 weeks",
+      "topics": [
+        "Hierarchical Bayesian models for related commodities",
+        "Bayesian VAR for multi-commodity forecasting",
+        "Cointegration and error correction models",
+        "Copula models for dependence"
+      ],
+      "labs": [
+        "Hierarchical model for regional grain prices",
+        "BVAR for energy complex (oil, gas, gasoline)",
+        "Pairs trading strategy with Bayesian spreads"
+      ]
+    },
+    "module_5": {
+      "title": "Advanced Topics and Production",
+      "duration": "3 weeks",
+      "topics": [
+        "Markov switching and regime detection",
+        "Incorporating fundamental data",
+        "Real-time updating and online learning",
+        "Uncertainty quantification for risk management",
+        "Model evaluation with CRPS and calibration",
+        "Deployment and backtesting considerations"
+      ],
+      "labs": [
+        "Regime-switching model for crude oil volatility",
+        "Real-time Bayesian updating with streaming data",
+        "Build full trading system with uncertainty-based position sizing",
+        "Walk-forward backtest with probabilistic evaluation"
+      ]
+    },
+    "capstone_project": {
+      "description": "End-to-end Bayesian forecasting system for commodity portfolio",
+      "requirements": [
+        "Forecast 3-5 commodities with appropriate Bayesian models",
+        "Incorporate seasonality, fundamentals, and regime switching",
+        "Implement proper backtesting with probabilistic metrics",
+        "Quantify uncertainty and use for risk management",
+        "Deploy model with real-time updates",
+        "Written report with Bayesian workflow and model diagnostics"
+      ]
+    }
+  },
+
+  "recommended_libraries_and_tools": {
+    "core_bayesian": {
+      "pymc": {
+        "version": ">=5.0",
+        "purpose": "Primary PPL for course",
+        "strengths": "User-friendly, great docs, NUTS sampler"
+      },
+      "arviz": {
+        "purpose": "Posterior analysis and visualization",
+        "features": "Model comparison (WAIC, LOO), trace plots, diagnostics"
+      },
+      "bambi": {
+        "purpose": "High-level interface for hierarchical models",
+        "built_on": "PyMC"
+      }
+    },
+    "alternative_ppls": {
+      "stan_pystan": {
+        "use_case": "Students wanting production-grade inference",
+        "advantage": "Robust, well-tested, excellent warnings"
+      },
+      "numpyro": {
+        "use_case": "Students with GPU access or large-scale problems",
+        "advantage": "JAX-based, very fast"
+      }
+    },
+    "time_series_specific": {
+      "prophet": {
+        "purpose": "Baseline model, comparison",
+        "installation": "pip install prophet"
+      },
+      "statsmodels": {
+        "purpose": "ARIMA, state space, Markov switching",
+        "modules": ["tsa.statespace", "tsa.regime_switching"]
+      },
+      "orbit": {
+        "purpose": "Bayesian forecasting with backtesting",
+        "developed_by": "Uber"
+      },
+      "pydlm": {
+        "purpose": "Dynamic linear models"
+      }
+    },
+    "data_and_features": {
+      "pandas": "Time series manipulation",
+      "numpy": "Numerical operations",
+      "yfinance": "Yahoo Finance data downloader",
+      "investpy": "Investing.com commodity data",
+      "featuretools": "Automated feature engineering"
+    },
+    "backtesting_and_evaluation": {
+      "properscoring": "CRPS and proper scoring rules",
+      "pyalgotrade": "Algorithm backtesting framework",
+      "bt": "Portfolio backtesting"
+    },
+    "visualization": {
+      "matplotlib": "Basic plotting",
+      "seaborn": "Statistical visualization",
+      "plotly": "Interactive plots for forecasts",
+      "arviz": "Bayesian-specific plots (trace, posterior, pair)"
+    }
+  },
+
+  "suggested_datasets": {
+    "beginner_friendly": {
+      "continuous_futures_free": {
+        "source": "TurtleTrader",
+        "commodities": ["Corn", "Crude Oil", "Gold", "Natural Gas"],
+        "format": "CSV with OHLCV",
+        "timespan": "1970s - present",
+        "url": "https://www.turtletrader.com/hpd/"
+      },
+      "yahoo_finance": {
+        "source": "Via yfinance library",
+        "symbols": ["CL=F (Crude)", "GC=F (Gold)", "NG=F (Nat Gas)", "ZC=F (Corn)"],
+        "advantage": "Easy Python access",
+        "limitation": "Limited history for some contracts"
+      }
+    },
+    "intermediate": {
+      "quandl_commodities": {
+        "source": "Nasdaq Data Link (formerly Quandl)",
+        "note": "Requires free API key; CHRIS dataset discontinued but alternatives exist",
+        "advantage": "Long history, API access"
+      },
+      "world_bank_pink_sheet": {
+        "source": "World Bank commodity prices",
+        "frequency": "Monthly",
+        "history": "1960 - present",
+        "commodities": "100+ commodity price series"
+      },
+      "eia_data": {
+        "source": "U.S. Energy Information Administration",
+        "data_types": ["Crude inventories", "Production", "Refinery utilization"],
+        "api": "Free EIA API",
+        "use_case": "Fundamental data for energy models"
+      },
+      "usda_data": {
+        "source": "U.S. Department of Agriculture",
+        "data_types": ["Grain stocks", "Crop production", "Export data"],
+        "use_case": "Fundamental data for agriculture models"
+      }
+    },
+    "advanced_capstone": {
+      "databento": {
+        "source": "Databento",
+        "data_types": "Tick, order book, 1-min bars",
+        "advantage": "Professional-grade, free credits available",
+        "use_case": "High-frequency analysis, realized volatility"
+      },
+      "firstratedata": {
+        "source": "FirstRate Data",
+        "resolution": "1-min to daily from 2007",
+        "contracts": "130+ most active futures",
+        "format": "CSV"
+      }
+    },
+    "supplementary_data": {
+      "weather": {
+        "noaa": "National Oceanic and Atmospheric Administration",
+        "features": ["Temperature", "Precipitation", "HDD/CDD"]
+      },
+      "macroeconomic": {
+        "fred": "Federal Reserve Economic Data (FRED) via pandas_datareader",
+        "indicators": ["GDP", "CPI", "Interest rates", "USD index"]
+      },
+      "sentiment": {
+        "cot_reports": "Commitments of Traders (CFTC)",
+        "use_case": "Positioning data as sentiment proxy"
+      }
+    }
+  },
+
+  "common_pitfalls_and_solutions": {
+    "prior_specification": {
+      "pitfall": "Overly broad uniform priors leading to unstable forecasts in AR models",
+      "solution": "Use informative priors based on domain knowledge; perform prior predictive checks",
+      "example": "AR coefficient should have prior that enforces stationarity (|phi| < 1)"
+    },
+    "stationarity_assumptions": {
+      "pitfall": "Applying AR/ARIMA to non-stationary data without differencing",
+      "solution": "Test for unit roots (ADF test); difference if necessary; or use integrated models"
+    },
+    "look_ahead_bias": {
+      "pitfall": "Using future data in feature engineering or preprocessing",
+      "solution": "Strictly chronological train/test split; walk-forward validation; no global scaling with future data"
+    },
+    "ignoring_uncertainty": {
+      "pitfall": "Using only point forecasts (posterior mean) and ignoring prediction intervals",
+      "solution": "Always report and use full posterior predictive distribution; evaluate with CRPS"
+    },
+    "overfitting_to_noise": {
+      "pitfall": "Complex models fit to short time series without regularization",
+      "solution": "Use informative priors as regularization; cross-validation; prefer simpler models"
+    },
+    "mcmc_diagnostics": {
+      "pitfall": "Ignoring divergent transitions, low ESS, or high R-hat",
+      "solution": "Always check diagnostics; reparameterize if needed (non-centered for hierarchical); increase adapt_delta"
+    },
+    "multiple_comparisons": {
+      "pitfall": "Testing many commodity pairs for cointegration without correction",
+      "solution": "Start with economic rationale; adjust p-values for multiple testing; or use Bayesian model selection"
+    },
+    "regime_changes": {
+      "pitfall": "Assuming stationarity when market structure has fundamentally changed",
+      "solution": "Use regime-switching models; changepoint detection; adaptive learning with discounting"
+    },
+    "computational_cost": {
+      "pitfall": "Running full MCMC on large dataset, waiting days for results",
+      "solution": "Start with subset; use ADVI for initial exploration; consider NumPyro for speed; use GPU if available"
+    },
+    "overconfident_forecasts": {
+      "pitfall": "Variational inference underestimating uncertainty",
+      "solution": "If using VI, validate against MCMC on subset; increase variational family flexibility; or switch to MCMC"
+    }
+  },
+
+  "best_practices": {
+    "bayesian_workflow": {
+      "steps": [
+        "1. Prior predictive checks - simulate data from prior to ensure sensible",
+        "2. Fit model to data",
+        "3. Posterior diagnostics - check convergence (R-hat, ESS, trace plots)",
+        "4. Posterior predictive checks - does model reproduce data features?",
+        "5. Model comparison - WAIC, LOO for selecting between models",
+        "6. Iterate and refine"
+      ],
+      "reference": "Gelman et al. Bayesian Workflow (2020)"
+    },
+    "model_development": {
+      "start_simple": "Begin with simple model (e.g., Bayesian linear regression), add complexity incrementally",
+      "interpretability": "Prefer interpretable models when possible; easier to debug and explain",
+      "domain_knowledge": "Incorporate subject matter expertise in priors and features",
+      "validate_assumptions": "Check residuals for autocorrelation, heteroskedasticity; verify stationarity"
+    },
+    "production_deployment": {
+      "model_versioning": "Track model versions, priors, and hyperparameters",
+      "monitoring": "Monitor forecast performance over time; detect degradation",
+      "retraining_schedule": "Decide retraining frequency based on market dynamics",
+      "fallback_models": "Have simpler backup model if complex model fails"
+    },
+    "communication": {
+      "visualize_uncertainty": "Always plot prediction intervals, not just point forecasts",
+      "explain_to_stakeholders": "Translate Bayesian concepts (credible intervals, posterior) to business language",
+      "highlight_limitations": "Be transparent about model assumptions and when they may break"
+    }
+  },
+
+  "authoritative_references": {
+    "books": [
+      {
+        "title": "Bayesian Modeling and Computation in Python",
+        "authors": "Martin et al.",
+        "publisher": "CRC Press",
+        "year": 2021,
+        "url": "https://bayesiancomputationbook.com/",
+        "relevance": "Comprehensive PyMC-based textbook with time series chapter"
+      },
+      {
+        "title": "Forecasting: Principles and Practice (3rd ed)",
+        "authors": "Hyndman & Athanasopoulos",
+        "year": 2021,
+        "url": "https://otexts.com/fpp3/",
+        "relevance": "Classic time series forecasting text with Prophet chapter"
+      },
+      {
+        "title": "Time Series Analysis by State Space Methods",
+        "authors": "Durbin & Koopman",
+        "publisher": "Oxford",
+        "year": 2012,
+        "relevance": "Authoritative reference on state space models and Kalman filtering"
+      }
+    ],
+    "papers": [
+      {
+        "title": "Forecasting at Scale (Prophet)",
+        "authors": "Taylor & Letham",
+        "journal": "The American Statistician",
+        "year": 2018,
+        "relevance": "Original Prophet paper describing Bayesian approach"
+      },
+      {
+        "title": "Bayesian Estimation and Forecasting of Time Series in statsmodels",
+        "authors": "Chad Fulton",
+        "venue": "SciPy 2022",
+        "url": "https://github.com/ChadFulton/scipy2022-bayesian-time-series",
+        "relevance": "Practical guide to Bayesian time series in statsmodels"
+      },
+      {
+        "title": "Predicting the Present with Bayesian Structural Time Series",
+        "authors": "Scott & Varian",
+        "journal": "International Journal of Mathematical Modelling and Numerical Optimisation",
+        "year": 2014,
+        "relevance": "Foundational BSTS paper by Google researchers"
+      }
+    ],
+    "online_resources": [
+      {
+        "title": "PyMC Example Gallery - Time Series",
+        "url": "https://www.pymc.io/projects/examples/en/latest/blog/tag/time-series.html",
+        "description": "Official PyMC time series examples and tutorials"
+      },
+      {
+        "title": "PyMC Labs Blog",
+        "url": "https://www.pymc-labs.com/blog-posts/",
+        "description": "Applied Bayesian modeling tutorials by PyMC core team"
+      },
+      {
+        "title": "Dr. Juan Camilo Orduz Blog",
+        "url": "https://juanitorduz.github.io/",
+        "description": "Excellent PyMC time series tutorials (GP, Prophet, short series)"
+      },
+      {
+        "title": "Chad Fulton's Blog",
+        "url": "http://www.chadfulton.com/",
+        "description": "Statsmodels developer; state space and Bayesian time series"
+      }
+    ],
+    "documentation": [
+      {
+        "library": "PyMC",
+        "url": "https://www.pymc.io/",
+        "relevance": "Primary probabilistic programming library"
+      },
+      {
+        "library": "ArviZ",
+        "url": "https://arviz-devs.github.io/arviz/",
+        "relevance": "Posterior analysis and diagnostics"
+      },
+      {
+        "library": "Statsmodels Time Series",
+        "url": "https://www.statsmodels.org/stable/tsa.html",
+        "relevance": "ARIMA, state space, Markov switching"
+      },
+      {
+        "library": "Prophet",
+        "url": "https://facebook.github.io/prophet/",
+        "relevance": "Additive Bayesian forecasting model"
+      }
+    ]
+  },
+
+  "all_citations": [
+    "[1] PyMC Development Team. 'Introduction to Bayesian Time Series Analysis with PyMC.' PyData London 2025. https://cfp.pydata.org/london2025/talk/T9KEHN/",
+    "[2] Nelson Tang. 'A Trivial Comparison of Python Probabilistic Programming Languages.' banditkings. https://www.nelsontang.com/blog/python_ppls_compared/python-ppls-compared.html",
+    "[3] Bayesian Modeling and Computation in Python. 'Chapter 6: Time Series.' https://bayesiancomputationbook.com/markdown/chp_06.html",
+    "[4] PyMC. 'Forecasting with Structural AR Timeseries.' PyMC Example Gallery. https://www.pymc.io/projects/examples/en/latest/time_series/Forecasting_with_structural_timeseries.html",
+    "[5] pybuc. 'Python Bayesian Unobserved Components.' PyPI. https://pypi.org/project/pybuc/",
+    "[6] wwrechard. 'pydlm: A python library for Bayesian time series modeling.' GitHub. https://github.com/wwrechard/pydlm",
+    "[7] Kyle Jones. 'Bayesian Time Series Analysis in Python (BSTS, BDLM, BNN, B Arima).' Medium. https://medium.com/@kylejones_47003/bayesian-time-series-analysis-in-python-bsts-bdlm-bnn-b-arima-1ca74d6cc3de",
+    "[8] PyMC Labs. 'How to Build a Bayesian Vector Autoregression (BVAR) Model in PyMC.' https://www.pymc-labs.com/blog-posts/bayesian-vector-autoregression",
+    "[9] Joerg Rieger. 'pybvar: Bayesian Vector Autoregression in Python.' GitHub. https://github.com/joergrieger/pybvar",
+    "[10] GPflow Team. 'GPflow: Gaussian processes in TensorFlow.' https://www.gpflow.org/",
+    "[11] Juan Camilo Orduz. 'PyData Berlin 2019: Gaussian Processes for Time Series Forecasting.' https://juanitorduz.github.io/gaussian_process_time_series/",
+    "[12] Juan Camilo Orduz. 'Gaussian Processes for Time Series Forecasting with PyMC3.' https://juanitorduz.github.io/gp_ts_pymc3/",
+    "[13] PyMC. 'A Primer on Bayesian Methods for Multilevel Modeling.' https://www.pymc.io/projects/examples/en/latest/generalized_linear_models/multilevel_modeling.html",
+    "[14] PyMC Labs. 'Probabilistic Time Series Analysis: Opportunities and Applications.' https://www.pymc-labs.com/blog-posts/probabilistic-forecasting",
+    "[15] PyMC. 'pymc-experimental now includes state spaces models!' PyMC Discourse. https://discourse.pymc.io/t/pymc-experimental-now-includes-state-spaces-models/12773",
+    "[16] Chad Fulton. 'Bayesian state space estimation in Python via Metropolis-Hastings.' http://www.chadfulton.com/topics/state_space_mh.html",
+    "[17] PyData Berlin 2025. 'A Beginner's Guide to State Space Modeling.' https://cfp.pydata.org/berlin2025/talk/GRZ3RG/",
+    "[18] ResearchGate. 'Forecasting Raw Materials Prices using Prophet Model.' https://www.researchgate.net/publication/376799376_Forecasting_Raw_Materials_Prices_using_Prophet_Model",
+    "[19] MDPI. 'Forecasting Selected Commodities' Prices with the Bayesian Symbolic Regression.' https://www.mdpi.com/2227-7072/12/2/34",
+    "[20] Ritchie Vink. 'Build Facebook's Prophet in PyMC3.' https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/",
+    "[21] Bayesian Modeling and Computation in Python. 'Chapter 6: Time Series - State Space Models and BSTS.' https://bayesiancomputationbook.com/markdown/chp_06.html",
+    "[22] Charles Copley. 'Heirarchical Time Series Using PyMC.' Medium. https://charlescopley.medium.com/heirarchical-time-series-using-pymc-29acd6a7c401",
+    "[23] TurtleTrader. 'Free Historical Futures Price Data.' https://www.turtletrader.com/hpd/",
+    "[24] QuantStart. 'Downloading Historical Futures Data From Quandl.' https://www.quantstart.com/articles/Downloading-Historical-Futures-Data-From-Quandl/",
+    "[25] DataHub. 'Commodity Prices - IMF Data.' https://old.datahub.io/dataset/commodity-prices",
+    "[26] Databento. 'Commodity Futures Data & APIs.' https://databento.com/futures/commodity",
+    "[27] HSET Journal. 'Time Series Analysis of Grains Commodity Futures Price Trends.' https://drpress.org/ojs/index.php/HSET/article/view/19766",
+    "[28] Forecaster. 'Seasonality in Financial Markets.' https://forecaster.biz/seasonality/",
+    "[29] FasterCapital. 'Seasonality in Commodities: Capitalizing on Cyclical Trends.' https://fastercapital.com/content/Seasonality-in-Commodities--Capitalizing-on-Cyclical-Trends.html",
+    "[30] ScienceDirect. 'Momentum and mean-reversion in commodity spot and futures markets.' https://www.sciencedirect.com/science/article/abs/pii/S2405851315300416",
+    "[31] QuantInsti. 'Mean Reversion Strategies: Introduction, Trading, Strategies and More.' https://blog.quantinsti.com/mean-reversion-strategies-introduction-building-blocks/",
+    "[32] QuantShare. 'Mean-reversion vs. Momentum Strategies.' https://www.quantshare.com/blog-497-mean-reversion-vs-momentum-strategies",
+    "[33] PyQuant News. 'Build a pairs trading strategy with Python.' https://www.pyquantnews.com/the-pyquant-newsletter/build-a-pairs-trading-strategy-python",
+    "[34] Muhammed Burak Bedir. 'Understanding Cointegration and How to Monitor Spread Between Prices with Python.' Medium. https://medium.com/@mburakbedir/understanding-cointegration-and-how-to-monitor-spread-between-prices-with-python-518c66c39ee4",
+    "[35] Fidelity. 'Commodity ETFs: Contango/Backwardation.' https://www.fidelity.com/learning-center/investment-products/etf/commodity-etfs-contango-backwardation",
+    "[36] CME Group. 'What is Contango and Backwardation.' https://www.cmegroup.com/education/courses/introduction-to-ferrous-metals/what-is-contango-and-backwardation.html",
+    "[37] DotData. 'Practical Guide for Feature Engineering of Time Series Data.' https://dotdata.com/blog/practical-guide-for-feature-engineering-of-time-series-data/",
+    "[38] Analytics Vidhya. '6 Powerful Feature Engineering Techniques For Time Series Data.' https://www.analyticsvidhya.com/blog/2019/12/6-powerful-feature-engineering-techniques-time-series/",
+    "[39] Microsoft Data Science. 'Introduction to feature engineering for time series forecasting.' Medium. https://medium.com/data-science-at-microsoft/introduction-to-feature-engineering-for-time-series-forecasting-620aa55fcab0",
+    "[40] Uber. 'Orbit: A Python package for Bayesian forecasting.' GitHub. https://github.com/uber/orbit",
+    "[41] PropertyScoring. 'properscoring.' PyPI. https://pypi.org/project/properscoring/",
+    "[42] CRPS. 'CRPS.' PyPI. https://pypi.org/project/CRPS/",
+    "[43] Skforecast. 'Continuous Ranked Probability Score (CRPS).' https://skforecast.org/0.15.0/faq/probabilistic-forecasting-crps-score.html",
+    "[44] Eryk Lewinson. 'Essential Guide to Continuous Ranked Probability Score (CRPS) for Forecasting.' Medium. https://medium.com/data-science/essential-guide-to-continuous-ranked-probability-score-crps-for-forecasting-ac0a55dcb30d",
+    "[45] Statsmodels. 'Markov switching dynamic regression models.' https://www.statsmodels.org/stable/examples/notebooks/generated/markov_regression.html",
+    "[46] arXiv. 'Uncertainty Quantification for Decision-Making.' https://arxiv.org/pdf/2510.08226",
+    "[47] INFORMS. 'Decisions Under Uncertainty as Bayesian Inference on Choice Options.' Management Science. https://pubsonline.informs.org/doi/10.1287/mnsc.2023.00265",
+    "[48] Wiley. 'Financial Time Series Uncertainty: A Review of Probabilistic AI Applications.' Journal of Economic Surveys. https://onlinelibrary.wiley.com/doi/10.1111/joes.70018"
+  ]
+}
