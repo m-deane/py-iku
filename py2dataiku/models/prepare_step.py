@@ -18,11 +18,15 @@ class ProcessorType(Enum):
     COLUMN_COPIER = "ColumnCopier"
     COLUMN_DELETER = "ColumnDeleter"
     COLUMNS_SELECTOR = "ColumnsSelector"
+    COLUMN_REORDER = "ColumnReorder"
+    COLUMNS_CONCATENATOR = "ColumnsConcatenator"
 
     # Missing value handling
     FILL_EMPTY_WITH_VALUE = "FillEmptyWithValue"
     REMOVE_ROWS_ON_EMPTY = "RemoveRowsOnEmpty"
     FILL_EMPTY_WITH_PREVIOUS_NEXT = "FillEmptyWithPreviousNext"
+    FILL_EMPTY_WITH_COMPUTED_VALUE = "FillEmptyWithComputedValue"
+    IMPUTE_WITH_ML = "ImputeWithML"
 
     # String transformations
     STRING_TRANSFORMER = "StringTransformer"
@@ -32,6 +36,21 @@ class ProcessorType(Enum):
     SPLIT_COLUMN = "SplitColumn"
     CONCAT_COLUMNS = "ConcatColumns"
     HTML_STRIPPER = "HtmlStripper"
+    MULTI_COLUMN_FIND_REPLACE = "MultiColumnFindReplace"
+    NGRAMMER = "Ngrammer"
+    TEXT_SIMPLIFIER = "TextSimplifier"
+    STEM_TEXT = "StemText"
+    LEMMATIZE_TEXT = "LemmatizeText"
+    LANGUAGE_DETECTOR = "LanguageDetector"
+    SENTIMENT_ANALYZER = "SentimentAnalyzer"
+    TEXT_HASHER = "TextHasher"
+    UNICODE_NORMALIZER = "UnicodeNormalizer"
+    URL_PARSER = "URLParser"
+    IP_ADDRESS_PARSER = "IPAddressParser"
+    EMAIL_DOMAIN_EXTRACTOR = "EmailDomainExtractor"
+    PHONE_FORMATTER = "PhoneFormatter"
+    COUNTRY_NORMALIZER = "CountryNormalizer"
+    USER_AGENT_PARSER = "UserAgentParser"
 
     # Numeric transformations
     NUMERICAL_TRANSFORMER = "NumericalTransformer"
@@ -40,11 +59,31 @@ class ProcessorType(Enum):
     CLIP_COLUMN = "ClipColumn"
     BINNER = "Binner"
     NORMALIZER = "Normalizer"
+    DISCRETIZER = "Discretizer"
+    QUANTILE_TRANSFORMER = "QuantileTransformer"
+    ROBUST_SCALER = "RobustScaler"
+    MIN_MAX_SCALER = "MinMaxScaler"
+    STANDARD_SCALER = "StandardScaler"
+    LOG_TRANSFORMER = "LogTransformer"
+    POWER_TRANSFORMER = "PowerTransformer"
+    BOX_COX_TRANSFORMER = "BoxCoxTransformer"
 
     # Type conversion
     TYPE_SETTER = "TypeSetter"
     DATE_PARSER = "DateParser"
     DATE_FORMATTER = "DateFormatter"
+    BOOLEAN_CONVERTER = "BooleanConverter"
+    NUMBER_TO_STRING = "NumberToString"
+    STRING_TO_NUMBER = "StringToNumber"
+
+    # Date/Time operations
+    DATE_COMPONENTS_EXTRACTOR = "DateComponentsExtractor"
+    DATE_DIFF_CALCULATOR = "DateDiffCalculator"
+    HOLIDAYS_COMPUTER = "HolidaysComputer"
+    TIMEZONE_CONVERTER = "TimezoneConverter"
+    DATE_RANGE_CLASSIFIER = "DateRangeClassifier"
+    DATETIME_FORMATTER = "DatetimeFormatter"
+    TIMESTAMP_EXTRACTOR = "TimestampExtractor"
 
     # Filtering
     FILTER_ON_VALUE = "FilterOnValue"
@@ -52,28 +91,66 @@ class ProcessorType(Enum):
     FILTER_ON_FORMULA = "FilterOnFormula"
     FILTER_ON_DATE_RANGE = "FilterOnDateRange"
     FILTER_ON_NUMERIC_RANGE = "FilterOnNumericRange"
+    FILTER_ON_MULTIPLE_VALUES = "FilterOnMultipleValues"
+    FILTER_ON_NULL_NUMERIC = "FilterOnNullNumeric"
+    FILTER_ON_GEO_ZONE = "FilterOnGeoZone"
+    FILTER_ON_CUSTOM_CONDITION = "FilterOnCustomCondition"
 
     # Flagging
     FLAG_ON_VALUE = "FlagOnValue"
     FLAG_ON_FORMULA = "FlagOnFormula"
     FLAG_ON_BAD_TYPE = "FlagOnBadType"
+    FLAG_ON_DATE_RANGE = "FlagOnDateRange"
+    FLAG_ON_NUMERIC_RANGE = "FlagOnNumericRange"
 
     # Row operations
     REMOVE_DUPLICATES = "RemoveDuplicates"
     SORT_ROWS = "SortRows"
     SAMPLE_ROWS = "SampleRows"
+    SHUFFLE_ROWS = "ShuffleRows"
 
     # Computed columns
     CREATE_COLUMN_WITH_GREL = "CreateColumnWithGREL"
     FORMULA = "Formula"
+    MULTI_COLUMN_FORMULA = "MultiColumnFormula"
+    COLUMN_PSEUDO_ANONYMIZER = "ColumnPseudoAnonymizer"
+    HASH_COMPUTER = "HashComputer"
+    UUID_GENERATOR = "UUIDGenerator"
 
     # Categorical
     MERGE_LONG_TAIL_VALUES = "MergeLongTailValues"
     CATEGORICAL_ENCODER = "CategoricalEncoder"
+    ONE_HOT_ENCODER = "OneHotEncoder"
+    LABEL_ENCODER = "LabelEncoder"
+    ORDINAL_ENCODER = "OrdinalEncoder"
+    TARGET_ENCODER = "TargetEncoder"
+    LEAVE_ONE_OUT_ENCODER = "LeaveOneOutEncoder"
+    WOE_ENCODER = "WOEEncoder"
+    FEATURE_HASHER = "FeatureHasher"
 
     # Geographic
     GEO_POINT_CREATOR = "GeoPointCreator"
     GEO_ENCODER = "GeoEncoder"
+    GEO_IP_RESOLVER = "GeoIPResolver"
+    GEO_DISTANCE_CALCULATOR = "GeoDistanceCalculator"
+    GEO_POLYGON_MATCHER = "GeoPolygonMatcher"
+    ADDRESS_PARSER = "AddressParser"
+    REVERSE_GEOCODER = "ReverseGeocoder"
+
+    # Array/JSON operations
+    ARRAY_SPLITTER = "ArraySplitter"
+    ARRAY_JOINER = "ArrayJoiner"
+    ARRAY_SORTER = "ArraySorter"
+    ARRAY_UNFOLD = "ArrayUnfold"
+    ARRAY_FOLD = "ArrayFold"
+    ARRAY_ELEMENT_EXTRACTOR = "ArrayElementExtractor"
+    JSON_FLATTENER = "JSONFlattener"
+    JSON_EXTRACTOR = "JSONExtractor"
+    XML_EXTRACTOR = "XMLExtractor"
+
+    # Nested/Group processors
+    NESTED_PROCESSOR = "NestedProcessor"
+    PROCESSOR_GROUP = "ProcessorGroup"
 
     # Python UDF (fallback)
     PYTHON_UDF = "PythonUDF"
@@ -83,28 +160,154 @@ class ProcessorType(Enum):
 class StringTransformerMode(Enum):
     """Modes for StringTransformer processor."""
 
+    # Case transformations
     UPPERCASE = "TO_UPPER"
     LOWERCASE = "TO_LOWER"
     TITLECASE = "TITLECASE"
+    CAPITALIZE = "CAPITALIZE"
+    SWAPCASE = "SWAPCASE"
+
+    # Whitespace handling
     TRIM = "TRIM"
     TRIM_LEFT = "TRIM_LEFT"
     TRIM_RIGHT = "TRIM_RIGHT"
     NORMALIZE_WHITESPACE = "NORMALIZE_WHITESPACE"
     REMOVE_WHITESPACE = "REMOVE_WHITESPACE"
+    COLLAPSE_WHITESPACE = "COLLAPSE_WHITESPACE"
+
+    # Text cleaning
+    REMOVE_ACCENTS = "REMOVE_ACCENTS"
+    ASCII_TRANSLITERATE = "ASCII_TRANSLITERATE"
+    REMOVE_NON_ALPHANUMERIC = "REMOVE_NON_ALPHANUMERIC"
+    REMOVE_NON_PRINTABLE = "REMOVE_NON_PRINTABLE"
+    REMOVE_PUNCTUATION = "REMOVE_PUNCTUATION"
+    REMOVE_DIGITS = "REMOVE_DIGITS"
+    KEEP_ONLY_DIGITS = "KEEP_ONLY_DIGITS"
+    KEEP_ONLY_ALPHA = "KEEP_ONLY_ALPHA"
+
+    # Padding
+    PAD_LEFT = "PAD_LEFT"
+    PAD_RIGHT = "PAD_RIGHT"
+    PAD_CENTER = "PAD_CENTER"
+
+    # Other
+    REVERSE = "REVERSE"
+    QUOTE = "QUOTE"
+    UNQUOTE = "UNQUOTE"
 
 
 # Numerical transformer modes
 class NumericalTransformerMode(Enum):
     """Modes for NumericalTransformer processor."""
 
+    # Arithmetic operations
     MULTIPLY = "MULTIPLY"
     DIVIDE = "DIVIDE"
     ADD = "ADD"
     SUBTRACT = "SUBTRACT"
     POWER = "POWER"
+    SQRT = "SQRT"
+    LOG = "LOG"
+    LOG10 = "LOG10"
+    LOG2 = "LOG2"
+    EXP = "EXP"
+    ABS = "ABS"
+    NEGATE = "NEGATE"
+    INVERSE = "INVERSE"
+    MODULO = "MODULO"
+
+    # Rounding operations
     ROUND = "ROUND"
     FLOOR = "FLOOR"
     CEIL = "CEIL"
+    TRUNCATE = "TRUNCATE"
+    ROUND_TO_SIGNIFICANT = "ROUND_TO_SIGNIFICANT"
+
+    # Trigonometric
+    SIN = "SIN"
+    COS = "COS"
+    TAN = "TAN"
+    ASIN = "ASIN"
+    ACOS = "ACOS"
+    ATAN = "ATAN"
+
+    # Unit conversions
+    DEGREES_TO_RADIANS = "DEGREES_TO_RADIANS"
+    RADIANS_TO_DEGREES = "RADIANS_TO_DEGREES"
+
+
+class FilterMatchMode(Enum):
+    """Match modes for filtering processors."""
+
+    EQUALS = "EQUALS"
+    NOT_EQUALS = "NOT_EQUALS"
+    CONTAINS = "CONTAINS"
+    NOT_CONTAINS = "NOT_CONTAINS"
+    STARTS_WITH = "STARTS_WITH"
+    ENDS_WITH = "ENDS_WITH"
+    REGEX = "REGEX"
+    NOT_REGEX = "NOT_REGEX"
+    IS_EMPTY = "IS_EMPTY"
+    IS_NOT_EMPTY = "IS_NOT_EMPTY"
+    IS_NULL = "IS_NULL"
+    IS_NOT_NULL = "IS_NOT_NULL"
+    IN_LIST = "IN_LIST"
+    NOT_IN_LIST = "NOT_IN_LIST"
+
+
+class DateComponentType(Enum):
+    """Date component types for DateComponentsExtractor."""
+
+    YEAR = "YEAR"
+    MONTH = "MONTH"
+    DAY = "DAY"
+    DAY_OF_WEEK = "DAY_OF_WEEK"
+    DAY_OF_YEAR = "DAY_OF_YEAR"
+    WEEK_OF_YEAR = "WEEK_OF_YEAR"
+    QUARTER = "QUARTER"
+    HOUR = "HOUR"
+    MINUTE = "MINUTE"
+    SECOND = "SECOND"
+    MILLISECOND = "MILLISECOND"
+    TIMESTAMP = "TIMESTAMP"
+    ISO_WEEK = "ISO_WEEK"
+    ISO_YEAR = "ISO_YEAR"
+
+
+class BinningMode(Enum):
+    """Binning modes for Binner processor."""
+
+    EQUAL_WIDTH = "EQUAL_WIDTH"
+    EQUAL_FREQUENCY = "EQUAL_FREQUENCY"
+    CUSTOM_BOUNDARIES = "CUSTOM_BOUNDARIES"
+    QUANTILE = "QUANTILE"
+    KMEANS = "KMEANS"
+
+
+class NormalizationMode(Enum):
+    """Normalization modes for Normalizer processor."""
+
+    MIN_MAX = "MIN_MAX"
+    Z_SCORE = "Z_SCORE"
+    ROBUST = "ROBUST"
+    L1 = "L1"
+    L2 = "L2"
+    MAX_ABS = "MAX_ABS"
+
+
+class EncodingType(Enum):
+    """Encoding types for categorical encoders."""
+
+    ONE_HOT = "ONE_HOT"
+    LABEL = "LABEL"
+    ORDINAL = "ORDINAL"
+    BINARY = "BINARY"
+    TARGET = "TARGET"
+    FREQUENCY = "FREQUENCY"
+    COUNT = "COUNT"
+    LEAVE_ONE_OUT = "LEAVE_ONE_OUT"
+    WOE = "WOE"
+    HASH = "HASH"
 
 
 @dataclass

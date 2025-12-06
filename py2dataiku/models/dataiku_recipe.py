@@ -15,7 +15,7 @@ class RecipeType(Enum):
     Code recipes (Python, SQL, R) are orange circles.
     """
 
-    # Visual recipes (green/teal)
+    # Visual recipes (green/teal) - Data Preparation
     PREPARE = "prepare"
     SYNC = "sync"
     GROUPING = "grouping"
@@ -32,15 +32,41 @@ class RecipeType(Enum):
     SAMPLING = "sampling"
     DOWNLOAD = "download"
 
-    # Code recipes (orange)
+    # Visual recipes - Additional
+    GENERATE_FEATURES = "generate_features"
+    GENERATE_STATISTICS = "generate_statistics"
+    PUSH_TO_EDITABLE = "push_to_editable"
+    LIST_FOLDER_CONTENTS = "list_folder_contents"
+    DYNAMIC_REPEAT = "dynamic_repeat"
+    EXTRACT_FAILED_ROWS = "extract_failed_rows"
+    UPSERT = "upsert"
+    LIST_ACCESS = "list_access"
+
+    # Code recipes (orange) - Python/R
     PYTHON = "python"
-    SQL = "sql_query"
     R = "r"
+
+    # Code recipes - SQL variants
+    SQL = "sql_query"
+    HIVE = "hive"
+    IMPALA = "impala"
+    SPARKSQL = "sparksql"
+
+    # Code recipes - Spark variants
+    PYSPARK = "pyspark"
+    SPARK_SCALA = "spark_scala"
+    SPARKR = "sparkr"
+
+    # Code recipes - Other
+    SHELL = "shell"
 
     # ML recipes (purple)
     PREDICTION_SCORING = "prediction_scoring"
     CLUSTERING_SCORING = "clustering_scoring"
     EVALUATION = "evaluation"
+
+    # AI-assisted
+    AI_ASSISTANT_GENERATE = "ai_assistant_generate"
 
 
 class JoinType(Enum):
@@ -51,6 +77,143 @@ class JoinType(Enum):
     RIGHT = "RIGHT"
     OUTER = "OUTER"
     CROSS = "CROSS"
+    LEFT_ANTI = "LEFT_ANTI"
+    RIGHT_ANTI = "RIGHT_ANTI"
+    ADVANCED = "ADVANCED"
+
+
+class JoinConditionType(Enum):
+    """Join condition types for advanced joins."""
+
+    EQ = "EQ"  # Equality (default)
+    LTE = "LTE"  # Less than or equal
+    LT = "LT"  # Less than
+    GTE = "GTE"  # Greater than or equal
+    GT = "GT"  # Greater than
+    NE = "NE"  # Not equal
+    WITHIN_RANGE = "WITHIN_RANGE"  # Range condition
+    K_NEAREST = "K_NEAREST"  # K nearest neighbors
+    K_NEAREST_INFERIOR = "K_NEAREST_INFERIOR"  # K nearest below
+    CONTAINS = "CONTAINS"  # String contains
+    STARTS_WITH = "STARTS_WITH"  # String starts with
+
+
+class AggregationFunction(Enum):
+    """Aggregation functions for Grouping and Window recipes."""
+
+    # Basic aggregations
+    SUM = "SUM"
+    AVG = "AVG"
+    MEAN = "MEAN"
+    COUNT = "COUNT"
+    COUNTD = "COUNTD"  # Count distinct
+    MIN = "MIN"
+    MAX = "MAX"
+    FIRST = "FIRST"
+    LAST = "LAST"
+
+    # Statistical aggregations
+    STD = "STD"
+    STDDEV = "STDDEV"
+    VAR = "VAR"
+    VARIANCE = "VARIANCE"
+    MEDIAN = "MEDIAN"
+    MODE = "MODE"
+    NUNIQUE = "NUNIQUE"
+
+    # Percentile aggregations
+    PERCENTILE_25 = "PERCENTILE_25"
+    PERCENTILE_50 = "PERCENTILE_50"
+    PERCENTILE_75 = "PERCENTILE_75"
+    PERCENTILE_90 = "PERCENTILE_90"
+    PERCENTILE_95 = "PERCENTILE_95"
+    PERCENTILE_99 = "PERCENTILE_99"
+
+    # Collection aggregations
+    CONCAT = "CONCAT"
+    COLLECT_LIST = "COLLECT_LIST"
+    COLLECT_SET = "COLLECT_SET"
+
+
+class WindowFunctionType(Enum):
+    """Window function types for Window recipe."""
+
+    # Ranking functions
+    ROW_NUMBER = "ROW_NUMBER"
+    RANK = "RANK"
+    DENSE_RANK = "DENSE_RANK"
+    NTILE = "NTILE"
+    PERCENT_RANK = "PERCENT_RANK"
+    CUME_DIST = "CUME_DIST"
+
+    # Offset functions
+    LAG = "LAG"
+    LEAD = "LEAD"
+    LAG_DIFF = "LAG_DIFF"
+    LEAD_DIFF = "LEAD_DIFF"
+    FIRST_VALUE = "FIRST_VALUE"
+    LAST_VALUE = "LAST_VALUE"
+    NTH_VALUE = "NTH_VALUE"
+
+    # Running/cumulative aggregations
+    RUNNING_SUM = "RUNNING_SUM"
+    RUNNING_AVG = "RUNNING_AVG"
+    RUNNING_MIN = "RUNNING_MIN"
+    RUNNING_MAX = "RUNNING_MAX"
+    RUNNING_COUNT = "RUNNING_COUNT"
+
+    # Moving window aggregations
+    MOVING_AVG = "MOVING_AVG"
+    MOVING_SUM = "MOVING_SUM"
+    MOVING_MIN = "MOVING_MIN"
+    MOVING_MAX = "MOVING_MAX"
+    MOVING_STDDEV = "MOVING_STDDEV"
+
+
+class GeoJoinOperator(Enum):
+    """Spatial operators for Geo Join recipe."""
+
+    WITHIN_DISTANCE = "WITHIN_DISTANCE"
+    BEYOND_DISTANCE = "BEYOND_DISTANCE"
+    INTERSECTS = "INTERSECTS"
+    CONTAINS = "CONTAINS"
+    WITHIN = "WITHIN"
+    TOUCHES = "TOUCHES"
+    OVERLAPS = "OVERLAPS"
+    CROSSES = "CROSSES"
+    DISJOINT = "DISJOINT"
+
+
+class DistanceUnit(Enum):
+    """Distance units for geo operations."""
+
+    METER = "METER"
+    KILOMETER = "KILOMETER"
+    FOOT = "FOOT"
+    YARD = "YARD"
+    MILE = "MILE"
+    NAUTICAL_MILE = "NAUTICAL_MILE"
+
+
+class SplitMode(Enum):
+    """Split modes for Split recipe."""
+
+    FILTER = "FILTER"  # Based on filter conditions
+    RANDOM = "RANDOM"  # Random split
+    COLUMN_VALUE = "COLUMN_VALUE"  # Based on column values
+    PERCENTILE = "PERCENTILE"  # Based on percentiles
+
+
+class SamplingMethod(Enum):
+    """Sampling methods for Sampling recipe."""
+
+    RANDOM = "RANDOM"
+    RANDOM_FIXED = "RANDOM_FIXED"
+    FIRST_ROWS = "FIRST_ROWS"
+    LAST_ROWS = "LAST_ROWS"
+    STRATIFIED = "STRATIFIED"
+    CLASS_REBALANCE = "CLASS_REBALANCE"
+    RESERVOIR = "RESERVOIR"
 
 
 @dataclass
