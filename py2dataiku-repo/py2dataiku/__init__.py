@@ -7,9 +7,16 @@ equivalent Dataiku DSS recipe configurations, flow structures, and visual diagra
 Two analysis modes are available:
 1. LLM-based (recommended): Uses AI to understand code semantics
 2. Rule-based (fallback): Uses AST pattern matching
+
+Visualization formats:
+- SVG: Scalable vector graphics (pixel-accurate Dataiku styling)
+- HTML: Interactive canvas with hover/click
+- ASCII: Terminal-friendly text art
+- PlantUML: Documentation-ready diagrams
+- Mermaid: GitHub/Notion compatible
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Rule-based components (legacy)
 from py2dataiku.parser.ast_analyzer import CodeAnalyzer
@@ -32,6 +39,18 @@ from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import DataikuRecipe
 from py2dataiku.models.dataiku_dataset import DataikuDataset
 
+# Visualizers
+from py2dataiku.visualizers import (
+    SVGVisualizer,
+    ASCIIVisualizer,
+    PlantUMLVisualizer,
+    HTMLVisualizer,
+    visualize_flow,
+    DataikuTheme,
+    DATAIKU_LIGHT,
+    DATAIKU_DARK,
+)
+
 __all__ = [
     # LLM-based (recommended)
     "LLMCodeAnalyzer",
@@ -51,6 +70,15 @@ __all__ = [
     "DataikuFlow",
     "DataikuRecipe",
     "DataikuDataset",
+    # Visualizers
+    "SVGVisualizer",
+    "ASCIIVisualizer",
+    "PlantUMLVisualizer",
+    "HTMLVisualizer",
+    "visualize_flow",
+    "DataikuTheme",
+    "DATAIKU_LIGHT",
+    "DATAIKU_DARK",
     # Convenience functions
     "convert",
     "convert_with_llm",
@@ -218,7 +246,7 @@ class Py2Dataiku:
 
     def generate_diagram(self, flow: DataikuFlow, format: str = "mermaid") -> str:
         """
-        Generate a diagram for a flow.
+        Generate a diagram for a flow (legacy method).
 
         Args:
             flow: DataikuFlow to visualize
@@ -237,3 +265,58 @@ class Py2Dataiku:
             return self.diagram_generator.to_plantuml(flow)
         else:
             raise ValueError(f"Unknown format: {format}")
+
+    def visualize(self, flow: DataikuFlow, format: str = "svg", **kwargs) -> str:
+        """
+        Generate Dataiku-style visualization of a flow.
+
+        This method produces pixel-accurate representations matching
+        the Dataiku DSS interface styling.
+
+        Args:
+            flow: DataikuFlow to visualize
+            format: Output format ("svg", "html", "ascii", "plantuml")
+            **kwargs: Additional arguments for the visualizer
+
+        Returns:
+            Visualization string in the specified format
+        """
+        return flow.visualize(format=format, **kwargs)
+
+    def save_visualization(
+        self,
+        flow: DataikuFlow,
+        output_path: str,
+        format: str = None,
+    ) -> None:
+        """
+        Save flow visualization to a file.
+
+        Args:
+            flow: DataikuFlow to visualize
+            output_path: Path to save the file
+            format: Output format (auto-detected from extension if not provided)
+        """
+        if format is None:
+            # Auto-detect from extension
+            ext = output_path.rsplit('.', 1)[-1].lower()
+            format_map = {
+                'svg': 'svg',
+                'html': 'html',
+                'htm': 'html',
+                'txt': 'ascii',
+                'puml': 'plantuml',
+                'plantuml': 'plantuml',
+                'png': 'png',
+                'pdf': 'pdf',
+            }
+            format = format_map.get(ext, 'svg')
+
+        if format == 'png':
+            flow.to_png(output_path)
+        elif format == 'pdf':
+            flow.to_pdf(output_path)
+        else:
+            content = flow.visualize(format=format)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(content)

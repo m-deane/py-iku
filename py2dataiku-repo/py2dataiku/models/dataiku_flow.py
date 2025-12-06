@@ -293,6 +293,106 @@ class DataikuFlow:
             with open(filepath, "w") as f:
                 json.dump(recipe.to_json(), f, indent=2)
 
+    # Visualization methods
+
+    def visualize(self, format: str = "svg", **kwargs) -> str:
+        """
+        Generate a visual representation of the flow.
+
+        Args:
+            format: Output format - "svg", "ascii", "plantuml", "html", "mermaid"
+            **kwargs: Additional arguments passed to the visualizer
+
+        Returns:
+            String containing the visualization in the requested format
+        """
+        if format == "mermaid":
+            # Use existing diagram generator for backwards compatibility
+            from py2dataiku.generators.diagram_generator import DiagramGenerator
+            return DiagramGenerator().to_mermaid(self)
+
+        from py2dataiku.visualizers import visualize_flow
+        return visualize_flow(self, format=format, **kwargs)
+
+    def to_svg(self, output_path: str = None) -> str:
+        """
+        Generate SVG visualization.
+
+        Args:
+            output_path: Optional file path to save the SVG
+
+        Returns:
+            SVG content as string
+        """
+        content = self.visualize(format="svg")
+        if output_path:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        return content
+
+    def to_ascii(self) -> str:
+        """Generate ASCII art visualization."""
+        return self.visualize(format="ascii")
+
+    def to_html(self, output_path: str = None) -> str:
+        """
+        Generate interactive HTML visualization.
+
+        Args:
+            output_path: Optional file path to save the HTML
+
+        Returns:
+            HTML content as string
+        """
+        content = self.visualize(format="html")
+        if output_path:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        return content
+
+    def to_plantuml(self, output_path: str = None) -> str:
+        """
+        Generate PlantUML visualization.
+
+        Args:
+            output_path: Optional file path to save the PlantUML code
+
+        Returns:
+            PlantUML content as string
+        """
+        content = self.visualize(format="plantuml")
+        if output_path:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        return content
+
+    def to_png(self, output_path: str, scale: float = 2.0) -> None:
+        """
+        Export flow as PNG image.
+
+        Requires cairosvg package: pip install cairosvg
+
+        Args:
+            output_path: File path to save the PNG
+            scale: Scale factor for resolution (default 2.0)
+        """
+        from py2dataiku.visualizers import SVGVisualizer
+        visualizer = SVGVisualizer()
+        visualizer.export_png(self, output_path, scale=scale)
+
+    def to_pdf(self, output_path: str) -> None:
+        """
+        Export flow as PDF.
+
+        Requires cairosvg package: pip install cairosvg
+
+        Args:
+            output_path: File path to save the PDF
+        """
+        from py2dataiku.visualizers import SVGVisualizer
+        visualizer = SVGVisualizer()
+        visualizer.export_pdf(self, output_path)
+
     def __repr__(self) -> str:
         return (
             f"DataikuFlow(name='{self.name}', "
