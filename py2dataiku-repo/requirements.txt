@@ -1,0 +1,10 @@
+# Core dependencies
+pyyaml>=6.0
+
+# LLM providers (optional - install for LLM-based analysis)
+anthropic>=0.18.0
+openai>=1.0.0
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
