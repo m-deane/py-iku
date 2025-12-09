@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "py2dataiku"
+name = "py-iku"
 version = "0.2.0"
 description = "Convert Python data processing code to Dataiku DSS recipes and flows"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
-    {name = "py2dataiku contributors"}
+    {name = "py-iku contributors"}
 ]
 keywords = [
     "dataiku",
@@ -55,14 +55,14 @@ dev = [
     "ruff>=0.1.0",
 ]
 all = [
-    "py2dataiku[llm,dev]",
+    "py-iku[llm,dev]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/py2dataiku"
-Documentation = "https://github.com/YOUR_USERNAME/py2dataiku#readme"
-Repository = "https://github.com/YOUR_USERNAME/py2dataiku"
-Issues = "https://github.com/YOUR_USERNAME/py2dataiku/issues"
+Homepage = "https://github.com/m-deane/py-iku"
+Documentation = "https://github.com/m-deane/py-iku#readme"
+Repository = "https://github.com/m-deane/py-iku"
+Issues = "https://github.com/m-deane/py-iku/issues"
 
 [project.scripts]
 py2dataiku = "py2dataiku.cli:main"

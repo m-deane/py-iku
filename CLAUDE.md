@@ -4,18 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Repository Overview
 
-This repository contains two main Python projects:
-
-1. **py2dataiku** - Convert Python data processing code to Dataiku DSS recipes and flows
-2. **py-tidymodels** - Python port of R's tidymodels ecosystem for time series modeling
-
----
-
-# py2dataiku
-
-## Overview
-
-**py2dataiku** is a Python library that converts Python data processing code (pandas, numpy, scikit-learn) to Dataiku DSS recipes, flows, and visual diagrams. The library supports two analysis modes:
+**py-iku** is a Python library that converts Python data processing code (pandas, numpy, scikit-learn) to Dataiku DSS recipes, flows, and visual diagrams. The library supports two analysis modes:
 
 1. **LLM-based (recommended)**: Uses AI (Anthropic/OpenAI) to understand code semantics
 2. **Rule-based (fallback)**: Uses AST pattern matching for offline conversion
@@ -174,7 +163,7 @@ from py2dataiku.examples.combination_examples import (
 )
 ```
 
-## Development Guidelines (py2dataiku)
+## Development Guidelines
 
 ### Adding New Recipe Types
 1. Add to `RecipeType` enum in `py2dataiku/models/dataiku_recipe.py`
@@ -214,7 +203,7 @@ from py2dataiku.examples.combination_examples import (
 - `pd.cut()` / `pd.qcut()` → BINNER processor
 - `pd.get_dummies()` → CATEGORICAL_ENCODER processor
 
-## py2dataiku Dependencies
+## Dependencies
 
 - **pandas**: Primary data processing library being converted
 - **pyyaml**: YAML export
@@ -222,157 +211,12 @@ from py2dataiku.examples.combination_examples import (
 - **openai** (optional): LLM analysis with GPT
 - **cairosvg** (optional): PNG/PDF export from SVG
 
----
-
-# py-tidymodels
-
-## Overview
-
-**py-tidymodels** is a Python port of R's tidymodels ecosystem focused on time series regression and forecasting. The project implements a unified, composable interface for machine learning models with emphasis on clean architecture patterns and extensibility.
-
-## Development Environment
-
-### Virtual Environment and Package Installation
-The project uses a virtual environment at `py-tidymodels2/`:
-```bash
-source py-tidymodels2/bin/activate
-```
-
-**Important:** The package is installed in editable mode for development:
-```bash
-pip install -e .
-```
-
-This allows changes to source code to be immediately available in Jupyter notebooks without reinstalling. However, **you must restart the Jupyter kernel** after making changes to see updates.
-
-For Jupyter to use the correct kernel:
-```bash
-python -m ipykernel install --user --name=py-tidymodels2
-```
-
-### Running Tests
-```bash
-# Activate venv first
-source py-tidymodels2/bin/activate
-
-# All tests
-python -m pytest tests/ -v
-
-# Specific test modules
-python -m pytest tests/test_hardhat/test_mold_forge.py -v
-python -m pytest tests/test_parsnip/test_linear_reg.py -v
-python -m pytest tests/test_parsnip/test_prophet_reg.py -v
-
-# With coverage
-python -m pytest tests/ --cov=py_hardhat --cov=py_parsnip --cov-report=html
-```
-
-### Running Examples
-```bash
-# Activate venv first
-source py-tidymodels2/bin/activate
-
-# Launch Jupyter
-jupyter notebook
-
-# Then open notebooks in examples/
-# - 01_hardhat_demo.ipynb - Data preprocessing with mold/forge
-# - 02_parsnip_demo.ipynb - Linear regression with sklearn
-# - 03_time_series_models.ipynb - Prophet and ARIMA models
-# - 04_rand_forest_demo.ipynb - Random Forest (regression & classification)
-# - 05_time_series_forecasting_demo.ipynb - Time series forecasting with all models
-```
-
-## Architecture Overview
-
-The project follows a layered architecture inspired by R's tidymodels:
-
-### Layer 1: py-hardhat (Data Preprocessing)
-**Purpose:** Low-level data preprocessing abstraction that ensures consistent transformations between training and prediction.
-
-**Key Concepts:**
-- **Blueprint**: Immutable preprocessing metadata (formula, factor levels, column order)
-- **MoldedData**: Preprocessed data ready for modeling (predictors, outcomes, extras)
-- **mold()**: Formula → model matrix conversion (training phase)
-- **forge()**: Apply blueprint to new data (prediction phase)
-
-**Critical Implementation Detail:**
-- Uses patsy for R-style formula parsing (`y ~ x1 + x2`)
-- Enforces categorical factor levels (errors on unseen levels)
-- Blueprint is serializable for model persistence
-
-**Files:**
-- `py_hardhat/blueprint.py` - Blueprint dataclass
-- `py_hardhat/mold_forge.py` - mold() and forge() functions
-- `tests/test_hardhat/` - 14 tests, all passing
-
-### Layer 2: py-parsnip (Model Interface)
-**Purpose:** Unified model specification interface with pluggable engine backends.
-
-**Key Design Patterns:**
-
-1. **Immutable Specifications**: ModelSpec is frozen dataclass
-   - Prevents side effects when reusing specs
-   - Use `replace()` or `set_*()` methods to modify
-   - Example: `spec.set_args(penalty=0.1)`
-
-2. **Registry-Based Engines**: Decorator pattern for engine registration
-   ```python
-   @register_engine("linear_reg", "sklearn")
-   class SklearnLinearEngine(Engine):
-       ...
-   ```
-   - Allows multiple backends per model type
-   - Runtime engine discovery via `get_engine(model_type, engine)`
-
-3. **Dual-Path Preprocessing**: Standard vs Raw data handling
-   - **Standard path**: mold() → fit() → forge() → predict()
-     - Used by: linear_reg with sklearn
-   - **Raw path**: fit_raw() → predict_raw()
-     - Used by: prophet_reg, arima_reg (bypass hardhat due to datetime issues)
-   - Engine indicates path via `hasattr(engine, "fit_raw")`
-
-4. **Standardized Outputs**: Three-DataFrame pattern
-   - `extract_outputs()` returns: `(outputs, coefficients, stats)`
-   - **outputs**: Observation-level results (actuals, fitted, forecast, residuals, split)
-   - **coefficients**: Model parameters with statistical inference (std_error, t_stat, p_value, CI, VIF)
-   - **stats**: Model-level metrics by split (RMSE, MAE, R², etc.) + residual diagnostics
-   - Consistent across all model types
-   - Inspired by R's broom package (`tidy()`, `glance()`, `augment()`)
-
-**Implemented Models:**
-- `linear_reg`: sklearn engine (OLS, Ridge, Lasso, ElasticNet), statsmodels engine (OLS with full statistical inference)
-- `rand_forest`: sklearn engine (RandomForestRegressor, RandomForestClassifier)
-- `prophet_reg`: prophet engine (Facebook's time series forecaster)
-- `arima_reg`: statsmodels engine (SARIMAX)
-
-### Layer 3: py-rsample (Resampling) - PENDING
-**Purpose:** Time series cross-validation and resampling.
-
-### Layer 4: py-workflows (Pipelines) - PENDING
-**Purpose:** Compose preprocessing + model + postprocessing into unified workflow.
-
-## py-tidymodels Dependencies
-
-- **pandas** (2.3.3): Primary data structure
-- **numpy** (2.2.6): Numerical operations
-- **patsy** (1.0.2): R-style formula parsing
-- **scikit-learn** (1.7.2): sklearn engine backend
-- **prophet** (1.2.1): Facebook's time series forecaster
-- **statsmodels** (0.14.5): Statistical models (ARIMA)
-- **pytest** (8.4.2): Testing framework
-
----
-
-# Common Guidelines
-
 ## File Organization Rules
 
-- All py2dataiku source code in `py2dataiku/`
+- All source code in `py2dataiku/`
 - All tests in `tests/test_py2dataiku/`
-- Examples belong in `py2dataiku/examples/`
+- Examples in `py2dataiku/examples/`
 - Plans and analysis documents in `.claude_plans/`
-- Never leave orphan files in root directory
 
 ## Testing Philosophy
 
@@ -381,27 +225,9 @@ The project follows a layered architecture inspired by R's tidymodels:
 - Run all tests before committing changes
 - Current test count: 843 tests (all should pass)
 
-## Project Plans and Documentation
-
-- `.claude_plans/`: Project planning documents
-  - `dataiku_gap_analysis.md`: Analysis of Dataiku DSS 14 recipe/processor coverage
-  - `dataiku_comprehensive_examples_prompt.md`: Prompt used to generate examples
-  - `projectplan.md`: Overall project roadmap
-
-## Reference Materials
-
-The `reference/` directory contains R tidymodels source code for reference:
-- `workflows-main/`: R workflows package
-- `recipes-main/`: R recipes package
-- `broom-main/`: R broom package (output standardization)
-
-These are for understanding design patterns, not for copying code directly.
-
 ## Common Gotchas
 
-1. **py2dataiku visualization formats**: SVG is pixel-accurate Dataiku styling; ASCII is terminal-friendly
+1. **Visualization formats**: SVG is pixel-accurate Dataiku styling; ASCII is terminal-friendly
 2. **LLM vs Rule-based**: LLM mode requires API key but produces better results for complex code
 3. **Recipe vs Processor**: Recipes are top-level flow nodes; processors are steps within PREPARE recipes
 4. **Enums**: Always use enum values from models, not raw strings
-5. **Test count**: Currently 843 tests - all should pass before committing
-6. **py-tidymodels datetime handling**: Time series models bypass hardhat due to patsy treating datetime as categorical
