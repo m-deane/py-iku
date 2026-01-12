@@ -36,14 +36,10 @@ class CodeAnalyzer:
             tree = ast.parse(code)
             self._visit_module(tree)
         except SyntaxError as e:
-            # Add error transformation
-            self.transformations.append(
-                Transformation(
-                    transformation_type=TransformationType.UNKNOWN,
-                    parameters={"error": str(e)},
-                    notes=[f"Syntax error: {e}"],
-                )
-            )
+            # Re-raise syntax errors so callers know about invalid input
+            raise SyntaxError(
+                f"Invalid Python syntax at line {e.lineno}: {e.msg}"
+            ) from e
 
         return self.transformations
 

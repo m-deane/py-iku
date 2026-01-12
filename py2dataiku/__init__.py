@@ -36,8 +36,9 @@ from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
 
 # Core models
 from py2dataiku.models.dataiku_flow import DataikuFlow
-from py2dataiku.models.dataiku_recipe import DataikuRecipe
-from py2dataiku.models.dataiku_dataset import DataikuDataset
+from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
 
 # Visualizers
 from py2dataiku.visualizers import (
@@ -70,6 +71,10 @@ __all__ = [
     "DataikuFlow",
     "DataikuRecipe",
     "DataikuDataset",
+    "PrepareStep",
+    "RecipeType",
+    "ProcessorType",
+    "DatasetType",
     # Visualizers
     "SVGVisualizer",
     "ASCIIVisualizer",
