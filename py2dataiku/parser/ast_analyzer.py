@@ -130,6 +130,9 @@ class CodeAnalyzer:
             # Handle sklearn method calls (fit, transform, fit_transform, predict)
             elif method_name in ("fit", "transform", "fit_transform", "predict", "predict_proba"):
                 self._handle_sklearn_method(obj_name, method_name, node, target)
+            # Handle NumPy function calls like np.log(), np.clip(), etc.
+            elif obj_name in ("np", "numpy"):
+                self._handle_numpy_function(method_name, node, target)
             else:
                 # DataFrame method calls
                 self._handle_dataframe_method(obj, method_name, node, target)
@@ -152,6 +155,9 @@ class CodeAnalyzer:
                 self._handle_sklearn_pipeline(node, target)
             elif func_name in ("PCA", "TruncatedSVD", "SelectKBest", "SelectFromModel"):
                 self._handle_sklearn_feature_selector(func_name, node, target)
+            # Handle NumPy functions
+            elif func_name in ("np", "numpy"):
+                pass  # Handled via attribute access below
             elif func_name == "pd":
                 # pd.something
                 pass
@@ -1163,6 +1169,443 @@ class CodeAnalyzer:
                 notes=[f"sklearn {selector_type} -> Dataiku Python recipe (ML feature engineering)"],
             )
         )
+
+    # NumPy handlers
+
+    def _handle_numpy_function(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle NumPy function calls like np.where(), np.clip(), etc."""
+        # Numeric transformations
+        if func_name in ("log", "log10", "log2", "log1p"):
+            self._handle_numpy_log(func_name, node, target)
+        elif func_name in ("exp", "expm1"):
+            self._handle_numpy_exp(func_name, node, target)
+        elif func_name in ("sqrt", "cbrt", "square", "power"):
+            self._handle_numpy_power(func_name, node, target)
+        elif func_name == "abs":
+            self._handle_numpy_abs(node, target)
+        elif func_name in ("round", "around", "rint", "floor", "ceil", "trunc"):
+            self._handle_numpy_round(func_name, node, target)
+        elif func_name == "clip":
+            self._handle_numpy_clip(node, target)
+        # Conditional operations
+        elif func_name == "where":
+            self._handle_numpy_where(node, target)
+        elif func_name in ("isnan", "isinf", "isfinite"):
+            self._handle_numpy_check(func_name, node, target)
+        elif func_name in ("nan_to_num", "nanmean", "nansum", "nanstd"):
+            self._handle_numpy_nan_func(func_name, node, target)
+        # Array operations
+        elif func_name in ("concatenate", "vstack", "hstack", "stack"):
+            self._handle_numpy_concat(func_name, node, target)
+        elif func_name in ("sort", "argsort"):
+            self._handle_numpy_sort(func_name, node, target)
+        elif func_name == "unique":
+            self._handle_numpy_unique(node, target)
+        # Aggregations
+        elif func_name in ("sum", "mean", "std", "var", "min", "max", "median"):
+            self._handle_numpy_agg(func_name, node, target)
+        elif func_name in ("percentile", "quantile"):
+            self._handle_numpy_percentile(func_name, node, target)
+        # Reshaping
+        elif func_name in ("reshape", "flatten", "ravel", "transpose"):
+            self._handle_numpy_reshape(func_name, node, target)
+        # Creation/initialization
+        elif func_name in ("zeros", "ones", "full", "empty", "arange", "linspace"):
+            self._handle_numpy_create(func_name, node, target)
+        else:
+            # Unknown numpy function
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.CUSTOM_FUNCTION,
+                    target_dataframe=target,
+                    parameters={"numpy_function": func_name},
+                    source_line=self.current_line,
+                    requires_python_recipe=True,
+                    notes=[f"NumPy function np.{func_name}() requires Python recipe"],
+                )
+            )
+
+    def _handle_numpy_log(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.log, np.log10, np.log2, np.log1p."""
+        input_arr = self._get_arg_name(node, 0)
+        log_type_map = {
+            "log": "NATURAL_LOG",
+            "log10": "LOG10",
+            "log2": "LOG2",
+            "log1p": "LOG1P",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": log_type_map.get(func_name, "NATURAL_LOG")},
+                source_line=self.current_line,
+                suggested_processor="NumericalTransformer",
+                notes=[f"np.{func_name}() -> Prepare recipe with formula"],
+            )
+        )
+
+    def _handle_numpy_exp(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.exp, np.expm1."""
+        input_arr = self._get_arg_name(node, 0)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": "EXP" if func_name == "exp" else "EXPM1"},
+                source_line=self.current_line,
+                suggested_processor="NumericalTransformer",
+                notes=[f"np.{func_name}() -> Prepare recipe with formula"],
+            )
+        )
+
+    def _handle_numpy_power(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.sqrt, np.cbrt, np.square, np.power."""
+        input_arr = self._get_arg_name(node, 0)
+        power_val = None
+        if func_name == "power" and len(node.args) > 1:
+            if isinstance(node.args[1], ast.Constant):
+                power_val = node.args[1].value
+
+        op_map = {
+            "sqrt": "SQRT",
+            "cbrt": "CBRT",
+            "square": "SQUARE",
+            "power": "POWER",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": op_map.get(func_name, "POWER"), "exponent": power_val},
+                source_line=self.current_line,
+                suggested_processor="NumericalTransformer",
+                notes=[f"np.{func_name}() -> Prepare recipe with formula"],
+            )
+        )
+
+    def _handle_numpy_abs(self, node: ast.Call, target: str) -> None:
+        """Handle np.abs."""
+        input_arr = self._get_arg_name(node, 0)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": "ABS"},
+                source_line=self.current_line,
+                suggested_processor="AbsColumn",
+                notes=["np.abs() -> Prepare recipe AbsColumn processor"],
+            )
+        )
+
+    def _handle_numpy_round(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.round, np.around, np.floor, np.ceil, np.trunc."""
+        input_arr = self._get_arg_name(node, 0)
+        decimals = 0
+        for kw in node.keywords:
+            if kw.arg == "decimals" and isinstance(kw.value, ast.Constant):
+                decimals = kw.value.value
+        if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+            decimals = node.args[1].value
+
+        round_map = {
+            "round": "ROUND",
+            "around": "ROUND",
+            "rint": "ROUND",
+            "floor": "FLOOR",
+            "ceil": "CEIL",
+            "trunc": "TRUNC",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": round_map.get(func_name, "ROUND"), "decimals": decimals},
+                source_line=self.current_line,
+                suggested_processor="RoundColumn",
+                notes=[f"np.{func_name}() -> Prepare recipe RoundColumn processor"],
+            )
+        )
+
+    def _handle_numpy_clip(self, node: ast.Call, target: str) -> None:
+        """Handle np.clip(a, min, max)."""
+        input_arr = self._get_arg_name(node, 0)
+        min_val = None
+        max_val = None
+
+        if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+            min_val = node.args[1].value
+        if len(node.args) > 2 and isinstance(node.args[2], ast.Constant):
+            max_val = node.args[2].value
+
+        for kw in node.keywords:
+            if kw.arg in ("a_min", "min") and isinstance(kw.value, ast.Constant):
+                min_val = kw.value.value
+            elif kw.arg in ("a_max", "max") and isinstance(kw.value, ast.Constant):
+                max_val = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": "CLIP", "min": min_val, "max": max_val},
+                source_line=self.current_line,
+                suggested_processor="ClipColumn",
+                notes=["np.clip() -> Prepare recipe ClipColumn processor"],
+            )
+        )
+
+    def _handle_numpy_where(self, node: ast.Call, target: str) -> None:
+        """Handle np.where(condition, x, y)."""
+        condition = None
+        if len(node.args) > 0:
+            condition = self._get_name(node.args[0])
+
+        x_val = self._get_arg_name(node, 1) if len(node.args) > 1 else None
+        y_val = self._get_arg_name(node, 2) if len(node.args) > 2 else None
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                target_dataframe=target,
+                parameters={"condition": condition, "if_true": x_val, "if_false": y_val},
+                source_line=self.current_line,
+                suggested_processor="CreateColumnWithGREL",
+                notes=["np.where() -> Prepare recipe with if/else formula"],
+            )
+        )
+
+    def _handle_numpy_check(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.isnan, np.isinf, np.isfinite."""
+        input_arr = self._get_arg_name(node, 0)
+        check_map = {
+            "isnan": "IS_NAN",
+            "isinf": "IS_INF",
+            "isfinite": "IS_FINITE",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"check_type": check_map.get(func_name, "IS_NAN")},
+                source_line=self.current_line,
+                suggested_processor="FlagOnValue",
+                notes=[f"np.{func_name}() -> Prepare recipe FlagOnValue processor"],
+            )
+        )
+
+    def _handle_numpy_nan_func(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.nan_to_num, np.nanmean, np.nansum, np.nanstd."""
+        input_arr = self._get_arg_name(node, 0)
+
+        if func_name == "nan_to_num":
+            nan_val = 0.0
+            for kw in node.keywords:
+                if kw.arg == "nan" and isinstance(kw.value, ast.Constant):
+                    nan_val = kw.value.value
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.FILL_NA,
+                    source_dataframe=input_arr,
+                    target_dataframe=target,
+                    parameters={"value": nan_val},
+                    source_line=self.current_line,
+                    suggested_processor="FillEmptyWithValue",
+                    notes=["np.nan_to_num() -> Prepare recipe FillEmptyWithValue"],
+                )
+            )
+        else:
+            # nanmean, nansum, nanstd
+            agg_func = func_name.replace("nan", "").upper()
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.GROUPBY,
+                    source_dataframe=input_arr,
+                    target_dataframe=target,
+                    parameters={"aggregation": agg_func, "ignore_nan": True},
+                    source_line=self.current_line,
+                    suggested_recipe="grouping",
+                    notes=[f"np.{func_name}() -> Grouping recipe with {agg_func}"],
+                )
+            )
+
+    def _handle_numpy_concat(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.concatenate, np.vstack, np.hstack, np.stack."""
+        arrays = []
+        if node.args:
+            if isinstance(node.args[0], (ast.List, ast.Tuple)):
+                for elt in node.args[0].elts:
+                    arrays.append(self._get_name(elt))
+            else:
+                arrays.append(self._get_name(node.args[0]))
+
+        axis = 0
+        for kw in node.keywords:
+            if kw.arg == "axis" and isinstance(kw.value, ast.Constant):
+                axis = kw.value.value
+
+        concat_type = "VSTACK" if func_name in ("vstack", "stack") or axis == 0 else "HSTACK"
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.CONCAT,
+                source_dataframe=arrays[0] if arrays else None,
+                target_dataframe=target,
+                parameters={"arrays": arrays, "axis": axis, "mode": concat_type},
+                source_line=self.current_line,
+                suggested_recipe="stack",
+                notes=[f"np.{func_name}() -> Stack recipe"],
+            )
+        )
+
+    def _handle_numpy_sort(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.sort, np.argsort."""
+        input_arr = self._get_arg_name(node, 0)
+        axis = -1
+        for kw in node.keywords:
+            if kw.arg == "axis" and isinstance(kw.value, ast.Constant):
+                axis = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.SORT,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"axis": axis, "return_indices": func_name == "argsort"},
+                source_line=self.current_line,
+                suggested_recipe="sort",
+                notes=[f"np.{func_name}() -> Sort recipe"],
+            )
+        )
+
+    def _handle_numpy_unique(self, node: ast.Call, target: str) -> None:
+        """Handle np.unique."""
+        input_arr = self._get_arg_name(node, 0)
+        return_counts = False
+        for kw in node.keywords:
+            if kw.arg == "return_counts" and isinstance(kw.value, ast.Constant):
+                return_counts = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.DROP_DUPLICATES,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"return_counts": return_counts},
+                source_line=self.current_line,
+                suggested_recipe="distinct",
+                notes=["np.unique() -> Distinct recipe"],
+            )
+        )
+
+    def _handle_numpy_agg(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.sum, np.mean, np.std, np.var, np.min, np.max, np.median."""
+        input_arr = self._get_arg_name(node, 0)
+        axis = None
+        for kw in node.keywords:
+            if kw.arg == "axis" and isinstance(kw.value, ast.Constant):
+                axis = kw.value.value
+
+        agg_map = {
+            "sum": "SUM",
+            "mean": "AVG",
+            "std": "STDDEV",
+            "var": "VAR",
+            "min": "MIN",
+            "max": "MAX",
+            "median": "MEDIAN",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.GROUPBY,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"aggregation": agg_map.get(func_name, func_name.upper()), "axis": axis},
+                source_line=self.current_line,
+                suggested_recipe="grouping",
+                notes=[f"np.{func_name}() -> Grouping recipe with {agg_map.get(func_name, func_name.upper())}"],
+            )
+        )
+
+    def _handle_numpy_percentile(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.percentile, np.quantile."""
+        input_arr = self._get_arg_name(node, 0)
+        q = None
+        if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+            q = node.args[1].value
+
+        for kw in node.keywords:
+            if kw.arg == "q" and isinstance(kw.value, ast.Constant):
+                q = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.GROUPBY,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"aggregation": "PERCENTILE", "percentile": q},
+                source_line=self.current_line,
+                suggested_recipe="grouping",
+                notes=[f"np.{func_name}() -> Grouping recipe with percentile"],
+            )
+        )
+
+    def _handle_numpy_reshape(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.reshape, np.flatten, np.ravel, np.transpose."""
+        input_arr = self._get_arg_name(node, 0)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.CUSTOM_FUNCTION,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": func_name.upper()},
+                source_line=self.current_line,
+                requires_python_recipe=True,
+                notes=[f"np.{func_name}() requires Python recipe for array reshaping"],
+            )
+        )
+
+    def _handle_numpy_create(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.zeros, np.ones, np.full, np.empty, np.arange, np.linspace."""
+        shape = None
+        if node.args and isinstance(node.args[0], (ast.Tuple, ast.List, ast.Constant)):
+            if isinstance(node.args[0], ast.Constant):
+                shape = node.args[0].value
+            else:
+                shape = [self._get_name(e) for e in node.args[0].elts]
+
+        fill_value = None
+        if func_name == "full" and len(node.args) > 1:
+            if isinstance(node.args[1], ast.Constant):
+                fill_value = node.args[1].value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.CUSTOM_FUNCTION,
+                target_dataframe=target,
+                parameters={
+                    "operation": f"CREATE_{func_name.upper()}",
+                    "shape": shape,
+                    "fill_value": fill_value,
+                },
+                source_line=self.current_line,
+                requires_python_recipe=True,
+                notes=[f"np.{func_name}() -> Python recipe for array creation"],
+            )
+        )
+
+    def _get_arg_name(self, node: ast.Call, index: int) -> Optional[str]:
+        """Get the name of a positional argument by index."""
+        if len(node.args) > index:
+            return self._get_name(node.args[index])
+        return None
 
     def _handle_sklearn_method(
         self, obj_name: str, method_name: str, node: ast.Call, target: str
