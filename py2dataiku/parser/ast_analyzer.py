@@ -4,6 +4,7 @@ import ast
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from py2dataiku.models.transformation import Transformation, TransformationType
+from py2dataiku.plugins.registry import PluginRegistry, PluginContext
 
 
 class CodeAnalyzer:
@@ -18,6 +19,7 @@ class CodeAnalyzer:
         self.transformations: List[Transformation] = []
         self.dataframes: Dict[str, str] = {}  # variable -> source
         self.current_line: int = 0
+        self._source_code: str = ""
 
     def analyze(self, code: str) -> List[Transformation]:
         """
@@ -31,6 +33,7 @@ class CodeAnalyzer:
         """
         self.transformations = []
         self.dataframes = {}
+        self._source_code = code
 
         try:
             tree = ast.parse(code)
@@ -223,6 +226,23 @@ class CodeAnalyzer:
         """Dispatch a method call to the appropriate handler."""
         # Skip passthrough methods
         if method_name in ("copy", "reset_index", "to_frame"):
+            return
+
+        # Check for plugin handler first
+        plugin_handler = PluginRegistry.get_method_handler(method_name)
+        if plugin_handler:
+            context = PluginContext(
+                source_code=self._source_code,
+                current_line=self.current_line,
+                variables={},
+                dataframes=self.dataframes.copy(),
+            )
+            result = plugin_handler(node, context)
+            if result:
+                if isinstance(result, list):
+                    self.transformations.extend(result)
+                else:
+                    self.transformations.append(result)
             return
 
         method_handlers = {
@@ -479,6 +499,23 @@ class CodeAnalyzer:
         if isinstance(obj, ast.Attribute):
             # This is part of a chain, recurse
             self._handle_dataframe_method(obj.value, obj.attr, node, target)
+
+        # Check for plugin handler first
+        plugin_handler = PluginRegistry.get_method_handler(method)
+        if plugin_handler:
+            context = PluginContext(
+                source_code=self._source_code,
+                current_line=self.current_line,
+                variables={},
+                dataframes=self.dataframes.copy(),
+            )
+            result = plugin_handler(node, context)
+            if result:
+                if isinstance(result, list):
+                    self.transformations.extend(result)
+                else:
+                    self.transformations.append(result)
+            return
 
         method_handlers = {
             "fillna": self._handle_fillna,

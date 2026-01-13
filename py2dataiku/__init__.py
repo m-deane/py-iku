@@ -52,6 +52,15 @@ from py2dataiku.visualizers import (
     DATAIKU_DARK,
 )
 
+# Plugin system
+from py2dataiku.plugins import (
+    PluginRegistry,
+    plugin_hook,
+    register_recipe_handler,
+    register_processor_handler,
+    register_pandas_mapping,
+)
+
 __all__ = [
     # LLM-based (recommended)
     "LLMCodeAnalyzer",
@@ -87,6 +96,12 @@ __all__ = [
     # Convenience functions
     "convert",
     "convert_with_llm",
+    # Plugin system
+    "PluginRegistry",
+    "plugin_hook",
+    "register_recipe_handler",
+    "register_processor_handler",
+    "register_pandas_mapping",
 ]
 
 
