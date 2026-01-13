@@ -193,6 +193,63 @@ def create_parser() -> argparse.ArgumentParser:
         help="Suppress informational messages",
     )
 
+    # Export command
+    export_parser = subparsers.add_parser(
+        "export",
+        help="Export flow to DSS project format",
+        description="Export converted flow to Dataiku DSS-compatible project structure",
+    )
+    export_parser.add_argument(
+        "input",
+        help="Input Python file or '-' for stdin",
+    )
+    export_parser.add_argument(
+        "-o", "--output",
+        help="Output directory for DSS project",
+        required=True,
+    )
+    export_parser.add_argument(
+        "--project-key",
+        help="DSS project key (default: CONVERTED_PROJECT)",
+        default="CONVERTED_PROJECT",
+    )
+    export_parser.add_argument(
+        "--project-name",
+        help="DSS project name",
+        default="Converted Python Pipeline",
+    )
+    export_parser.add_argument(
+        "--zip",
+        action="store_true",
+        help="Create zip file for import",
+    )
+    export_parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Use LLM-based analysis",
+    )
+    export_parser.add_argument(
+        "--provider",
+        choices=["anthropic", "openai"],
+        default="anthropic",
+        help="LLM provider (default: anthropic)",
+    )
+    export_parser.add_argument(
+        "--api-key",
+        help="API key (or use environment variable)",
+        default=None,
+    )
+    export_parser.add_argument(
+        "--no-optimize",
+        action="store_true",
+        help="Disable flow optimization",
+    )
+    export_parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Suppress informational messages",
+    )
+
     return parser
 
 
@@ -491,6 +548,54 @@ def format_llm_analysis(result) -> str:
     return "\n".join(lines)
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    """Handle the export command."""
+    try:
+        log(f"Reading input from: {args.input}", args.quiet)
+        code = read_input(args.input)
+
+        log("Converting code to Dataiku flow...", args.quiet)
+        flow = convert_code(
+            code,
+            use_llm=args.llm,
+            provider=args.provider,
+            api_key=args.api_key,
+            optimize=not args.no_optimize,
+        )
+
+        log(f"Exporting to DSS project format...", args.quiet)
+
+        from py2dataiku.exporters import DSSExporter, DSSProjectConfig
+
+        config = DSSProjectConfig(
+            project_key=args.project_key,
+            project_name=args.project_name,
+        )
+        exporter = DSSExporter(flow, config=config)
+        output_path = exporter.export(args.output, create_zip=args.zip)
+
+        log(f"DSS project exported to: {output_path}", args.quiet)
+        log(f"  - Datasets: {len(flow.datasets)}", args.quiet)
+        log(f"  - Recipes: {len(flow.recipes)}", args.quiet)
+
+        if args.zip:
+            log("  - Format: ZIP bundle (ready for import)", args.quiet)
+        else:
+            log("  - Format: Directory structure", args.quiet)
+
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except SyntaxError as e:
+        print(f"Syntax error in input: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 def main(argv=None) -> int:
     """Main entry point for the CLI."""
     parser = create_parser()
@@ -506,6 +611,8 @@ def main(argv=None) -> int:
         return cmd_visualize(args)
     elif args.command == "analyze":
         return cmd_analyze(args)
+    elif args.command == "export":
+        return cmd_export(args)
     else:
         parser.print_help()
         return 1

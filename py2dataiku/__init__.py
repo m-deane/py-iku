@@ -61,6 +61,13 @@ from py2dataiku.plugins import (
     register_pandas_mapping,
 )
 
+# Exporters
+from py2dataiku.exporters import (
+    DSSExporter,
+    DSSProjectConfig,
+    export_to_dss,
+)
+
 __all__ = [
     # LLM-based (recommended)
     "LLMCodeAnalyzer",
@@ -102,6 +109,10 @@ __all__ = [
     "register_recipe_handler",
     "register_processor_handler",
     "register_pandas_mapping",
+    # Exporters
+    "DSSExporter",
+    "DSSProjectConfig",
+    "export_to_dss",
 ]
 
 
