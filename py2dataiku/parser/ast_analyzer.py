@@ -124,6 +124,9 @@ class CodeAnalyzer:
                 self._handle_pd_merge(node, target)
             elif method_name == "concat" and obj_name == "pd":
                 self._handle_concat(node, target)
+            # Handle sklearn method calls (fit, transform, fit_transform, predict)
+            elif method_name in ("fit", "transform", "fit_transform", "predict", "predict_proba"):
+                self._handle_sklearn_method(obj_name, method_name, node, target)
             else:
                 # DataFrame method calls
                 self._handle_dataframe_method(obj, method_name, node, target)
@@ -131,7 +134,22 @@ class CodeAnalyzer:
         elif isinstance(func, ast.Name):
             # Direct function call
             func_name = func.id
-            if func_name == "pd":
+            # Handle sklearn functions
+            if func_name == "train_test_split":
+                self._handle_train_test_split(node, target)
+            elif func_name in ("StandardScaler", "MinMaxScaler", "RobustScaler",
+                              "MaxAbsScaler", "Normalizer"):
+                self._handle_sklearn_scaler(func_name, node, target)
+            elif func_name in ("LabelEncoder", "OneHotEncoder", "OrdinalEncoder",
+                              "LabelBinarizer"):
+                self._handle_sklearn_encoder(func_name, node, target)
+            elif func_name in ("SimpleImputer", "KNNImputer", "IterativeImputer"):
+                self._handle_sklearn_imputer(func_name, node, target)
+            elif func_name == "Pipeline":
+                self._handle_sklearn_pipeline(node, target)
+            elif func_name in ("PCA", "TruncatedSVD", "SelectKBest", "SelectFromModel"):
+                self._handle_sklearn_feature_selector(func_name, node, target)
+            elif func_name == "pd":
                 # pd.something
                 pass
 
@@ -940,3 +958,211 @@ class CodeAnalyzer:
                     result[str(k.value)] = str(v.value)
             return result
         return {}
+
+    # ========== scikit-learn handlers ==========
+
+    def _handle_train_test_split(self, node: ast.Call, target: str) -> None:
+        """Handle train_test_split() calls."""
+        test_size = 0.25
+        random_state = None
+
+        for kw in node.keywords:
+            if kw.arg == "test_size" and isinstance(kw.value, ast.Constant):
+                test_size = kw.value.value
+            elif kw.arg == "random_state" and isinstance(kw.value, ast.Constant):
+                random_state = kw.value.value
+
+        # Get input data
+        input_data = []
+        for arg in node.args:
+            input_data.append(self._get_name(arg))
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FILTER,
+                target_dataframe=target,
+                parameters={
+                    "operation": "train_test_split",
+                    "test_size": test_size,
+                    "random_state": random_state,
+                    "inputs": input_data,
+                },
+                source_line=self.current_line,
+                suggested_recipe="split",
+                notes=["sklearn train_test_split -> Dataiku Split recipe"],
+            )
+        )
+
+    def _handle_sklearn_scaler(self, scaler_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn scaler instantiation (StandardScaler, MinMaxScaler, etc.)."""
+        # Map sklearn scalers to Dataiku processors
+        scaler_map = {
+            "StandardScaler": "STANDARD_SCALER",
+            "MinMaxScaler": "MIN_MAX_SCALER",
+            "RobustScaler": "ROBUST_SCALER",
+            "MaxAbsScaler": "NORMALIZER",
+            "Normalizer": "NORMALIZER",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "scaler_type": scaler_type,
+                    "processor": scaler_map.get(scaler_type, "NORMALIZER"),
+                },
+                source_line=self.current_line,
+                suggested_processor=scaler_map.get(scaler_type, "Normalizer"),
+                notes=[f"sklearn {scaler_type} -> Dataiku {scaler_map.get(scaler_type)} processor"],
+            )
+        )
+
+    def _handle_sklearn_encoder(self, encoder_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn encoder instantiation (LabelEncoder, OneHotEncoder, etc.)."""
+        encoder_map = {
+            "LabelEncoder": "LABEL_ENCODER",
+            "OneHotEncoder": "ONE_HOT_ENCODER",
+            "OrdinalEncoder": "ORDINAL_ENCODER",
+            "LabelBinarizer": "CATEGORICAL_ENCODER",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "encoder_type": encoder_type,
+                    "processor": encoder_map.get(encoder_type, "CATEGORICAL_ENCODER"),
+                },
+                source_line=self.current_line,
+                suggested_processor=encoder_map.get(encoder_type, "CategoricalEncoder"),
+                notes=[f"sklearn {encoder_type} -> Dataiku {encoder_map.get(encoder_type)} processor"],
+            )
+        )
+
+    def _handle_sklearn_imputer(self, imputer_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn imputer instantiation (SimpleImputer, KNNImputer, etc.)."""
+        strategy = "mean"
+        for kw in node.keywords:
+            if kw.arg == "strategy" and isinstance(kw.value, ast.Constant):
+                strategy = kw.value.value
+
+        imputer_map = {
+            "SimpleImputer": "FILL_EMPTY_WITH_COMPUTED_VALUE",
+            "KNNImputer": "IMPUTE_WITH_ML",
+            "IterativeImputer": "IMPUTE_WITH_ML",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "imputer_type": imputer_type,
+                    "strategy": strategy,
+                    "processor": imputer_map.get(imputer_type, "FILL_EMPTY_WITH_COMPUTED_VALUE"),
+                },
+                source_line=self.current_line,
+                suggested_processor=imputer_map.get(imputer_type, "FillEmptyWithComputedValue"),
+                notes=[f"sklearn {imputer_type}(strategy={strategy}) -> Dataiku imputation"],
+            )
+        )
+
+    def _handle_sklearn_pipeline(self, node: ast.Call, target: str) -> None:
+        """Handle sklearn Pipeline instantiation."""
+        steps = []
+        for kw in node.keywords:
+            if kw.arg == "steps" and isinstance(kw.value, ast.List):
+                for step in kw.value.elts:
+                    if isinstance(step, ast.Tuple) and len(step.elts) >= 2:
+                        step_name = step.elts[0]
+                        if isinstance(step_name, ast.Constant):
+                            steps.append(step_name.value)
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "pipeline_steps": steps,
+                },
+                source_line=self.current_line,
+                suggested_recipe="prepare",
+                notes=["sklearn Pipeline -> Dataiku Prepare recipe with multiple steps"],
+            )
+        )
+
+    def _handle_sklearn_feature_selector(self, selector_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn feature selection (PCA, SelectKBest, etc.)."""
+        n_components = None
+        k = None
+
+        for kw in node.keywords:
+            if kw.arg == "n_components" and isinstance(kw.value, ast.Constant):
+                n_components = kw.value.value
+            elif kw.arg == "k" and isinstance(kw.value, ast.Constant):
+                k = kw.value.value
+
+        selector_map = {
+            "PCA": "dimensionality_reduction",
+            "TruncatedSVD": "dimensionality_reduction",
+            "SelectKBest": "feature_selection",
+            "SelectFromModel": "feature_selection",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "selector_type": selector_type,
+                    "n_components": n_components,
+                    "k": k,
+                    "operation": selector_map.get(selector_type, "feature_selection"),
+                },
+                source_line=self.current_line,
+                suggested_recipe="python",
+                notes=[f"sklearn {selector_type} -> Dataiku Python recipe (ML feature engineering)"],
+            )
+        )
+
+    def _handle_sklearn_method(
+        self, obj_name: str, method_name: str, node: ast.Call, target: str
+    ) -> None:
+        """Handle sklearn fit/transform/predict method calls."""
+        # Get input data
+        input_data = []
+        for arg in node.args:
+            input_data.append(self._get_name(arg))
+
+        method_map = {
+            "fit": TransformationType.FIT,
+            "transform": TransformationType.TRANSFORM,
+            "fit_transform": TransformationType.FIT_TRANSFORM,
+            "predict": TransformationType.PREDICT,
+            "predict_proba": TransformationType.PREDICT,
+        }
+
+        recipe_map = {
+            "fit": "python",
+            "transform": "prepare",
+            "fit_transform": "prepare",
+            "predict": "prediction_scoring",
+            "predict_proba": "prediction_scoring",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=method_map.get(method_name, TransformationType.TRANSFORM),
+                source_dataframe=obj_name,
+                target_dataframe=target,
+                parameters={
+                    "method": method_name,
+                    "inputs": input_data,
+                },
+                source_line=self.current_line,
+                suggested_recipe=recipe_map.get(method_name, "python"),
+                notes=[f"sklearn {obj_name}.{method_name}()"],
+            )
+        )
