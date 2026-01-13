@@ -282,14 +282,14 @@ df = df.sort_values(by=['col1'])
 
     def test_syntax_error_handling(self):
         """Test handling of syntax errors."""
+        import pytest
+
         code = "import pandas as pd\ndf = pd.read_csv('test.csv'"  # Missing closing paren
         analyzer = CodeAnalyzer()
-        transformations = analyzer.analyze(code)
 
-        # Should return a transformation with error info
-        assert len(transformations) >= 1
-        error_trans = [t for t in transformations if 'error' in t.parameters]
-        assert len(error_trans) >= 1
+        # Should raise SyntaxError for invalid Python code
+        with pytest.raises(SyntaxError):
+            analyzer.analyze(code)
 
 
 class TestRecipeConfigurations:

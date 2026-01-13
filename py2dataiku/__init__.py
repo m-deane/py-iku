@@ -36,8 +36,9 @@ from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
 
 # Core models
 from py2dataiku.models.dataiku_flow import DataikuFlow
-from py2dataiku.models.dataiku_recipe import DataikuRecipe
-from py2dataiku.models.dataiku_dataset import DataikuDataset
+from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
 
 # Visualizers
 from py2dataiku.visualizers import (
@@ -49,6 +50,22 @@ from py2dataiku.visualizers import (
     DataikuTheme,
     DATAIKU_LIGHT,
     DATAIKU_DARK,
+)
+
+# Plugin system
+from py2dataiku.plugins import (
+    PluginRegistry,
+    plugin_hook,
+    register_recipe_handler,
+    register_processor_handler,
+    register_pandas_mapping,
+)
+
+# Exporters
+from py2dataiku.exporters import (
+    DSSExporter,
+    DSSProjectConfig,
+    export_to_dss,
 )
 
 __all__ = [
@@ -70,6 +87,10 @@ __all__ = [
     "DataikuFlow",
     "DataikuRecipe",
     "DataikuDataset",
+    "PrepareStep",
+    "RecipeType",
+    "ProcessorType",
+    "DatasetType",
     # Visualizers
     "SVGVisualizer",
     "ASCIIVisualizer",
@@ -82,6 +103,16 @@ __all__ = [
     # Convenience functions
     "convert",
     "convert_with_llm",
+    # Plugin system
+    "PluginRegistry",
+    "plugin_hook",
+    "register_recipe_handler",
+    "register_processor_handler",
+    "register_pandas_mapping",
+    # Exporters
+    "DSSExporter",
+    "DSSProjectConfig",
+    "export_to_dss",
 ]
 
 

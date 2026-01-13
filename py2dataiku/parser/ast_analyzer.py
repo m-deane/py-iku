@@ -4,6 +4,7 @@ import ast
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from py2dataiku.models.transformation import Transformation, TransformationType
+from py2dataiku.plugins.registry import PluginRegistry, PluginContext
 
 
 class CodeAnalyzer:
@@ -18,6 +19,7 @@ class CodeAnalyzer:
         self.transformations: List[Transformation] = []
         self.dataframes: Dict[str, str] = {}  # variable -> source
         self.current_line: int = 0
+        self._source_code: str = ""
 
     def analyze(self, code: str) -> List[Transformation]:
         """
@@ -31,19 +33,16 @@ class CodeAnalyzer:
         """
         self.transformations = []
         self.dataframes = {}
+        self._source_code = code
 
         try:
             tree = ast.parse(code)
             self._visit_module(tree)
         except SyntaxError as e:
-            # Add error transformation
-            self.transformations.append(
-                Transformation(
-                    transformation_type=TransformationType.UNKNOWN,
-                    parameters={"error": str(e)},
-                    notes=[f"Syntax error: {e}"],
-                )
-            )
+            # Re-raise syntax errors so callers know about invalid input
+            raise SyntaxError(
+                f"Invalid Python syntax at line {e.lineno}: {e.msg}"
+            ) from e
 
         return self.transformations
 
@@ -111,6 +110,11 @@ class CodeAnalyzer:
             method_name = func.attr
             obj = func.value
 
+            # Check if this is a method chain
+            if self._is_method_chain(node):
+                self._handle_method_chain(node, target)
+                return
+
             # Get the object being called on
             obj_name = self._get_name(obj)
 
@@ -123,6 +127,12 @@ class CodeAnalyzer:
                 self._handle_pd_merge(node, target)
             elif method_name == "concat" and obj_name == "pd":
                 self._handle_concat(node, target)
+            # Handle sklearn method calls (fit, transform, fit_transform, predict)
+            elif method_name in ("fit", "transform", "fit_transform", "predict", "predict_proba"):
+                self._handle_sklearn_method(obj_name, method_name, node, target)
+            # Handle NumPy function calls like np.log(), np.clip(), etc.
+            elif obj_name in ("np", "numpy"):
+                self._handle_numpy_function(method_name, node, target)
             else:
                 # DataFrame method calls
                 self._handle_dataframe_method(obj, method_name, node, target)
@@ -130,9 +140,329 @@ class CodeAnalyzer:
         elif isinstance(func, ast.Name):
             # Direct function call
             func_name = func.id
-            if func_name == "pd":
+            # Handle sklearn functions
+            if func_name == "train_test_split":
+                self._handle_train_test_split(node, target)
+            elif func_name in ("StandardScaler", "MinMaxScaler", "RobustScaler",
+                              "MaxAbsScaler", "Normalizer"):
+                self._handle_sklearn_scaler(func_name, node, target)
+            elif func_name in ("LabelEncoder", "OneHotEncoder", "OrdinalEncoder",
+                              "LabelBinarizer"):
+                self._handle_sklearn_encoder(func_name, node, target)
+            elif func_name in ("SimpleImputer", "KNNImputer", "IterativeImputer"):
+                self._handle_sklearn_imputer(func_name, node, target)
+            elif func_name == "Pipeline":
+                self._handle_sklearn_pipeline(node, target)
+            elif func_name in ("PCA", "TruncatedSVD", "SelectKBest", "SelectFromModel"):
+                self._handle_sklearn_feature_selector(func_name, node, target)
+            # Handle NumPy functions
+            elif func_name in ("np", "numpy"):
+                pass  # Handled via attribute access below
+            elif func_name == "pd":
                 # pd.something
                 pass
+
+    def _is_method_chain(self, node: ast.Call) -> bool:
+        """Check if a Call node is part of a method chain (multiple chained calls)."""
+        if not isinstance(node.func, ast.Attribute):
+            return False
+
+        # Check if the object being called on is also a Call (chain)
+        obj = node.func.value
+        if isinstance(obj, ast.Call) and isinstance(obj.func, ast.Attribute):
+            # This is a chain like obj.method1().method2()
+            return True
+        return False
+
+    def _unwind_method_chain(self, node: ast.Call) -> List[Tuple[str, ast.Call]]:
+        """
+        Unwind a method chain into a list of (method_name, call_node) tuples.
+
+        For df.dropna().fillna(0).sort_values('col'), returns:
+        [('dropna', call1), ('fillna', call2), ('sort_values', call3)]
+        """
+        chain = []
+        current = node
+
+        while isinstance(current, ast.Call) and isinstance(current.func, ast.Attribute):
+            method_name = current.func.attr
+            chain.append((method_name, current))
+            current = current.func.value
+
+        # Reverse to get operations in order
+        chain.reverse()
+        return chain
+
+    def _get_chain_base(self, node: ast.Call) -> str:
+        """Get the base DataFrame name from a method chain."""
+        current = node
+        while isinstance(current, ast.Call) and isinstance(current.func, ast.Attribute):
+            current = current.func.value
+
+        return self._get_name(current)
+
+    def _handle_method_chain(self, node: ast.Call, target: str) -> None:
+        """
+        Handle a chain of method calls like df.dropna().fillna(0).sort_values('col').
+
+        Unwinds the chain and processes each method in order.
+        """
+        chain = self._unwind_method_chain(node)
+        base_df = self._get_chain_base(node)
+
+        if not chain:
+            return
+
+        # Process each method in the chain
+        current_df = base_df
+        for i, (method_name, call_node) in enumerate(chain):
+            # For intermediate steps, use temporary names
+            if i < len(chain) - 1:
+                step_target = f"_chain_step_{i}"
+            else:
+                step_target = target
+
+            # Dispatch to appropriate handler
+            self._dispatch_method_handler(current_df, method_name, call_node, step_target)
+            current_df = step_target
+
+    def _dispatch_method_handler(
+        self, df: str, method_name: str, node: ast.Call, target: str
+    ) -> None:
+        """Dispatch a method call to the appropriate handler."""
+        # Skip passthrough methods
+        if method_name in ("copy", "reset_index", "to_frame"):
+            return
+
+        # Check for plugin handler first
+        plugin_handler = PluginRegistry.get_method_handler(method_name)
+        if plugin_handler:
+            context = PluginContext(
+                source_code=self._source_code,
+                current_line=self.current_line,
+                variables={},
+                dataframes=self.dataframes.copy(),
+            )
+            result = plugin_handler(node, context)
+            if result:
+                if isinstance(result, list):
+                    self.transformations.extend(result)
+                else:
+                    self.transformations.append(result)
+            return
+
+        method_handlers = {
+            "fillna": self._handle_fillna,
+            "dropna": self._handle_dropna,
+            "drop_duplicates": self._handle_drop_duplicates,
+            "drop": self._handle_drop,
+            "rename": self._handle_rename,
+            "merge": self._handle_merge,
+            "join": self._handle_join,
+            "groupby": self._handle_groupby,
+            "sort_values": self._handle_sort,
+            "head": self._handle_head,
+            "tail": self._handle_tail,
+            "sample": self._handle_sample,
+            "astype": self._handle_astype,
+            "to_datetime": self._handle_to_datetime,
+            "pivot": self._handle_pivot,
+            "pivot_table": self._handle_pivot,
+            "melt": self._handle_melt,
+            "rolling": self._handle_rolling,
+            "str": self._handle_str_accessor,
+            "nlargest": self._handle_nlargest,
+            "nsmallest": self._handle_nsmallest,
+            "query": self._handle_query,
+            "assign": self._handle_assign,
+            "clip": self._handle_clip,
+            "round": self._handle_round,
+            "abs": self._handle_abs,
+        }
+
+        handler = method_handlers.get(method_name)
+        if handler:
+            handler(df, node, target)
+        else:
+            # Handle .str, .dt accessors and other patterns
+            if method_name in ("upper", "lower", "strip", "title", "capitalize"):
+                self._handle_string_method(df, method_name, node, target)
+            elif method_name in ("sum", "mean", "count", "min", "max", "std", "var"):
+                self._handle_agg_method(df, method_name, node, target)
+            else:
+                # Unknown method - record it
+                self.transformations.append(
+                    Transformation(
+                        transformation_type=TransformationType.UNKNOWN,
+                        source_dataframe=df,
+                        target_dataframe=target,
+                        parameters={"method": method_name},
+                        source_line=self.current_line,
+                        notes=[f"Chained method: {method_name}"],
+                    )
+                )
+
+    def _handle_nlargest(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle nlargest() calls."""
+        n = 5
+        column = None
+        if node.args:
+            if isinstance(node.args[0], ast.Constant):
+                n = node.args[0].value
+            if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+                column = node.args[1].value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.HEAD,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"n": n, "column": column, "ascending": False},
+                source_line=self.current_line,
+                suggested_recipe="topn",
+            )
+        )
+
+    def _handle_nsmallest(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle nsmallest() calls."""
+        n = 5
+        column = None
+        if node.args:
+            if isinstance(node.args[0], ast.Constant):
+                n = node.args[0].value
+            if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+                column = node.args[1].value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.HEAD,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"n": n, "column": column, "ascending": True},
+                source_line=self.current_line,
+                suggested_recipe="topn",
+            )
+        )
+
+    def _handle_query(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle query() calls."""
+        condition = ""
+        if node.args and isinstance(node.args[0], ast.Constant):
+            condition = node.args[0].value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FILTER,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"condition": condition},
+                source_line=self.current_line,
+                suggested_processor="FilterOnFormula",
+            )
+        )
+
+    def _handle_assign(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle assign() calls for creating new columns."""
+        new_columns = []
+        for kw in node.keywords:
+            new_columns.append(kw.arg)
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                source_dataframe=df,
+                target_dataframe=target,
+                columns=new_columns,
+                parameters={"columns": new_columns},
+                source_line=self.current_line,
+                suggested_processor="CreateColumnWithGREL",
+            )
+        )
+
+    def _handle_clip(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle clip() calls."""
+        lower = None
+        upper = None
+        for kw in node.keywords:
+            if kw.arg == "lower" and isinstance(kw.value, ast.Constant):
+                lower = kw.value.value
+            elif kw.arg == "upper" and isinstance(kw.value, ast.Constant):
+                upper = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"operation": "clip", "lower": lower, "upper": upper},
+                source_line=self.current_line,
+                suggested_processor="ClipColumn",
+            )
+        )
+
+    def _handle_round(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle round() calls."""
+        decimals = 0
+        if node.args and isinstance(node.args[0], ast.Constant):
+            decimals = node.args[0].value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"operation": "round", "decimals": decimals},
+                source_line=self.current_line,
+                suggested_processor="RoundColumn",
+            )
+        )
+
+    def _handle_abs(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle abs() calls."""
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"operation": "abs"},
+                source_line=self.current_line,
+                suggested_processor="AbsColumn",
+            )
+        )
+
+    def _handle_string_method(self, df: str, method: str, node: ast.Call, target: str) -> None:
+        """Handle string methods like upper(), lower(), strip()."""
+        mode_map = {
+            "upper": "TO_UPPER",
+            "lower": "TO_LOWER",
+            "strip": "TRIM",
+            "title": "TO_TITLE",
+            "capitalize": "CAPITALIZE",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.STRING_TRANSFORM,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"mode": mode_map.get(method, method)},
+                source_line=self.current_line,
+                suggested_processor="StringTransformer",
+            )
+        )
+
+    def _handle_agg_method(self, df: str, method: str, node: ast.Call, target: str) -> None:
+        """Handle aggregation methods called directly (e.g., df['col'].sum())."""
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.GROUPBY,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"aggregation": method},
+                source_line=self.current_line,
+                suggested_recipe="grouping",
+            )
+        )
 
     def _handle_read_csv(self, node: ast.Call, target: str) -> None:
         """Handle pd.read_csv() calls."""
@@ -175,6 +505,23 @@ class CodeAnalyzer:
         if isinstance(obj, ast.Attribute):
             # This is part of a chain, recurse
             self._handle_dataframe_method(obj.value, obj.attr, node, target)
+
+        # Check for plugin handler first
+        plugin_handler = PluginRegistry.get_method_handler(method)
+        if plugin_handler:
+            context = PluginContext(
+                source_code=self._source_code,
+                current_line=self.current_line,
+                variables={},
+                dataframes=self.dataframes.copy(),
+            )
+            result = plugin_handler(node, context)
+            if result:
+                if isinstance(result, list):
+                    self.transformations.extend(result)
+                else:
+                    self.transformations.append(result)
+            return
 
         method_handlers = {
             "fillna": self._handle_fillna,
@@ -654,3 +1001,648 @@ class CodeAnalyzer:
                     result[str(k.value)] = str(v.value)
             return result
         return {}
+
+    # ========== scikit-learn handlers ==========
+
+    def _handle_train_test_split(self, node: ast.Call, target: str) -> None:
+        """Handle train_test_split() calls."""
+        test_size = 0.25
+        random_state = None
+
+        for kw in node.keywords:
+            if kw.arg == "test_size" and isinstance(kw.value, ast.Constant):
+                test_size = kw.value.value
+            elif kw.arg == "random_state" and isinstance(kw.value, ast.Constant):
+                random_state = kw.value.value
+
+        # Get input data
+        input_data = []
+        for arg in node.args:
+            input_data.append(self._get_name(arg))
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FILTER,
+                target_dataframe=target,
+                parameters={
+                    "operation": "train_test_split",
+                    "test_size": test_size,
+                    "random_state": random_state,
+                    "inputs": input_data,
+                },
+                source_line=self.current_line,
+                suggested_recipe="split",
+                notes=["sklearn train_test_split -> Dataiku Split recipe"],
+            )
+        )
+
+    def _handle_sklearn_scaler(self, scaler_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn scaler instantiation (StandardScaler, MinMaxScaler, etc.)."""
+        # Map sklearn scalers to Dataiku processors
+        scaler_map = {
+            "StandardScaler": "STANDARD_SCALER",
+            "MinMaxScaler": "MIN_MAX_SCALER",
+            "RobustScaler": "ROBUST_SCALER",
+            "MaxAbsScaler": "NORMALIZER",
+            "Normalizer": "NORMALIZER",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "scaler_type": scaler_type,
+                    "processor": scaler_map.get(scaler_type, "NORMALIZER"),
+                },
+                source_line=self.current_line,
+                suggested_processor=scaler_map.get(scaler_type, "Normalizer"),
+                notes=[f"sklearn {scaler_type} -> Dataiku {scaler_map.get(scaler_type)} processor"],
+            )
+        )
+
+    def _handle_sklearn_encoder(self, encoder_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn encoder instantiation (LabelEncoder, OneHotEncoder, etc.)."""
+        encoder_map = {
+            "LabelEncoder": "LABEL_ENCODER",
+            "OneHotEncoder": "ONE_HOT_ENCODER",
+            "OrdinalEncoder": "ORDINAL_ENCODER",
+            "LabelBinarizer": "CATEGORICAL_ENCODER",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "encoder_type": encoder_type,
+                    "processor": encoder_map.get(encoder_type, "CATEGORICAL_ENCODER"),
+                },
+                source_line=self.current_line,
+                suggested_processor=encoder_map.get(encoder_type, "CategoricalEncoder"),
+                notes=[f"sklearn {encoder_type} -> Dataiku {encoder_map.get(encoder_type)} processor"],
+            )
+        )
+
+    def _handle_sklearn_imputer(self, imputer_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn imputer instantiation (SimpleImputer, KNNImputer, etc.)."""
+        strategy = "mean"
+        for kw in node.keywords:
+            if kw.arg == "strategy" and isinstance(kw.value, ast.Constant):
+                strategy = kw.value.value
+
+        imputer_map = {
+            "SimpleImputer": "FILL_EMPTY_WITH_COMPUTED_VALUE",
+            "KNNImputer": "IMPUTE_WITH_ML",
+            "IterativeImputer": "IMPUTE_WITH_ML",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "imputer_type": imputer_type,
+                    "strategy": strategy,
+                    "processor": imputer_map.get(imputer_type, "FILL_EMPTY_WITH_COMPUTED_VALUE"),
+                },
+                source_line=self.current_line,
+                suggested_processor=imputer_map.get(imputer_type, "FillEmptyWithComputedValue"),
+                notes=[f"sklearn {imputer_type}(strategy={strategy}) -> Dataiku imputation"],
+            )
+        )
+
+    def _handle_sklearn_pipeline(self, node: ast.Call, target: str) -> None:
+        """Handle sklearn Pipeline instantiation."""
+        steps = []
+        for kw in node.keywords:
+            if kw.arg == "steps" and isinstance(kw.value, ast.List):
+                for step in kw.value.elts:
+                    if isinstance(step, ast.Tuple) and len(step.elts) >= 2:
+                        step_name = step.elts[0]
+                        if isinstance(step_name, ast.Constant):
+                            steps.append(step_name.value)
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "pipeline_steps": steps,
+                },
+                source_line=self.current_line,
+                suggested_recipe="prepare",
+                notes=["sklearn Pipeline -> Dataiku Prepare recipe with multiple steps"],
+            )
+        )
+
+    def _handle_sklearn_feature_selector(self, selector_type: str, node: ast.Call, target: str) -> None:
+        """Handle sklearn feature selection (PCA, SelectKBest, etc.)."""
+        n_components = None
+        k = None
+
+        for kw in node.keywords:
+            if kw.arg == "n_components" and isinstance(kw.value, ast.Constant):
+                n_components = kw.value.value
+            elif kw.arg == "k" and isinstance(kw.value, ast.Constant):
+                k = kw.value.value
+
+        selector_map = {
+            "PCA": "dimensionality_reduction",
+            "TruncatedSVD": "dimensionality_reduction",
+            "SelectKBest": "feature_selection",
+            "SelectFromModel": "feature_selection",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FIT_TRANSFORM,
+                target_dataframe=target,
+                parameters={
+                    "selector_type": selector_type,
+                    "n_components": n_components,
+                    "k": k,
+                    "operation": selector_map.get(selector_type, "feature_selection"),
+                },
+                source_line=self.current_line,
+                suggested_recipe="python",
+                notes=[f"sklearn {selector_type} -> Dataiku Python recipe (ML feature engineering)"],
+            )
+        )
+
+    # NumPy handlers
+
+    def _handle_numpy_function(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle NumPy function calls like np.where(), np.clip(), etc."""
+        # Numeric transformations
+        if func_name in ("log", "log10", "log2", "log1p"):
+            self._handle_numpy_log(func_name, node, target)
+        elif func_name in ("exp", "expm1"):
+            self._handle_numpy_exp(func_name, node, target)
+        elif func_name in ("sqrt", "cbrt", "square", "power"):
+            self._handle_numpy_power(func_name, node, target)
+        elif func_name == "abs":
+            self._handle_numpy_abs(node, target)
+        elif func_name in ("round", "around", "rint", "floor", "ceil", "trunc"):
+            self._handle_numpy_round(func_name, node, target)
+        elif func_name == "clip":
+            self._handle_numpy_clip(node, target)
+        # Conditional operations
+        elif func_name == "where":
+            self._handle_numpy_where(node, target)
+        elif func_name in ("isnan", "isinf", "isfinite"):
+            self._handle_numpy_check(func_name, node, target)
+        elif func_name in ("nan_to_num", "nanmean", "nansum", "nanstd"):
+            self._handle_numpy_nan_func(func_name, node, target)
+        # Array operations
+        elif func_name in ("concatenate", "vstack", "hstack", "stack"):
+            self._handle_numpy_concat(func_name, node, target)
+        elif func_name in ("sort", "argsort"):
+            self._handle_numpy_sort(func_name, node, target)
+        elif func_name == "unique":
+            self._handle_numpy_unique(node, target)
+        # Aggregations
+        elif func_name in ("sum", "mean", "std", "var", "min", "max", "median"):
+            self._handle_numpy_agg(func_name, node, target)
+        elif func_name in ("percentile", "quantile"):
+            self._handle_numpy_percentile(func_name, node, target)
+        # Reshaping
+        elif func_name in ("reshape", "flatten", "ravel", "transpose"):
+            self._handle_numpy_reshape(func_name, node, target)
+        # Creation/initialization
+        elif func_name in ("zeros", "ones", "full", "empty", "arange", "linspace"):
+            self._handle_numpy_create(func_name, node, target)
+        else:
+            # Unknown numpy function
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.CUSTOM_FUNCTION,
+                    target_dataframe=target,
+                    parameters={"numpy_function": func_name},
+                    source_line=self.current_line,
+                    requires_python_recipe=True,
+                    notes=[f"NumPy function np.{func_name}() requires Python recipe"],
+                )
+            )
+
+    def _handle_numpy_log(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.log, np.log10, np.log2, np.log1p."""
+        input_arr = self._get_arg_name(node, 0)
+        log_type_map = {
+            "log": "NATURAL_LOG",
+            "log10": "LOG10",
+            "log2": "LOG2",
+            "log1p": "LOG1P",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": log_type_map.get(func_name, "NATURAL_LOG")},
+                source_line=self.current_line,
+                suggested_processor="NumericalTransformer",
+                notes=[f"np.{func_name}() -> Prepare recipe with formula"],
+            )
+        )
+
+    def _handle_numpy_exp(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.exp, np.expm1."""
+        input_arr = self._get_arg_name(node, 0)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": "EXP" if func_name == "exp" else "EXPM1"},
+                source_line=self.current_line,
+                suggested_processor="NumericalTransformer",
+                notes=[f"np.{func_name}() -> Prepare recipe with formula"],
+            )
+        )
+
+    def _handle_numpy_power(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.sqrt, np.cbrt, np.square, np.power."""
+        input_arr = self._get_arg_name(node, 0)
+        power_val = None
+        if func_name == "power" and len(node.args) > 1:
+            if isinstance(node.args[1], ast.Constant):
+                power_val = node.args[1].value
+
+        op_map = {
+            "sqrt": "SQRT",
+            "cbrt": "CBRT",
+            "square": "SQUARE",
+            "power": "POWER",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": op_map.get(func_name, "POWER"), "exponent": power_val},
+                source_line=self.current_line,
+                suggested_processor="NumericalTransformer",
+                notes=[f"np.{func_name}() -> Prepare recipe with formula"],
+            )
+        )
+
+    def _handle_numpy_abs(self, node: ast.Call, target: str) -> None:
+        """Handle np.abs."""
+        input_arr = self._get_arg_name(node, 0)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": "ABS"},
+                source_line=self.current_line,
+                suggested_processor="AbsColumn",
+                notes=["np.abs() -> Prepare recipe AbsColumn processor"],
+            )
+        )
+
+    def _handle_numpy_round(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.round, np.around, np.floor, np.ceil, np.trunc."""
+        input_arr = self._get_arg_name(node, 0)
+        decimals = 0
+        for kw in node.keywords:
+            if kw.arg == "decimals" and isinstance(kw.value, ast.Constant):
+                decimals = kw.value.value
+        if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+            decimals = node.args[1].value
+
+        round_map = {
+            "round": "ROUND",
+            "around": "ROUND",
+            "rint": "ROUND",
+            "floor": "FLOOR",
+            "ceil": "CEIL",
+            "trunc": "TRUNC",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": round_map.get(func_name, "ROUND"), "decimals": decimals},
+                source_line=self.current_line,
+                suggested_processor="RoundColumn",
+                notes=[f"np.{func_name}() -> Prepare recipe RoundColumn processor"],
+            )
+        )
+
+    def _handle_numpy_clip(self, node: ast.Call, target: str) -> None:
+        """Handle np.clip(a, min, max)."""
+        input_arr = self._get_arg_name(node, 0)
+        min_val = None
+        max_val = None
+
+        if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+            min_val = node.args[1].value
+        if len(node.args) > 2 and isinstance(node.args[2], ast.Constant):
+            max_val = node.args[2].value
+
+        for kw in node.keywords:
+            if kw.arg in ("a_min", "min") and isinstance(kw.value, ast.Constant):
+                min_val = kw.value.value
+            elif kw.arg in ("a_max", "max") and isinstance(kw.value, ast.Constant):
+                max_val = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.NUMERIC_TRANSFORM,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": "CLIP", "min": min_val, "max": max_val},
+                source_line=self.current_line,
+                suggested_processor="ClipColumn",
+                notes=["np.clip() -> Prepare recipe ClipColumn processor"],
+            )
+        )
+
+    def _handle_numpy_where(self, node: ast.Call, target: str) -> None:
+        """Handle np.where(condition, x, y)."""
+        condition = None
+        if len(node.args) > 0:
+            condition = self._get_name(node.args[0])
+
+        x_val = self._get_arg_name(node, 1) if len(node.args) > 1 else None
+        y_val = self._get_arg_name(node, 2) if len(node.args) > 2 else None
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                target_dataframe=target,
+                parameters={"condition": condition, "if_true": x_val, "if_false": y_val},
+                source_line=self.current_line,
+                suggested_processor="CreateColumnWithGREL",
+                notes=["np.where() -> Prepare recipe with if/else formula"],
+            )
+        )
+
+    def _handle_numpy_check(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.isnan, np.isinf, np.isfinite."""
+        input_arr = self._get_arg_name(node, 0)
+        check_map = {
+            "isnan": "IS_NAN",
+            "isinf": "IS_INF",
+            "isfinite": "IS_FINITE",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"check_type": check_map.get(func_name, "IS_NAN")},
+                source_line=self.current_line,
+                suggested_processor="FlagOnValue",
+                notes=[f"np.{func_name}() -> Prepare recipe FlagOnValue processor"],
+            )
+        )
+
+    def _handle_numpy_nan_func(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.nan_to_num, np.nanmean, np.nansum, np.nanstd."""
+        input_arr = self._get_arg_name(node, 0)
+
+        if func_name == "nan_to_num":
+            nan_val = 0.0
+            for kw in node.keywords:
+                if kw.arg == "nan" and isinstance(kw.value, ast.Constant):
+                    nan_val = kw.value.value
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.FILL_NA,
+                    source_dataframe=input_arr,
+                    target_dataframe=target,
+                    parameters={"value": nan_val},
+                    source_line=self.current_line,
+                    suggested_processor="FillEmptyWithValue",
+                    notes=["np.nan_to_num() -> Prepare recipe FillEmptyWithValue"],
+                )
+            )
+        else:
+            # nanmean, nansum, nanstd
+            agg_func = func_name.replace("nan", "").upper()
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.GROUPBY,
+                    source_dataframe=input_arr,
+                    target_dataframe=target,
+                    parameters={"aggregation": agg_func, "ignore_nan": True},
+                    source_line=self.current_line,
+                    suggested_recipe="grouping",
+                    notes=[f"np.{func_name}() -> Grouping recipe with {agg_func}"],
+                )
+            )
+
+    def _handle_numpy_concat(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.concatenate, np.vstack, np.hstack, np.stack."""
+        arrays = []
+        if node.args:
+            if isinstance(node.args[0], (ast.List, ast.Tuple)):
+                for elt in node.args[0].elts:
+                    arrays.append(self._get_name(elt))
+            else:
+                arrays.append(self._get_name(node.args[0]))
+
+        axis = 0
+        for kw in node.keywords:
+            if kw.arg == "axis" and isinstance(kw.value, ast.Constant):
+                axis = kw.value.value
+
+        concat_type = "VSTACK" if func_name in ("vstack", "stack") or axis == 0 else "HSTACK"
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.CONCAT,
+                source_dataframe=arrays[0] if arrays else None,
+                target_dataframe=target,
+                parameters={"arrays": arrays, "axis": axis, "mode": concat_type},
+                source_line=self.current_line,
+                suggested_recipe="stack",
+                notes=[f"np.{func_name}() -> Stack recipe"],
+            )
+        )
+
+    def _handle_numpy_sort(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.sort, np.argsort."""
+        input_arr = self._get_arg_name(node, 0)
+        axis = -1
+        for kw in node.keywords:
+            if kw.arg == "axis" and isinstance(kw.value, ast.Constant):
+                axis = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.SORT,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"axis": axis, "return_indices": func_name == "argsort"},
+                source_line=self.current_line,
+                suggested_recipe="sort",
+                notes=[f"np.{func_name}() -> Sort recipe"],
+            )
+        )
+
+    def _handle_numpy_unique(self, node: ast.Call, target: str) -> None:
+        """Handle np.unique."""
+        input_arr = self._get_arg_name(node, 0)
+        return_counts = False
+        for kw in node.keywords:
+            if kw.arg == "return_counts" and isinstance(kw.value, ast.Constant):
+                return_counts = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.DROP_DUPLICATES,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"return_counts": return_counts},
+                source_line=self.current_line,
+                suggested_recipe="distinct",
+                notes=["np.unique() -> Distinct recipe"],
+            )
+        )
+
+    def _handle_numpy_agg(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.sum, np.mean, np.std, np.var, np.min, np.max, np.median."""
+        input_arr = self._get_arg_name(node, 0)
+        axis = None
+        for kw in node.keywords:
+            if kw.arg == "axis" and isinstance(kw.value, ast.Constant):
+                axis = kw.value.value
+
+        agg_map = {
+            "sum": "SUM",
+            "mean": "AVG",
+            "std": "STDDEV",
+            "var": "VAR",
+            "min": "MIN",
+            "max": "MAX",
+            "median": "MEDIAN",
+        }
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.GROUPBY,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"aggregation": agg_map.get(func_name, func_name.upper()), "axis": axis},
+                source_line=self.current_line,
+                suggested_recipe="grouping",
+                notes=[f"np.{func_name}() -> Grouping recipe with {agg_map.get(func_name, func_name.upper())}"],
+            )
+        )
+
+    def _handle_numpy_percentile(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.percentile, np.quantile."""
+        input_arr = self._get_arg_name(node, 0)
+        q = None
+        if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
+            q = node.args[1].value
+
+        for kw in node.keywords:
+            if kw.arg == "q" and isinstance(kw.value, ast.Constant):
+                q = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.GROUPBY,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"aggregation": "PERCENTILE", "percentile": q},
+                source_line=self.current_line,
+                suggested_recipe="grouping",
+                notes=[f"np.{func_name}() -> Grouping recipe with percentile"],
+            )
+        )
+
+    def _handle_numpy_reshape(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.reshape, np.flatten, np.ravel, np.transpose."""
+        input_arr = self._get_arg_name(node, 0)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.CUSTOM_FUNCTION,
+                source_dataframe=input_arr,
+                target_dataframe=target,
+                parameters={"operation": func_name.upper()},
+                source_line=self.current_line,
+                requires_python_recipe=True,
+                notes=[f"np.{func_name}() requires Python recipe for array reshaping"],
+            )
+        )
+
+    def _handle_numpy_create(self, func_name: str, node: ast.Call, target: str) -> None:
+        """Handle np.zeros, np.ones, np.full, np.empty, np.arange, np.linspace."""
+        shape = None
+        if node.args and isinstance(node.args[0], (ast.Tuple, ast.List, ast.Constant)):
+            if isinstance(node.args[0], ast.Constant):
+                shape = node.args[0].value
+            else:
+                shape = [self._get_name(e) for e in node.args[0].elts]
+
+        fill_value = None
+        if func_name == "full" and len(node.args) > 1:
+            if isinstance(node.args[1], ast.Constant):
+                fill_value = node.args[1].value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.CUSTOM_FUNCTION,
+                target_dataframe=target,
+                parameters={
+                    "operation": f"CREATE_{func_name.upper()}",
+                    "shape": shape,
+                    "fill_value": fill_value,
+                },
+                source_line=self.current_line,
+                requires_python_recipe=True,
+                notes=[f"np.{func_name}() -> Python recipe for array creation"],
+            )
+        )
+
+    def _get_arg_name(self, node: ast.Call, index: int) -> Optional[str]:
+        """Get the name of a positional argument by index."""
+        if len(node.args) > index:
+            return self._get_name(node.args[index])
+        return None
+
+    def _handle_sklearn_method(
+        self, obj_name: str, method_name: str, node: ast.Call, target: str
+    ) -> None:
+        """Handle sklearn fit/transform/predict method calls."""
+        # Get input data
+        input_data = []
+        for arg in node.args:
+            input_data.append(self._get_name(arg))
+
+        method_map = {
+            "fit": TransformationType.FIT,
+            "transform": TransformationType.TRANSFORM,
+            "fit_transform": TransformationType.FIT_TRANSFORM,
+            "predict": TransformationType.PREDICT,
+            "predict_proba": TransformationType.PREDICT,
+        }
+
+        recipe_map = {
+            "fit": "python",
+            "transform": "prepare",
+            "fit_transform": "prepare",
+            "predict": "prediction_scoring",
+            "predict_proba": "prediction_scoring",
+        }
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=method_map.get(method_name, TransformationType.TRANSFORM),
+                source_dataframe=obj_name,
+                target_dataframe=target,
+                parameters={
+                    "method": method_name,
+                    "inputs": input_data,
+                },
+                source_line=self.current_line,
+                suggested_recipe=recipe_map.get(method_name, "python"),
+                notes=[f"sklearn {obj_name}.{method_name}()"],
+            )
+        )
