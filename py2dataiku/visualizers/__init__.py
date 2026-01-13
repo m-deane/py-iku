@@ -6,6 +6,7 @@ Provides multiple output formats for visualizing Dataiku DSS flows:
 - ASCII: Terminal-friendly text art
 - PlantUML: Documentation-ready diagrams
 - HTML: Interactive canvas-based visualization
+- Interactive: Enhanced HTML with pan/zoom, search, and export
 """
 
 from py2dataiku.visualizers.base import FlowVisualizer
@@ -16,6 +17,7 @@ from py2dataiku.visualizers.svg_visualizer import SVGVisualizer
 from py2dataiku.visualizers.ascii_visualizer import ASCIIVisualizer
 from py2dataiku.visualizers.plantuml_visualizer import PlantUMLVisualizer
 from py2dataiku.visualizers.html_visualizer import HTMLVisualizer
+from py2dataiku.visualizers.interactive_visualizer import InteractiveVisualizer
 
 __all__ = [
     "FlowVisualizer",
@@ -29,6 +31,7 @@ __all__ = [
     "ASCIIVisualizer",
     "PlantUMLVisualizer",
     "HTMLVisualizer",
+    "InteractiveVisualizer",
     "visualize_flow",
 ]
 
@@ -39,7 +42,7 @@ def visualize_flow(flow, format: str = "svg", **kwargs) -> str:
 
     Args:
         flow: DataikuFlow object to visualize
-        format: Output format - "svg", "ascii", "plantuml", "html"
+        format: Output format - "svg", "ascii", "plantuml", "html", "interactive"
         **kwargs: Additional arguments passed to the visualizer
 
     Returns:
@@ -50,6 +53,7 @@ def visualize_flow(flow, format: str = "svg", **kwargs) -> str:
         "ascii": ASCIIVisualizer,
         "plantuml": PlantUMLVisualizer,
         "html": HTMLVisualizer,
+        "interactive": InteractiveVisualizer,
     }
 
     if format not in visualizers:
