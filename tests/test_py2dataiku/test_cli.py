@@ -241,8 +241,10 @@ df = pd.read_csv('data.csv')
         flow = convert_code(code)
         output = format_flow(flow, "summary")
 
-        # Should be human-readable text
-        assert "Flow:" in output or len(output) > 0
+        # Should contain flow summary information
+        assert len(output) > 0
+        # Summary should mention datasets or recipes
+        assert "Dataset" in output or "Recipe" in output or "Flow" in output
 
 
 class TestFormatTransformations:
@@ -375,8 +377,9 @@ df = df.fillna(0)
 
             assert result == 0
             captured = capsys.readouterr()
-            # ASCII output should contain box characters or flow elements
-            assert len(captured.out) > 0
+            # ASCII output should contain meaningful flow visualization characters
+            assert len(captured.out) > 10
+            assert any(c in captured.out for c in ['-', '>', '|', '+', '[', ']'])
         finally:
             os.unlink(temp_path)
 
@@ -434,8 +437,10 @@ df = df.fillna(0)
 
             assert result == 0
             captured = capsys.readouterr()
-            # Should show transformation info
-            assert "transformation" in captured.out.lower() or len(captured.out) > 0
+            # Should show transformation info with details about detected operations
+            assert len(captured.out) > 0
+            output_lower = captured.out.lower()
+            assert "transformation" in output_lower or "read_data" in output_lower or "drop_na" in output_lower
         finally:
             os.unlink(temp_path)
 

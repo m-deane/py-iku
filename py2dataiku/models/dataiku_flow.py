@@ -9,6 +9,7 @@ import yaml
 
 from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+from py2dataiku.models.flow_graph import FlowGraph
 
 
 @dataclass
@@ -56,6 +57,43 @@ class ColumnLineage:
 
 
 @dataclass
+class FlowZone:
+    """A zone within a Dataiku flow for organizing recipes and datasets."""
+
+    name: str
+    color: str = "#4b96e6"
+    datasets: List[str] = field(default_factory=list)
+    recipes: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "color": self.color,
+            "datasets": self.datasets,
+            "recipes": self.recipes,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "FlowZone":
+        return cls(
+            name=data["name"],
+            color=data.get("color", "#4b96e6"),
+            datasets=data.get("datasets", []),
+            recipes=data.get("recipes", []),
+        )
+
+    def add_dataset(self, dataset_name: str) -> None:
+        """Add a dataset to this zone."""
+        if dataset_name not in self.datasets:
+            self.datasets.append(dataset_name)
+
+    def add_recipe(self, recipe_name: str) -> None:
+        """Add a recipe to this zone."""
+        if recipe_name not in self.recipes:
+            self.recipes.append(recipe_name)
+
+
+@dataclass
 class DataikuFlow:
     """
     Represents a complete Dataiku flow (pipeline).
@@ -70,6 +108,7 @@ class DataikuFlow:
 
     datasets: List[DataikuDataset] = field(default_factory=list)
     recipes: List[DataikuRecipe] = field(default_factory=list)
+    zones: List[FlowZone] = field(default_factory=list)
 
     recommendations: List[FlowRecommendation] = field(default_factory=list)
     optimization_notes: List[str] = field(default_factory=list)
@@ -78,6 +117,11 @@ class DataikuFlow:
     def __post_init__(self):
         if not self.generation_timestamp:
             self.generation_timestamp = datetime.now().isoformat()
+
+    @property
+    def graph(self) -> FlowGraph:
+        """Build and return a DAG representation of this flow."""
+        return FlowGraph.from_flow(self)
 
     # Dataset operations
 
@@ -161,17 +205,152 @@ class DataikuFlow:
             )
         )
 
-    def get_column_lineage(self, column: str) -> Optional[ColumnLineage]:
-        """Get lineage information for a column."""
-        # This would require tracking column transformations through the flow
-        # Placeholder implementation
-        return None
+    def get_column_lineage(
+        self, column: str, dataset: Optional[str] = None
+    ) -> ColumnLineage:
+        """Get lineage information for a column.
+
+        Traces a column backward through the flow's recipes to find its
+        origin dataset and any transformations applied along the way.
+
+        Args:
+            column: The column name to trace.
+            dataset: The dataset containing the column. If None, searches
+                     output datasets first, then all datasets.
+
+        Returns:
+            ColumnLineage describing the column's origin and transformations.
+
+        Raises:
+            ValueError: If the column or dataset cannot be found in the flow.
+        """
+        from py2dataiku.models.prepare_step import ProcessorType
+
+        # Determine the target dataset
+        if dataset is None:
+            # Try output datasets first, then all datasets
+            candidates = self.output_datasets or self.datasets
+            if not candidates:
+                raise ValueError("Flow has no datasets")
+            dataset = candidates[-1].name
+
+        if not self._dataset_exists(dataset):
+            raise ValueError(f"Dataset '{dataset}' not found in flow")
+
+        # Build reverse lookup: dataset -> recipe that produces it
+        producer: Dict[str, DataikuRecipe] = {}
+        for recipe in self.recipes:
+            for out in recipe.outputs:
+                producer[out] = recipe
+
+        # Trace column backward through recipes
+        current_column = column
+        current_dataset = dataset
+        transformations: list = []
+
+        visited: Set[str] = set()
+        while current_dataset in producer and current_dataset not in visited:
+            visited.add(current_dataset)
+            recipe = producer[current_dataset]
+
+            if recipe.recipe_type == RecipeType.PREPARE:
+                # Check prepare steps for column-affecting operations
+                for step in reversed(recipe.steps):
+                    if step.processor_type == ProcessorType.COLUMN_RENAMER:
+                        old_name = step.params.get("column", "")
+                        new_name = step.params.get("new_name", "")
+                        if new_name == current_column:
+                            transformations.insert(0, {
+                                "type": "rename",
+                                "recipe": recipe.name,
+                                "from": old_name,
+                                "to": new_name,
+                            })
+                            current_column = old_name
+                    elif step.processor_type == ProcessorType.COLUMN_COPIER:
+                        new_col = step.params.get("new_column", "")
+                        src_col = step.params.get("column", "")
+                        if new_col == current_column:
+                            transformations.insert(0, {
+                                "type": "copy",
+                                "recipe": recipe.name,
+                                "from": src_col,
+                                "to": new_col,
+                            })
+                            current_column = src_col
+                    elif step.processor_type in (
+                        ProcessorType.STRING_TRANSFORMER,
+                        ProcessorType.NUMERICAL_TRANSFORMER,
+                        ProcessorType.FILL_EMPTY_WITH_VALUE,
+                        ProcessorType.ROUND_COLUMN,
+                        ProcessorType.ABS_COLUMN,
+                        ProcessorType.CLIP_COLUMN,
+                    ):
+                        step_col = step.params.get("column", "")
+                        if step_col == current_column:
+                            transformations.insert(0, {
+                                "type": step.processor_type.value,
+                                "recipe": recipe.name,
+                                "column": step_col,
+                            })
+
+            elif recipe.recipe_type == RecipeType.GROUPING:
+                if current_column in recipe.group_keys:
+                    transformations.insert(0, {
+                        "type": "group_key",
+                        "recipe": recipe.name,
+                        "column": current_column,
+                    })
+                else:
+                    for agg in recipe.aggregations:
+                        if (agg.output_column == current_column
+                                or agg.column == current_column):
+                            transformations.insert(0, {
+                                "type": "aggregation",
+                                "recipe": recipe.name,
+                                "function": agg.function,
+                                "source_column": agg.column,
+                            })
+                            current_column = agg.column
+                            break
+
+            elif recipe.recipe_type == RecipeType.JOIN:
+                transformations.insert(0, {
+                    "type": "join",
+                    "recipe": recipe.name,
+                    "join_type": recipe.join_type.value,
+                })
+
+            # Move to the input dataset
+            if recipe.inputs:
+                current_dataset = recipe.inputs[0]
+            else:
+                break
+
+        return ColumnLineage(
+            column=column,
+            final_dataset=dataset,
+            origin_dataset=current_dataset,
+            origin_column=current_column,
+            transformations=transformations,
+        )
 
     def validate(self) -> Dict[str, Any]:
-        """Validate the flow structure."""
+        """Validate the flow structure using DAG analysis."""
         errors = []
         warnings = []
         info = []
+
+        # Build DAG for structural validation
+        dag = self.graph
+
+        # Check for cycles
+        cycles = dag.detect_cycles()
+        for cycle in cycles:
+            errors.append({
+                "type": "CYCLE_DETECTED",
+                "message": f"Cycle detected in flow: {' -> '.join(cycle)}",
+            })
 
         # Check for orphan datasets
         referenced_datasets: Set[str] = set()
@@ -195,6 +374,14 @@ class DataikuFlow:
                         "message": f"Recipe '{recipe.name}' references missing input '{inp}'",
                     })
 
+        # Check for disconnected subgraphs
+        subgraphs = dag.find_disconnected_subgraphs()
+        if len(subgraphs) > 1:
+            warnings.append({
+                "type": "DISCONNECTED_FLOW",
+                "message": f"Flow has {len(subgraphs)} disconnected subgraphs",
+            })
+
         # Check for Python recipes
         python_recipes = self.get_recipes_by_type(RecipeType.PYTHON)
         for pr in python_recipes:
@@ -213,9 +400,20 @@ class DataikuFlow:
 
     # Export methods
 
+    def add_zone(self, zone: FlowZone) -> None:
+        """Add a zone to the flow."""
+        self.zones.append(zone)
+
+    def get_zone(self, name: str) -> Optional[FlowZone]:
+        """Get a zone by name."""
+        for z in self.zones:
+            if z.name == name:
+                return z
+        return None
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
-        return {
+        result = {
             "flow_name": self.name,
             "generated_from": self.source_file,
             "generation_timestamp": self.generation_timestamp,
@@ -226,6 +424,53 @@ class DataikuFlow:
             "optimization_notes": self.optimization_notes,
             "recommendations": [r.to_dict() for r in self.recommendations],
         }
+        if self.zones:
+            result["zones"] = [z.to_dict() for z in self.zones]
+        return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DataikuFlow":
+        """Reconstruct a DataikuFlow from a dictionary (inverse of to_dict)."""
+        datasets = [
+            DataikuDataset.from_dict(ds) for ds in data.get("datasets", [])
+        ]
+        recipes = [
+            DataikuRecipe.from_dict(r) for r in data.get("recipes", [])
+        ]
+        recommendations = [
+            FlowRecommendation(
+                type=rec["type"],
+                priority=rec["priority"],
+                message=rec["message"],
+                impact=rec.get("impact"),
+                action=rec.get("action"),
+                source_lines=rec.get("source_lines", []),
+            )
+            for rec in data.get("recommendations", [])
+        ]
+        zones = [
+            FlowZone.from_dict(z) for z in data.get("zones", [])
+        ]
+        return cls(
+            name=data.get("flow_name", "converted_flow"),
+            source_file=data.get("generated_from"),
+            generation_timestamp=data.get("generation_timestamp"),
+            datasets=datasets,
+            recipes=recipes,
+            zones=zones,
+            recommendations=recommendations,
+            optimization_notes=data.get("optimization_notes", []),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "DataikuFlow":
+        """Reconstruct a DataikuFlow from a JSON string."""
+        return cls.from_dict(json.loads(json_str))
+
+    @classmethod
+    def from_yaml(cls, yaml_str: str) -> "DataikuFlow":
+        """Reconstruct a DataikuFlow from a YAML string."""
+        return cls.from_dict(yaml.safe_load(yaml_str))
 
     def to_yaml(self) -> str:
         """Convert to YAML string."""
@@ -392,6 +637,18 @@ class DataikuFlow:
         from py2dataiku.visualizers import SVGVisualizer
         visualizer = SVGVisualizer()
         visualizer.export_pdf(self, output_path)
+
+    def __len__(self) -> int:
+        """Return the number of recipes in this flow."""
+        return len(self.recipes)
+
+    def __iter__(self):
+        """Iterate over the recipes in this flow."""
+        return iter(self.recipes)
+
+    def _repr_svg_(self) -> str:
+        """SVG representation for Jupyter notebook rendering."""
+        return self.visualize(format="svg")
 
     def __repr__(self) -> str:
         return (

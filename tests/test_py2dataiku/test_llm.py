@@ -221,12 +221,14 @@ result = cleaned.groupby('category').agg({'amount': 'sum'})
         assert result.steps[2].operation == OperationType.GROUP_AGGREGATE
 
     def test_analyze_error_handling(self):
-        """Test handling of invalid JSON response."""
+        """Test handling of invalid JSON response raises LLMResponseParseError."""
+        from py2dataiku.exceptions import LLMResponseParseError
+
         provider = MockProvider(responses={"python": "invalid json"})
         analyzer = LLMCodeAnalyzer(provider=provider)
 
-        result = analyzer.analyze("test code")
-        assert "Error" in result.code_summary or len(result.warnings) > 0
+        with pytest.raises(LLMResponseParseError):
+            analyzer.analyze("test code")
 
     def test_post_processing(self):
         """Test that post-processing adds default suggestions."""

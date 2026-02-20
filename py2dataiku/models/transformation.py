@@ -38,6 +38,7 @@ class TransformationType(Enum):
     HEAD = "head"
     TAIL = "tail"
     SAMPLE = "sample"
+    TOP_N = "top_n"
 
     # Aggregations
     GROUPBY = "groupby"

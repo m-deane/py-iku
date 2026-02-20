@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from py2dataiku.exceptions import ValidationError
 from py2dataiku.mappings.processor_catalog import ProcessorCatalog
 
 

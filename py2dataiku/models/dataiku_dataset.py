@@ -13,6 +13,24 @@ class DatasetType(Enum):
     OUTPUT = "output"
 
 
+class DatasetConnectionType(Enum):
+    """Connection type for a dataset in Dataiku DSS."""
+
+    FILESYSTEM = "Filesystem"
+    SQL_POSTGRESQL = "PostgreSQL"
+    SQL_MYSQL = "MySQL"
+    SQL_BIGQUERY = "BigQuery"
+    SQL_SNOWFLAKE = "Snowflake"
+    SQL_REDSHIFT = "Redshift"
+    S3 = "S3"
+    GCS = "GCS"
+    AZURE_BLOB = "AzureBlob"
+    HDFS = "HDFS"
+    MANAGED_FOLDER = "ManagedFolder"
+    MONGODB = "MongoDB"
+    ELASTICSEARCH = "Elasticsearch"
+
+
 @dataclass
 class ColumnSchema:
     """Schema for a single column."""
@@ -48,6 +66,7 @@ class DataikuDataset:
 
     name: str
     dataset_type: DatasetType = DatasetType.INTERMEDIATE
+    connection_type: DatasetConnectionType = DatasetConnectionType.FILESYSTEM
     schema: List[ColumnSchema] = field(default_factory=list)
     source_variable: Optional[str] = None  # Original Python variable name
     source_line: Optional[int] = None  # Line number in source code
@@ -58,6 +77,7 @@ class DataikuDataset:
         return {
             "name": self.name,
             "type": self.dataset_type.value,
+            "connection_type": self.connection_type.value,
             "schema": [col.to_dict() for col in self.schema],
             "source_variable": self.source_variable,
             "source_line": self.source_line,
@@ -69,7 +89,7 @@ class DataikuDataset:
         result = {
             "name": self.name,
             "projectKey": "${PROJECT_KEY}",  # Placeholder
-            "type": "Filesystem",  # Default type
+            "type": self.connection_type.value,
         }
         if self.schema:
             result["schema"] = {
@@ -77,6 +97,32 @@ class DataikuDataset:
                 "userModified": False,
             }
         return result
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DataikuDataset":
+        """Reconstruct a DataikuDataset from a dictionary (inverse of to_dict)."""
+        schema = [
+            ColumnSchema(
+                name=col["name"],
+                type=col["type"],
+                nullable=col.get("nullable", True),
+                default=col.get("default"),
+                format=col.get("format"),
+            )
+            for col in data.get("schema", [])
+        ]
+        connection_type = DatasetConnectionType.FILESYSTEM
+        if "connection_type" in data:
+            connection_type = DatasetConnectionType(data["connection_type"])
+        return cls(
+            name=data["name"],
+            dataset_type=DatasetType(data["type"]),
+            connection_type=connection_type,
+            schema=schema,
+            source_variable=data.get("source_variable"),
+            source_line=data.get("source_line"),
+            notes=data.get("notes", []),
+        )
 
     def add_column(
         self,

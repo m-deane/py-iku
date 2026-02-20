@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 from py2dataiku.models.prepare_step import PrepareStep
+from py2dataiku.models.recipe_settings import RecipeSettings
 
 
 class RecipeType(Enum):
@@ -281,6 +282,10 @@ class DataikuRecipe:
     order_columns: List[str] = field(default_factory=list)
     window_aggregations: List[Dict[str, Any]] = field(default_factory=list)
 
+    # Sampling recipe specific
+    sampling_method: SamplingMethod = SamplingMethod.RANDOM
+    sample_size: Optional[int] = None
+
     # Split recipe specific
     split_condition: Optional[str] = None
 
@@ -293,6 +298,9 @@ class DataikuRecipe:
 
     # Python recipe specific
     code: Optional[str] = None
+
+    # Composed settings object (optional, takes precedence over flat fields)
+    settings: Optional[RecipeSettings] = None
 
     # Metadata
     source_lines: List[int] = field(default_factory=list)
@@ -309,7 +317,9 @@ class DataikuRecipe:
             "notes": self.notes,
         }
 
-        if self.recipe_type == RecipeType.PREPARE:
+        if self.settings is not None:
+            result.update(self.settings.to_display_dict())
+        elif self.recipe_type == RecipeType.PREPARE:
             result["steps"] = [s.to_dict() for s in self.steps]
             result["step_count"] = len(self.steps)
         elif self.recipe_type == RecipeType.GROUPING:
@@ -325,8 +335,52 @@ class DataikuRecipe:
 
         return result
 
-    def to_json(self) -> Dict[str, Any]:
-        """Convert to Dataiku API-compatible JSON."""
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DataikuRecipe":
+        """Reconstruct a DataikuRecipe from a dictionary (inverse of to_dict)."""
+        recipe_type = RecipeType(data["type"])
+        kwargs: Dict[str, Any] = {
+            "name": data["name"],
+            "recipe_type": recipe_type,
+            "inputs": data.get("inputs", []),
+            "outputs": data.get("outputs", []),
+            "source_lines": data.get("source_lines", []),
+            "notes": data.get("notes", []),
+        }
+
+        if recipe_type == RecipeType.PREPARE:
+            kwargs["steps"] = [
+                PrepareStep.from_dict(s) for s in data.get("steps", [])
+            ]
+        elif recipe_type == RecipeType.GROUPING:
+            kwargs["group_keys"] = data.get("keys", [])
+            kwargs["aggregations"] = [
+                Aggregation(
+                    column=a["column"],
+                    function=a.get("type", a.get("function", "")),
+                    output_column=a.get("outputColumn"),
+                )
+                for a in data.get("aggregations", [])
+            ]
+        elif recipe_type == RecipeType.JOIN:
+            kwargs["join_type"] = JoinType(data["join_type"])
+            kwargs["join_keys"] = [
+                JoinKey(
+                    left_column=k["left"]["column"],
+                    right_column=k["right"]["column"],
+                    match_type=k.get("matchType", "EXACT"),
+                )
+                for k in data.get("join_keys", [])
+            ]
+            if data.get("selected_columns"):
+                kwargs["selected_columns"] = data["selected_columns"]
+        elif recipe_type == RecipeType.PYTHON:
+            kwargs["code"] = data.get("code")
+
+        return cls(**kwargs)
+
+    def to_api_dict(self) -> Dict[str, Any]:
+        """Convert to Dataiku API-compatible dictionary."""
         base = {
             "type": self.recipe_type.value,
             "name": self.name,
@@ -340,8 +394,23 @@ class DataikuRecipe:
 
         return base
 
+    def to_json(self) -> Dict[str, Any]:
+        """Convert to Dataiku API-compatible dictionary.
+
+        Note: This method returns a dict, not a JSON string. It is an alias
+        for ``to_api_dict()`` kept for backward compatibility.
+        """
+        return self.to_api_dict()
+
     def _build_settings(self) -> Dict[str, Any]:
-        """Build recipe-specific settings."""
+        """Build recipe-specific settings.
+
+        If a composed RecipeSettings object is set, it takes precedence
+        over the flat fields. Otherwise, falls back to the legacy if/elif chain.
+        """
+        if self.settings is not None:
+            return self.settings.to_dict()
+
         if self.recipe_type == RecipeType.PREPARE:
             return {
                 "mode": "NORMAL",
@@ -362,11 +431,24 @@ class DataikuRecipe:
                 settings["selectedColumns"] = self.selected_columns
             return settings
         elif self.recipe_type == RecipeType.WINDOW:
+            aggregations = []
+            for agg in self.window_aggregations:
+                entry = dict(agg)
+                if "type" in entry and isinstance(entry["type"], WindowFunctionType):
+                    entry["type"] = entry["type"].value
+                aggregations.append(entry)
             return {
                 "partitionColumns": [{"column": c} for c in self.partition_columns],
                 "orderColumns": [{"column": c} for c in self.order_columns],
-                "aggregations": self.window_aggregations,
+                "aggregations": aggregations,
             }
+        elif self.recipe_type == RecipeType.SAMPLING:
+            settings: Dict[str, Any] = {
+                "samplingMethod": self.sampling_method.value,
+            }
+            if self.sample_size is not None:
+                settings["sampleSize"] = self.sample_size
+            return settings
         elif self.recipe_type == RecipeType.SPLIT:
             return {
                 "splitMode": "FILTER",

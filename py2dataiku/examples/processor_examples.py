@@ -1246,6 +1246,202 @@ df.to_csv('json_extracted.csv', index=False)
 """
 
 # =============================================================================
+# CONDITIONAL LOGIC PROCESSORS
+# =============================================================================
+
+IF_THEN_ELSE_EXAMPLE = """
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('data.csv')
+
+# Simple conditional with np.where
+df['status_label'] = np.where(df['amount'] > 1000, 'High', 'Low')
+
+# Conditional based on string match
+df['is_premium'] = np.where(df['tier'] == 'premium', 'Yes', 'No')
+
+# Nested conditional
+df['priority'] = np.where(
+    df['score'] >= 90, 'Critical',
+    np.where(df['score'] >= 50, 'Medium', 'Low')
+)
+
+df.to_csv('conditional.csv', index=False)
+"""
+
+SWITCH_CASE_EXAMPLE = """
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv('data.csv')
+
+# Multi-branch conditional with np.select
+conditions = [
+    df['score'] >= 90,
+    df['score'] >= 80,
+    df['score'] >= 70,
+    df['score'] >= 60,
+]
+choices = ['A', 'B', 'C', 'D']
+df['grade'] = np.select(conditions, choices, default='F')
+
+# Dictionary-based mapping (switch-like)
+status_map = {'A': 'Active', 'I': 'Inactive', 'P': 'Pending', 'D': 'Deleted'}
+df['status_label'] = df['status_code'].map(status_map)
+
+df.to_csv('switch_case.csv', index=False)
+"""
+
+TRANSLATE_VALUES_EXAMPLE = """
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+
+# Translate values using map with dict
+country_codes = {'US': 'United States', 'UK': 'United Kingdom', 'FR': 'France', 'DE': 'Germany'}
+df['country_name'] = df['country_code'].map(country_codes)
+
+# Replace values with dict
+df['status'] = df['status'].replace({
+    'ACTV': 'Active',
+    'INACTV': 'Inactive',
+    'PNDG': 'Pending'
+})
+
+df.to_csv('translated.csv', index=False)
+"""
+
+# =============================================================================
+# DATA EXTRACTION PROCESSORS
+# =============================================================================
+
+EXTRACT_WITH_JSONPATH_EXAMPLE = """
+import pandas as pd
+import json
+
+df = pd.read_csv('data.csv')
+
+# Extract nested JSON fields using JSONPath-like access
+def extract_jsonpath(json_str, path):
+    try:
+        data = json.loads(json_str)
+        keys = path.strip('$.').split('.')
+        for key in keys:
+            data = data[key]
+        return data
+    except:
+        return None
+
+df['user_name'] = df['json_data'].apply(lambda x: extract_jsonpath(x, '$.user.name'))
+df['user_email'] = df['json_data'].apply(lambda x: extract_jsonpath(x, '$.user.email'))
+
+df.to_csv('jsonpath_extracted.csv', index=False)
+"""
+
+SPLIT_URL_EXAMPLE = """
+import pandas as pd
+from urllib.parse import urlparse, parse_qs
+
+df = pd.read_csv('data.csv')
+
+# Parse URL into components
+parsed = df['url'].apply(lambda x: urlparse(str(x)))
+df['url_scheme'] = parsed.apply(lambda x: x.scheme)
+df['url_host'] = parsed.apply(lambda x: x.netloc)
+df['url_path'] = parsed.apply(lambda x: x.path)
+df['url_query'] = parsed.apply(lambda x: x.query)
+df['url_fragment'] = parsed.apply(lambda x: x.fragment)
+
+# Extract query parameters
+df['url_params'] = df['url'].apply(
+    lambda x: parse_qs(urlparse(str(x)).query)
+)
+
+df.to_csv('split_urls.csv', index=False)
+"""
+
+# =============================================================================
+# RESHAPING PROCESSORS
+# =============================================================================
+
+FOLD_MULTIPLE_COLUMNS_EXAMPLE = """
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+
+# Melt/unpivot multiple columns
+df_melted = df.melt(
+    id_vars=['customer_id', 'name'],
+    value_vars=['q1_sales', 'q2_sales', 'q3_sales', 'q4_sales'],
+    var_name='quarter',
+    value_name='sales'
+)
+
+df_melted.to_csv('folded.csv', index=False)
+"""
+
+TRANSPOSE_ROWS_TO_COLUMNS_EXAMPLE = """
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+
+# Transpose the dataframe
+df_transposed = df.set_index('metric').T
+df_transposed.index.name = 'record'
+df_transposed = df_transposed.reset_index()
+
+df_transposed.to_csv('transposed.csv', index=False)
+"""
+
+UNFOLD_EXAMPLE = """
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+
+# Explode list-like column into separate rows
+df['tags'] = df['tags'].str.split(',')
+df_exploded = df.explode('tags')
+
+# Explode with reset index
+df_exploded = df_exploded.reset_index(drop=True)
+
+df_exploded.to_csv('unfolded.csv', index=False)
+"""
+
+# =============================================================================
+# VALUE MANIPULATION PROCESSORS
+# =============================================================================
+
+COALESCE_EXAMPLE = """
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+
+# Coalesce: pick first non-null value from multiple columns
+df['contact'] = df['email'].combine_first(df['phone']).combine_first(df['address'])
+
+# Using fillna chain for coalesce
+df['primary_id'] = df['ssn'].fillna(df['passport_number']).fillna(df['drivers_license'])
+
+df.to_csv('coalesced.csv', index=False)
+"""
+
+FILL_COLUMN_EXAMPLE = """
+import pandas as pd
+
+df = pd.read_csv('data.csv')
+
+# Set entire column to a constant value
+df['country'] = 'US'
+df['processed'] = True
+df['version'] = 2.0
+df['batch_id'] = 'BATCH_2024_001'
+
+df.to_csv('filled_column.csv', index=False)
+"""
+
+# =============================================================================
 # PYTHON UDF PROCESSOR
 # =============================================================================
 
@@ -1371,6 +1567,24 @@ PROCESSOR_EXAMPLES: Dict[str, str] = {
     "geo_point_creator": GEO_POINT_CREATOR_EXAMPLE,
     "geo_encoder": GEO_ENCODER_EXAMPLE,
     "geo_distance_calculator": GEO_DISTANCE_CALCULATOR_EXAMPLE,
+
+    # Conditional Logic
+    "if_then_else": IF_THEN_ELSE_EXAMPLE,
+    "switch_case": SWITCH_CASE_EXAMPLE,
+    "translate_values": TRANSLATE_VALUES_EXAMPLE,
+
+    # Data Extraction
+    "extract_with_jsonpath": EXTRACT_WITH_JSONPATH_EXAMPLE,
+    "split_url": SPLIT_URL_EXAMPLE,
+
+    # Reshaping
+    "fold_multiple_columns": FOLD_MULTIPLE_COLUMNS_EXAMPLE,
+    "transpose_rows_to_columns": TRANSPOSE_ROWS_TO_COLUMNS_EXAMPLE,
+    "unfold": UNFOLD_EXAMPLE,
+
+    # Value Manipulation
+    "coalesce": COALESCE_EXAMPLE,
+    "fill_column": FILL_COLUMN_EXAMPLE,
 
     # Array/JSON
     "array_splitter": ARRAY_SPLITTER_EXAMPLE,

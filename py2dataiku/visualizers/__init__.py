@@ -18,6 +18,7 @@ from py2dataiku.visualizers.ascii_visualizer import ASCIIVisualizer
 from py2dataiku.visualizers.plantuml_visualizer import PlantUMLVisualizer
 from py2dataiku.visualizers.html_visualizer import HTMLVisualizer
 from py2dataiku.visualizers.interactive_visualizer import InteractiveVisualizer
+from py2dataiku.visualizers.mermaid_visualizer import MermaidVisualizer
 
 __all__ = [
     "FlowVisualizer",
@@ -32,6 +33,7 @@ __all__ = [
     "PlantUMLVisualizer",
     "HTMLVisualizer",
     "InteractiveVisualizer",
+    "MermaidVisualizer",
     "visualize_flow",
 ]
 
@@ -42,7 +44,7 @@ def visualize_flow(flow, format: str = "svg", **kwargs) -> str:
 
     Args:
         flow: DataikuFlow object to visualize
-        format: Output format - "svg", "ascii", "plantuml", "html", "interactive"
+        format: Output format - "svg", "ascii", "plantuml", "html", "interactive", "mermaid"
         **kwargs: Additional arguments passed to the visualizer
 
     Returns:
@@ -54,6 +56,7 @@ def visualize_flow(flow, format: str = "svg", **kwargs) -> str:
         "plantuml": PlantUMLVisualizer,
         "html": HTMLVisualizer,
         "interactive": InteractiveVisualizer,
+        "mermaid": MermaidVisualizer,
     }
 
     if format not in visualizers:

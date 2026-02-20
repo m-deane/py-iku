@@ -2,9 +2,24 @@
 
 import json
 import os
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+
+
+_JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
+
+
+def _extract_json(text: str) -> str:
+    """Extract JSON content from an LLM response, handling code blocks."""
+    text = text.strip()
+    # Try to find JSON inside a code block first
+    match = _JSON_BLOCK_RE.search(text)
+    if match:
+        return match.group(1).strip()
+    # Already bare JSON
+    return text
 
 
 @dataclass
@@ -47,6 +62,8 @@ class AnthropicProvider(LLMProvider):
         api_key: Optional[str] = None,
         model: str = "claude-sonnet-4-20250514",
         max_tokens: int = 4096,
+        timeout: Optional[float] = None,
+        max_retries: int = 2,
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -56,6 +73,8 @@ class AnthropicProvider(LLMProvider):
             )
         self.model = model
         self.max_tokens = max_tokens
+        self.timeout = timeout
+        self.max_retries = max_retries
         self._client = None
 
     @property
@@ -64,7 +83,10 @@ class AnthropicProvider(LLMProvider):
         if self._client is None:
             try:
                 import anthropic
-                self._client = anthropic.Anthropic(api_key=self.api_key)
+                kwargs: Dict[str, Any] = {"api_key": self.api_key, "max_retries": self.max_retries}
+                if self.timeout is not None:
+                    kwargs["timeout"] = self.timeout
+                self._client = anthropic.Anthropic(**kwargs)
             except ImportError:
                 raise ImportError(
                     "anthropic package required. Install with: pip install anthropic"
@@ -103,17 +125,7 @@ class AnthropicProvider(LLMProvider):
         json_system = (system_prompt or "") + "\n\nYou must respond with valid JSON only. No other text."
 
         response = self.complete(prompt, json_system)
-        content = response.content.strip()
-
-        # Handle markdown code blocks
-        if content.startswith("```json"):
-            content = content[7:]
-        if content.startswith("```"):
-            content = content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
-        content = content.strip()
-
+        content = _extract_json(response.content)
         return json.loads(content)
 
     @property
@@ -129,6 +141,8 @@ class OpenAIProvider(LLMProvider):
         api_key: Optional[str] = None,
         model: str = "gpt-4o",
         max_tokens: int = 4096,
+        timeout: Optional[float] = None,
+        max_retries: int = 2,
     ):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
@@ -138,6 +152,8 @@ class OpenAIProvider(LLMProvider):
             )
         self.model = model
         self.max_tokens = max_tokens
+        self.timeout = timeout
+        self.max_retries = max_retries
         self._client = None
 
     @property
@@ -146,7 +162,10 @@ class OpenAIProvider(LLMProvider):
         if self._client is None:
             try:
                 import openai
-                self._client = openai.OpenAI(api_key=self.api_key)
+                kwargs: Dict[str, Any] = {"api_key": self.api_key, "max_retries": self.max_retries}
+                if self.timeout is not None:
+                    kwargs["timeout"] = self.timeout
+                self._client = openai.OpenAI(**kwargs)
             except ImportError:
                 raise ImportError(
                     "openai package required. Install with: pip install openai"

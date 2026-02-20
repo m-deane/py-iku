@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from py2dataiku.exceptions import ExportError
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
 from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
@@ -436,7 +437,6 @@ class DSSExporter:
 
     def _build_join_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build Join recipe payload."""
-        join_params = recipe.parameters if hasattr(recipe, 'parameters') else {}
         return {
             "mode": "LEFT",
             "engineParams": {
@@ -453,8 +453,8 @@ class DSSExporter:
                 "table1": 0,
                 "table2": 1,
                 "conditionsMode": "AND",
-                "type": join_params.get("how", "LEFT").upper(),
-                "on": join_params.get("on", []),
+                "type": recipe.join_type.value if hasattr(recipe.join_type, 'value') else "LEFT",
+                "on": [k.to_dict() for k in recipe.join_keys],
                 "outerJoinOnTheLeft": True,
             }] if len(recipe.inputs) > 1 else [],
             "preFilter": {},
@@ -467,10 +467,6 @@ class DSSExporter:
 
     def _build_grouping_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build Grouping recipe payload."""
-        params = recipe.parameters if hasattr(recipe, 'parameters') else {}
-        keys = params.get("keys", [])
-        aggregations = params.get("aggregations", {})
-
         return {
             "engineParams": {
                 "hive": {"skipPrerunValidate": False, "hiveconf": [], "inheritConf": "default"},
@@ -478,10 +474,10 @@ class DSSExporter:
                 "impala": {"forceStreamMode": True},
                 "spark": {"inheritConf": "default", "sparkConf": []},
             },
-            "keys": [{"column": k, "type": "string"} for k in keys],
+            "keys": [{"column": k, "type": "string"} for k in recipe.group_keys],
             "values": [
-                {"column": col, "type": "string", "$idx": i, "function": agg.upper()}
-                for i, (col, agg) in enumerate(aggregations.items())
+                {"column": a.column, "type": "string", "$idx": i, "function": a.function.upper()}
+                for i, a in enumerate(recipe.aggregations)
             ],
             "globalCount": False,
             "preFilter": {},
@@ -491,7 +487,6 @@ class DSSExporter:
 
     def _build_sort_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build Sort recipe payload."""
-        params = recipe.parameters if hasattr(recipe, 'parameters') else {}
         return {
             "engineParams": {
                 "hive": {"skipPrerunValidate": False, "hiveconf": [], "inheritConf": "default"},
@@ -500,8 +495,11 @@ class DSSExporter:
                 "spark": {"inheritConf": "default", "sparkConf": []},
             },
             "orders": [
-                {"column": col, "desc": not params.get("ascending", True)}
-                for col in params.get("columns", [])
+                {
+                    "column": sc.get("column", ""),
+                    "desc": sc.get("order", "asc").lower() == "desc",
+                }
+                for sc in recipe.sort_columns
             ],
             "preFilter": {},
             "computedColumns": [],
@@ -524,7 +522,7 @@ class DSSExporter:
 
     def _build_python_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build Python recipe payload."""
-        code = recipe.parameters.get("code", "") if hasattr(recipe, 'parameters') else ""
+        code = recipe.code or ""
 
         # Add py2dataiku comment if enabled
         if self.config.include_code_comments and recipe.notes:

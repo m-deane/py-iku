@@ -170,14 +170,16 @@ class LayoutEngine:
         """Get details string for a recipe."""
         recipe_type = recipe.recipe_type.value if hasattr(recipe.recipe_type, 'value') else str(recipe.recipe_type)
 
-        if recipe_type == "prepare" and hasattr(recipe, 'settings'):
-            steps = recipe.settings.get("steps", [])
+        if recipe_type == "prepare":
+            steps = getattr(recipe, 'steps', [])
             return f"{len(steps)} steps"
-        elif recipe_type == "join" and hasattr(recipe, 'settings'):
-            join_type = recipe.settings.get("joinType", "INNER")
-            return join_type
-        elif recipe_type == "grouping" and hasattr(recipe, 'settings'):
-            aggs = recipe.settings.get("aggregations", [])
+        elif recipe_type == "join":
+            join_type = getattr(recipe, 'join_type', None)
+            if join_type and hasattr(join_type, 'value'):
+                return join_type.value
+            return "INNER"
+        elif recipe_type == "grouping":
+            aggs = getattr(recipe, 'aggregations', [])
             return f"{len(aggs)} aggs"
         elif recipe_type == "split":
             return "filter"

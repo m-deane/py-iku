@@ -29,6 +29,14 @@ class PandasMapper:
         "nlargest": RecipeType.TOP_N,
         "nsmallest": RecipeType.TOP_N,
         "sample": RecipeType.SAMPLING,
+        "cumsum": RecipeType.WINDOW,
+        "cumprod": RecipeType.WINDOW,
+        "cummin": RecipeType.WINDOW,
+        "cummax": RecipeType.WINDOW,
+        "diff": RecipeType.WINDOW,
+        "shift": RecipeType.WINDOW,
+        "rank": RecipeType.WINDOW,
+        "nunique": RecipeType.GROUPING,
     }
 
     # Method to processor type mapping
@@ -42,6 +50,13 @@ class PandasMapper:
         "round": ProcessorType.ROUND_COLUMN,
         "abs": ProcessorType.ABS_COLUMN,
         "clip": ProcessorType.CLIP_COLUMN,
+        "map": ProcessorType.TRANSLATE_VALUES,
+        "explode": ProcessorType.UNFOLD,
+        "combine_first": ProcessorType.COALESCE,
+        "interpolate": ProcessorType.FILL_EMPTY_WITH_PREVIOUS_NEXT,
+        "get_dummies": ProcessorType.ONE_HOT_ENCODER,
+        "cut": ProcessorType.BINNER,
+        "qcut": ProcessorType.BINNER,
     }
 
     # String accessor method mappings
@@ -192,8 +207,76 @@ class PandasMapper:
                     "matchMode": "REGEX",
                 },
             )
+        elif method == "startswith" and args:
+            return PrepareStep(
+                processor_type=ProcessorType.FILTER_ON_VALUE,
+                params={
+                    "column": column,
+                    "values": [str(args[0])],
+                    "matchingMode": "STARTS_WITH",
+                    "keep": True,
+                },
+            )
+        elif method == "endswith" and args:
+            return PrepareStep(
+                processor_type=ProcessorType.FILTER_ON_VALUE,
+                params={
+                    "column": column,
+                    "values": [str(args[0])],
+                    "matchingMode": "ENDS_WITH",
+                    "keep": True,
+                },
+            )
+        elif method == "findall" and args:
+            return PrepareStep.regexp_extract(column, str(args[0]))
+        elif method == "len":
+            return PrepareStep(
+                processor_type=ProcessorType.FORMULA,
+                params={
+                    "column": column,
+                    "expression": f"length(val(\"{column}\"))",
+                },
+            )
 
         return None
+
+    # Window function mappings (pandas methods that map to Dataiku WINDOW recipe)
+    WINDOW_MAPPINGS: Dict[str, str] = {
+        "cumsum": "RUNNING_SUM",
+        "cumprod": "RUNNING_PRODUCT",
+        "cummin": "RUNNING_MIN",
+        "cummax": "RUNNING_MAX",
+        "diff": "LAG_DIFF",
+        "shift": "LAG",
+        "rank": "RANK",
+    }
+
+    # NumPy function to processor mappings
+    NUMPY_PROCESSOR_MAPPINGS: Dict[str, ProcessorType] = {
+        "select": ProcessorType.SWITCH_CASE,
+        "digitize": ProcessorType.BINNER,
+    }
+
+    # NumPy window function mappings
+    NUMPY_WINDOW_MAPPINGS: Dict[str, str] = {
+        "cumsum": "RUNNING_SUM",
+        "cumprod": "RUNNING_PRODUCT",
+        "diff": "LAG_DIFF",
+    }
+
+    # NumPy aggregation to binner mappings
+    NUMPY_BINNER_MAPPINGS: Dict[str, str] = {
+        "percentile": "QUANTILE",
+        "quantile": "QUANTILE",
+    }
+
+    def get_window_function(self, method: str) -> Optional[str]:
+        """Get the Dataiku WINDOW function for a pandas method."""
+        return self.WINDOW_MAPPINGS.get(method)
+
+    def get_numpy_processor(self, func_name: str) -> Optional[ProcessorType]:
+        """Get the Dataiku processor type for a NumPy function."""
+        return self.NUMPY_PROCESSOR_MAPPINGS.get(func_name)
 
     def requires_python_recipe(self, method: str) -> bool:
         """Check if a method requires a Python recipe."""
@@ -207,20 +290,9 @@ class PandasMapper:
             "assign",
             "stack",
             "unstack",
-            "explode",
             "json_normalize",
-            "get_dummies",
-            "cut",
-            "qcut",
-            "interpolate",
             "resample",
-            "shift",
-            "diff",
             "pct_change",
-            "rank",
-            "where",
-            "mask",
-            "replace",  # Complex replace patterns
         }
         return method in python_only
 
@@ -228,12 +300,20 @@ class PandasMapper:
         """Get a suggestion for handling unsupported methods."""
         suggestions = {
             "apply": "Consider using CreateColumnWithGREL for simple transformations",
-            "get_dummies": "Use Prepare recipe with categorical encoding",
+            "get_dummies": "Use OneHotEncoder processor in Prepare recipe",
             "cut": "Use Binner processor in Prepare recipe",
             "qcut": "Use Binner processor with quantile mode",
-            "interpolate": "Use FillEmptyWithPreviousNext processor",
+            "interpolate": "Use FillEmptyWithPreviousNext processor (LINEAR mode)",
             "shift": "Use Window recipe with LAG function",
-            "diff": "Use Window recipe to compute differences",
+            "diff": "Use Window recipe with LAG_DIFF function",
             "rank": "Use Window recipe with RANK function",
+            "cumsum": "Use Window recipe with RUNNING_SUM function",
+            "cumprod": "Use Window recipe with RUNNING_PRODUCT function",
+            "map": "Use TranslateValues processor for dictionary-based mapping",
+            "where": "Use IfThenElse processor for conditional assignment",
+            "mask": "Use IfThenElse processor for conditional masking",
+            "replace": "Use TranslateValues processor for dictionary replacement",
+            "explode": "Use Unfold processor to expand list-like columns",
+            "combine_first": "Use Coalesce processor to pick first non-null value",
         }
         return suggestions.get(method)

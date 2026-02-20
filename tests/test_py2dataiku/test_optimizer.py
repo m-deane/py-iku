@@ -47,8 +47,8 @@ class TestFlowOptimizer:
         assert result is not None
         assert len(result.recipes) == 1
 
-    def test_detect_consecutive_prepare_recipes(self):
-        """Test detection of consecutive Prepare recipes."""
+    def test_apply_merge_consecutive_prepare_recipes(self):
+        """Test that consecutive Prepare recipes are merged when apply=True."""
         flow = DataikuFlow(name="consecutive_prepares")
         flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
         flow.add_dataset(DataikuDataset(name="intermediate", dataset_type=DatasetType.INTERMEDIATE))
@@ -67,7 +67,35 @@ class TestFlowOptimizer:
         ))
 
         optimizer = FlowOptimizer()
-        optimizer.optimize(flow)
+        result = optimizer.optimize(flow, apply=True)
+
+        # Should have merged the two recipes into one
+        assert len(result.recipes) == 1
+        assert result.recipes[0].inputs == ["input"]
+        assert result.recipes[0].outputs == ["output"]
+        assert optimizer.last_result.recipes_merged == 1
+
+    def test_recommend_consecutive_prepare_recipes(self):
+        """Test recommendation for consecutive Prepare recipes when apply=False."""
+        flow = DataikuFlow(name="consecutive_prepares")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="intermediate", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="output", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="prepare_1",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["input"],
+            outputs=["intermediate"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="prepare_2",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["intermediate"],
+            outputs=["output"]
+        ))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=False)
 
         # Should have recommendation to merge
         consolidation_recs = [r for r in flow.recommendations if r.type == "CONSOLIDATION"]
@@ -321,15 +349,15 @@ class TestRecipeMerger:
 class TestFlowOptimizerIntegration:
     """Integration tests for flow optimization."""
 
-    def test_optimize_complex_flow(self):
-        """Test optimizing a more complex flow."""
+    def test_optimize_complex_flow_apply(self):
+        """Test optimizing a complex flow with apply=True merges recipes."""
         flow = DataikuFlow(name="complex_flow")
 
         # Create datasets
         for name in ["input1", "input2", "prepared1", "prepared2", "joined", "output"]:
             flow.add_dataset(DataikuDataset(name=name, dataset_type=DatasetType.INTERMEDIATE))
 
-        # Create recipe chain
+        # Create recipe chain: prepare_1 -> prepare_2 -> join_1 -> prepare_3
         flow.add_recipe(DataikuRecipe(
             name="prepare_1",
             recipe_type=RecipeType.PREPARE,
@@ -356,7 +384,235 @@ class TestFlowOptimizerIntegration:
         ))
 
         optimizer = FlowOptimizer()
-        result = optimizer.optimize(flow)
+        result = optimizer.optimize(flow, apply=True)
 
         assert result is not None
-        assert len(result.recommendations) > 0
+        # prepare_1 and prepare_2 should have been merged
+        assert optimizer.last_result.recipes_merged >= 1
+        # The merged recipe should go from input1 to prepared2
+        prepare_recipes = [r for r in result.recipes if r.recipe_type == RecipeType.PREPARE]
+        assert len(prepare_recipes) == 2  # merged + prepare_3
+
+    def test_optimize_complex_flow_recommend(self):
+        """Test optimizing a complex flow with apply=False generates recommendations."""
+        flow = DataikuFlow(name="complex_flow")
+
+        # Create datasets
+        for name in ["input1", "input2", "prepared1", "prepared2", "joined", "filtered", "output"]:
+            flow.add_dataset(DataikuDataset(name=name, dataset_type=DatasetType.INTERMEDIATE))
+
+        # Create recipe chain with filter-after-join pattern
+        flow.add_recipe(DataikuRecipe(
+            name="prepare_1",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["input1"],
+            outputs=["prepared1"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="prepare_2",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["prepared1"],
+            outputs=["prepared2"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="join_1",
+            recipe_type=RecipeType.JOIN,
+            inputs=["prepared2", "input2"],
+            outputs=["joined"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="split_1",
+            recipe_type=RecipeType.SPLIT,
+            inputs=["joined"],
+            outputs=["filtered"]
+        ))
+
+        optimizer = FlowOptimizer()
+        result = optimizer.optimize(flow, apply=False)
+
+        assert result is not None
+        # Should have CONSOLIDATION (consecutive prepares) and PERFORMANCE (filter after join)
+        assert len(result.recommendations) >= 2
+
+
+class TestOptimizationResult:
+    """Tests for OptimizationResult dataclass."""
+
+    def test_default_values(self):
+        from py2dataiku.optimizer.flow_optimizer import OptimizationResult
+
+        result = OptimizationResult()
+        assert result.recipes_merged == 0
+        assert result.datasets_removed == 0
+        assert result.filters_pushed_down == 0
+        assert result.log == []
+
+    def test_to_dict(self):
+        from py2dataiku.optimizer.flow_optimizer import OptimizationResult
+
+        result = OptimizationResult(
+            recipes_merged=2,
+            datasets_removed=1,
+            filters_pushed_down=0,
+            log=["Merged A + B"],
+        )
+        d = result.to_dict()
+        assert d["recipes_merged"] == 2
+        assert d["datasets_removed"] == 1
+        assert d["log"] == ["Merged A + B"]
+
+
+class TestFlowOptimizerMerge:
+    """Tests for actual recipe merging in FlowOptimizer."""
+
+    def test_merge_removes_intermediate_dataset(self):
+        """Merging consecutive prepares should remove the intermediate dataset."""
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="mid", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="output", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="p1", recipe_type=RecipeType.PREPARE,
+            inputs=["input"], outputs=["mid"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="p2", recipe_type=RecipeType.PREPARE,
+            inputs=["mid"], outputs=["output"]
+        ))
+
+        optimizer = FlowOptimizer()
+        result = optimizer.optimize(flow, apply=True)
+
+        assert optimizer.last_result.recipes_merged == 1
+        assert optimizer.last_result.datasets_removed >= 1
+        # mid should be gone
+        assert flow.get_dataset("mid") is None
+
+    def test_merge_preserves_steps(self):
+        """Merged recipe should contain steps from both originals."""
+        step1 = PrepareStep(processor_type=ProcessorType.COLUMN_RENAMER, params={"column": "a"})
+        step2 = PrepareStep(processor_type=ProcessorType.FILL_EMPTY_WITH_VALUE, params={"column": "b"})
+
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="mid", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="output", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="p1", recipe_type=RecipeType.PREPARE,
+            inputs=["input"], outputs=["mid"], steps=[step1]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="p2", recipe_type=RecipeType.PREPARE,
+            inputs=["mid"], outputs=["output"], steps=[step2]
+        ))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=True)
+
+        assert len(flow.recipes) == 1
+        assert len(flow.recipes[0].steps) == 2
+
+    def test_merge_three_consecutive(self):
+        """Three consecutive Prepare recipes should be merged into one."""
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="a", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="b", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="c", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="d", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="p1", recipe_type=RecipeType.PREPARE,
+            inputs=["a"], outputs=["b"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="p2", recipe_type=RecipeType.PREPARE,
+            inputs=["b"], outputs=["c"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="p3", recipe_type=RecipeType.PREPARE,
+            inputs=["c"], outputs=["d"]
+        ))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=True)
+
+        assert len(flow.recipes) == 1
+        assert optimizer.last_result.recipes_merged == 2
+
+    def test_no_merge_non_consecutive(self):
+        """Prepare recipes separated by a Join should not be merged."""
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="a", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="b", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="c", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="d", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="e", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="p1", recipe_type=RecipeType.PREPARE,
+            inputs=["a"], outputs=["b"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="j1", recipe_type=RecipeType.JOIN,
+            inputs=["b", "c"], outputs=["d"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="p2", recipe_type=RecipeType.PREPARE,
+            inputs=["d"], outputs=["e"]
+        ))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=True)
+
+        assert len(flow.recipes) == 3
+        assert optimizer.last_result.recipes_merged == 0
+
+    def test_optimization_log_stored_on_flow(self):
+        """Optimization log entries should be appended to flow.optimization_notes."""
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="a", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="b", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="c", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="p1", recipe_type=RecipeType.PREPARE,
+            inputs=["a"], outputs=["b"]
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="p2", recipe_type=RecipeType.PREPARE,
+            inputs=["b"], outputs=["c"]
+        ))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=True)
+
+        assert len(flow.optimization_notes) > 0
+        assert any("Merged" in note for note in flow.optimization_notes)
+
+
+class TestFlowOptimizerOrphanRemoval:
+    """Tests for orphan dataset removal."""
+
+    def test_remove_orphan_intermediate(self):
+        """Orphaned intermediate datasets should be removed."""
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="orphan", dataset_type=DatasetType.INTERMEDIATE))
+        flow.add_dataset(DataikuDataset(name="output", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="p1", recipe_type=RecipeType.PREPARE,
+            inputs=["input"], outputs=["output"]
+        ))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=True)
+
+        assert flow.get_dataset("orphan") is None
+        assert optimizer.last_result.datasets_removed >= 1
+
+    def test_keep_input_datasets(self):
+        """Input datasets should not be removed even if unreferenced."""
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="unused_input", dataset_type=DatasetType.INPUT))
+
+        optimizer = FlowOptimizer()
+        optimizer.optimize(flow, apply=True)
+
+        assert flow.get_dataset("unused_input") is not None

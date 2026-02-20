@@ -2,11 +2,13 @@
 
 from typing import Dict, List, Optional
 
+from py2dataiku.generators.base_generator import BaseFlowGenerator
 from py2dataiku.llm.schemas import (
     AnalysisResult,
     DataStep,
     OperationType,
 )
+from py2dataiku.mappings.pandas_mappings import PandasMapper
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import (
     Aggregation,
@@ -19,7 +21,7 @@ from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 from py2dataiku.models.prepare_step import PrepareStep, ProcessorType, StringTransformerMode
 
 
-class LLMFlowGenerator:
+class LLMFlowGenerator(BaseFlowGenerator):
     """
     Generate Dataiku flows from LLM-analyzed code.
 
@@ -28,8 +30,7 @@ class LLMFlowGenerator:
     """
 
     def __init__(self):
-        self.flow: Optional[DataikuFlow] = None
-        self.recipe_counter = 0
+        super().__init__()
         self.dataset_map: Dict[str, str] = {}  # variable name -> dataset name
 
     def generate(
@@ -100,7 +101,7 @@ class LLMFlowGenerator:
                 )
 
             # Route based on suggested recipe type
-            suggested = step.suggested_recipe or "python"
+            suggested = (step.suggested_recipe or "python").lower().strip()
 
             if suggested == "prepare":
                 # Buffer prepare steps to merge them
@@ -412,15 +413,10 @@ class LLMFlowGenerator:
             )
 
         # Map join type
-        join_type_map = {
-            "inner": JoinType.INNER,
-            "left": JoinType.LEFT,
-            "right": JoinType.RIGHT,
-            "outer": JoinType.OUTER,
-            "cross": JoinType.CROSS,
-        }
-        join_type = join_type_map.get(
-            (step.join_type or "inner").lower(), JoinType.INNER
+        join_type = JoinType(
+            PandasMapper.JOIN_MAPPINGS.get(
+                (step.join_type or "inner").lower(), "INNER"
+            )
         )
 
         join_keys = [
@@ -602,17 +598,4 @@ output_dataset.write_with_schema(df)
 
         return output_name
 
-    def _optimize_flow(self) -> None:
-        """Optimize the generated flow."""
-        # Count recipe types
-        recipe_counts = {}
-        for recipe in self.flow.recipes:
-            t = recipe.recipe_type.value
-            recipe_counts[t] = recipe_counts.get(t, 0) + 1
-
-        for rtype, count in recipe_counts.items():
-            self.flow.optimization_notes.append(f"{rtype}: {count} recipe(s)")
-
-    def _sanitize_name(self, name: str) -> str:
-        """Sanitize a name for use as a dataset/recipe name."""
-        return name.replace(" ", "_").replace("-", "_").replace(".", "_").replace("'", "")
+    # _optimize_flow and _sanitize_name are inherited from BaseFlowGenerator

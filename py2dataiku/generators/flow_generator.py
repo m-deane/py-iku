@@ -2,6 +2,8 @@
 
 from typing import Dict, List, Optional
 
+from py2dataiku.generators.base_generator import BaseFlowGenerator
+from py2dataiku.mappings.pandas_mappings import PandasMapper
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import (
     Aggregation,
@@ -15,7 +17,7 @@ from py2dataiku.models.prepare_step import PrepareStep
 from py2dataiku.models.transformation import Transformation, TransformationType
 
 
-class FlowGenerator:
+class FlowGenerator(BaseFlowGenerator):
     """
     Generate Dataiku flows from analyzed transformations.
 
@@ -25,9 +27,8 @@ class FlowGenerator:
     """
 
     def __init__(self):
-        self.flow: Optional[DataikuFlow] = None
+        super().__init__()
         self.dataset_counter = 0
-        self.recipe_counter = 0
         self.current_dataset: Dict[str, str] = {}  # variable -> dataset name
 
     def generate(
@@ -180,6 +181,21 @@ class FlowGenerator:
                 current_input = self._create_python_recipe(trans, current_input)
                 self.current_dataset[var_name] = current_input
 
+            else:
+                # Fallback: create Python recipe for unhandled transformation types
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_python_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+                self.flow.warnings.append(
+                    f"Transformation type '{trans.transformation_type.value}' "
+                    f"has no dedicated Dataiku recipe mapping; fell back to Python recipe"
+                )
+
         # Flush remaining prepare steps
         if prepare_steps and current_input:
             output = self._create_prepare_recipe(current_input, prepare_steps)
@@ -298,12 +314,7 @@ class FlowGenerator:
             for lc, rc in zip(left_cols, right_cols):
                 join_keys.append(JoinKey(left_column=lc, right_column=rc))
 
-        join_type = {
-            "inner": JoinType.INNER,
-            "left": JoinType.LEFT,
-            "right": JoinType.RIGHT,
-            "outer": JoinType.OUTER,
-        }.get(how, JoinType.INNER)
+        join_type = JoinType(PandasMapper.JOIN_MAPPINGS.get(how, "INNER"))
 
         recipe = DataikuRecipe.create_join(
             name=f"join_{self.recipe_counter}",
@@ -330,14 +341,8 @@ class FlowGenerator:
 
         aggregations = []
         for col, func in aggs_dict.items():
-            agg_func = {
-                "sum": "SUM",
-                "mean": "AVG",
-                "avg": "AVG",
-                "count": "COUNT",
-                "min": "MIN",
-                "max": "MAX",
-            }.get(func.lower() if isinstance(func, str) else "count", "COUNT")
+            func_key = func.lower() if isinstance(func, str) else "count"
+            agg_func = PandasMapper.AGG_MAPPINGS.get(func_key, "COUNT")
             aggregations.append(Aggregation(column=col, function=agg_func))
 
         recipe = DataikuRecipe.create_grouping(
@@ -449,22 +454,11 @@ class FlowGenerator:
 
     def _optimize_flow(self) -> None:
         """Optimize the generated flow."""
-        # Merge consecutive Prepare recipes
-        self._merge_prepare_recipes()
+        super()._optimize_flow()
 
-        # Add optimization notes
+        # Add prepare-specific optimization notes
         prepare_count = len(self.flow.get_recipes_by_type(RecipeType.PREPARE))
         if prepare_count > 1:
             self.flow.optimization_notes.append(
                 f"Flow contains {prepare_count} Prepare recipes"
             )
-
-    def _merge_prepare_recipes(self) -> None:
-        """Merge consecutive Prepare recipes when possible."""
-        # This is a simplified implementation
-        # Full implementation would rebuild the flow graph
-        pass
-
-    def _sanitize_name(self, name: str) -> str:
-        """Sanitize a name for use as a dataset/recipe name."""
-        return name.replace(" ", "_").replace("-", "_").replace(".", "_")

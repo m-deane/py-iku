@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from py2dataiku.mappings.pandas_mappings import PandasMapper
 from py2dataiku.models.prepare_step import PrepareStep, ProcessorType, StringTransformerMode
 
 
@@ -28,39 +29,10 @@ class PatternMatcher:
     and maps them to equivalent Dataiku constructs.
     """
 
-    # String method mappings
-    STRING_METHODS = {
-        "upper": StringTransformerMode.UPPERCASE,
-        "lower": StringTransformerMode.LOWERCASE,
-        "title": StringTransformerMode.TITLECASE,
-        "strip": StringTransformerMode.TRIM,
-        "lstrip": StringTransformerMode.TRIM_LEFT,
-        "rstrip": StringTransformerMode.TRIM_RIGHT,
-    }
-
-    # Aggregation function mappings (pandas -> Dataiku)
-    AGG_FUNCTIONS = {
-        "sum": "SUM",
-        "mean": "AVG",
-        "avg": "AVG",
-        "count": "COUNT",
-        "min": "MIN",
-        "max": "MAX",
-        "first": "FIRST",
-        "last": "LAST",
-        "std": "STDDEV",
-        "var": "VAR",
-        "median": "MEDIAN",
-    }
-
-    # Join type mappings
-    JOIN_TYPES = {
-        "inner": "INNER",
-        "left": "LEFT",
-        "right": "RIGHT",
-        "outer": "OUTER",
-        "cross": "CROSS",
-    }
+    # Reference canonical mappings from PandasMapper
+    STRING_METHODS = PandasMapper.STRING_MAPPINGS
+    AGG_FUNCTIONS = PandasMapper.AGG_MAPPINGS
+    JOIN_TYPES = PandasMapper.JOIN_MAPPINGS
 
     def match_fillna(self, column: str, value: Any) -> PrepareStep:
         """Match fillna() to FillEmptyWithValue processor."""

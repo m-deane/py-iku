@@ -9,13 +9,17 @@ from py2dataiku.visualizers import (
     ASCIIVisualizer,
     PlantUMLVisualizer,
     HTMLVisualizer,
+    InteractiveVisualizer,
+    MermaidVisualizer,
+    FlowVisualizer,
     visualize_flow,
     DataikuTheme,
     DATAIKU_LIGHT,
     DATAIKU_DARK,
 )
-from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
+from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition, Edge
 from py2dataiku.visualizers.icons import RecipeIcons
+from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
 
 
 # Fixtures
@@ -464,3 +468,371 @@ class TestEdgeCases:
 
         plantuml = flow.to_plantuml()
         assert "@startuml" in plantuml  # Should render without error
+
+
+# Interactive Visualizer Tests
+
+class TestInteractiveVisualizer:
+    """Test interactive HTML visualization."""
+
+    def test_render_simple_flow(self, simple_flow):
+        """Test interactive HTML rendering."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "<!DOCTYPE html>" in html
+        assert "<canvas" in html
+        assert "</html>" in html
+
+    def test_interactive_contains_search(self, simple_flow):
+        """Test that interactive HTML contains search functionality."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "searchInput" in html
+        assert "handleSearch" in html
+
+    def test_interactive_contains_zoom(self, simple_flow):
+        """Test that interactive HTML contains zoom controls."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "zoomIn" in html
+        assert "zoomOut" in html
+        assert "fitToScreen" in html
+        assert "zoomLevel" in html
+
+    def test_interactive_contains_details_panel(self, simple_flow):
+        """Test that interactive HTML contains details panel."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "detailsPanel" in html
+        assert "showDetailsPanel" in html
+        assert "closePanel" in html
+
+    def test_interactive_contains_node_data(self, simple_flow):
+        """Test that interactive HTML embeds node data as JSON."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "const nodes" in html
+        assert "const edges" in html
+        assert "const theme" in html
+        assert "const stats" in html
+
+    def test_interactive_contains_export_functions(self, simple_flow):
+        """Test that interactive HTML contains export functions."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "exportSVG" in html
+        assert "exportPNG" in html
+
+    def test_interactive_contains_keyboard_shortcuts(self, simple_flow):
+        """Test that interactive HTML has keyboard shortcut handling."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "handleKeyboard" in html
+        assert "Escape" in html
+
+    def test_interactive_with_dark_theme(self, simple_flow):
+        """Test interactive rendering with dark theme."""
+        visualizer = InteractiveVisualizer(theme=DATAIKU_DARK)
+        html = visualizer.render(simple_flow)
+
+        assert "<!DOCTYPE html>" in html
+        assert "<canvas" in html
+
+    def test_interactive_with_complex_flow(self, complex_flow):
+        """Test interactive rendering with complex flow."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(complex_flow)
+
+        assert "customers" in html
+        assert "orders" in html
+
+    def test_interactive_stats_json(self, simple_flow):
+        """Test that stats JSON is correctly embedded."""
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(simple_flow)
+
+        assert "totalDatasets" in html
+        assert "totalRecipes" in html
+        assert "inputDatasets" in html
+
+    def test_interactive_flow_with_steps(self):
+        """Test interactive rendering with a recipe that has steps."""
+        flow = DataikuFlow(name="steps_flow")
+        flow.add_dataset(DataikuDataset(name="in", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="out", dataset_type=DatasetType.OUTPUT))
+        recipe = DataikuRecipe(
+            name="prep",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["in"],
+            outputs=["out"],
+            steps=[
+                PrepareStep(processor_type=ProcessorType.COLUMN_RENAMER, params={"column": "a", "new_name": "b"}),
+                PrepareStep(processor_type=ProcessorType.FILL_EMPTY_WITH_VALUE, params={"column": "x", "value": 0}),
+            ],
+        )
+        flow.recipes.append(recipe)
+
+        visualizer = InteractiveVisualizer()
+        html = visualizer.render(flow)
+        assert "<!DOCTYPE html>" in html
+        assert "stepCount" in html
+
+
+# Mermaid Visualizer Tests
+
+class TestMermaidVisualizer:
+    """Test Mermaid diagram visualization."""
+
+    def test_render_simple_flow(self, simple_flow):
+        """Test Mermaid rendering of simple flow."""
+        visualizer = MermaidVisualizer()
+        mermaid = visualizer.render(simple_flow)
+
+        assert "flowchart" in mermaid
+
+    def test_mermaid_contains_nodes(self, simple_flow):
+        """Test that Mermaid contains node declarations."""
+        visualizer = MermaidVisualizer()
+        mermaid = visualizer.render(simple_flow)
+
+        assert "input_data" in mermaid
+        assert "output_data" in mermaid
+
+    def test_mermaid_contains_connections(self, simple_flow):
+        """Test that Mermaid contains connection arrows."""
+        visualizer = MermaidVisualizer()
+        mermaid = visualizer.render(simple_flow)
+
+        assert "-->" in mermaid
+
+    def test_mermaid_with_complex_flow(self, complex_flow):
+        """Test Mermaid rendering with complex flow."""
+        visualizer = MermaidVisualizer()
+        mermaid = visualizer.render(complex_flow)
+
+        assert "customers" in mermaid
+        assert "orders" in mermaid
+
+    def test_mermaid_via_visualize_flow(self, simple_flow):
+        """Test Mermaid via visualize_flow convenience function."""
+        mermaid = visualize_flow(simple_flow, format="mermaid")
+        assert "flowchart" in mermaid
+
+
+# visualize_flow Additional Format Tests
+
+class TestVisualizeFlowFormats:
+    """Test visualize_flow with all supported formats."""
+
+    def test_interactive_format(self, simple_flow):
+        """Test interactive format via visualize_flow."""
+        html = visualize_flow(simple_flow, format="interactive")
+        assert "<!DOCTYPE html>" in html
+        assert "searchInput" in html
+
+    def test_mermaid_format(self, simple_flow):
+        """Test mermaid format via visualize_flow."""
+        mermaid = visualize_flow(simple_flow, format="mermaid")
+        assert "flowchart" in mermaid
+
+    def test_all_formats_produce_output(self, simple_flow):
+        """Test that all formats produce non-empty output."""
+        for fmt in ["svg", "ascii", "plantuml", "html", "interactive", "mermaid"]:
+            result = visualize_flow(simple_flow, format=fmt)
+            assert len(result) > 0, f"Format {fmt} produced empty output"
+
+    def test_theme_kwarg_passed_through(self, simple_flow):
+        """Test that theme kwarg is passed through to visualizers."""
+        svg = visualize_flow(simple_flow, format="svg", theme=DATAIKU_DARK)
+        assert "#1E1E1E" in svg
+
+
+# Layout Engine Additional Tests
+
+class TestLayoutEngineDetailed:
+    """Additional layout engine tests."""
+
+    def test_node_position_properties(self):
+        """Test NodePosition computed properties."""
+        pos = NodePosition(
+            x=10, y=20, width=100, height=50,
+            layer=0, node_type="dataset",
+            node_id="test", label="Test",
+        )
+        assert pos.center_x == 60.0
+        assert pos.center_y == 45.0
+        assert pos.right == 110.0
+        assert pos.bottom == 70.0
+
+    def test_edge_dataclass(self):
+        """Test Edge dataclass."""
+        edge = Edge(source="a", target="b", label="connects")
+        assert edge.source == "a"
+        assert edge.target == "b"
+        assert edge.label == "connects"
+
+    def test_edge_no_label(self):
+        """Test Edge with no label."""
+        edge = Edge(source="a", target="b")
+        assert edge.label is None
+
+    def test_empty_flow_bounds(self):
+        """Test bounds for empty layout."""
+        engine = LayoutEngine()
+        bounds = engine.get_bounds()
+        assert bounds == (0, 0, 100, 100)
+
+    def test_custom_spacing(self, simple_flow):
+        """Test layout with custom spacing parameters."""
+        engine = LayoutEngine(
+            layer_spacing=300,
+            node_spacing=200,
+            dataset_width=200,
+            dataset_height=80,
+        )
+        positions = engine.calculate_layout(simple_flow)
+        assert len(positions) > 0
+
+        # Larger spacing should produce larger canvas
+        width, height = engine.get_canvas_size()
+        assert width > 400
+
+    def test_complex_flow_multiple_layers(self, complex_flow):
+        """Test that complex flow produces multiple layers."""
+        engine = LayoutEngine()
+        positions = engine.calculate_layout(complex_flow)
+
+        layers = set(p.layer for p in positions.values())
+        assert len(layers) >= 3  # At minimum: input, recipe, output
+
+    def test_disconnected_nodes_handled(self):
+        """Test that disconnected nodes don't crash layout."""
+        flow = DataikuFlow(name="disconnected")
+        flow.add_dataset(DataikuDataset(name="island1", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="island2", dataset_type=DatasetType.INPUT))
+        # No recipes connecting them
+
+        engine = LayoutEngine()
+        positions = engine.calculate_layout(flow)
+        assert len(positions) == 2
+
+
+# FlowVisualizer Base Class Tests
+
+class TestFlowVisualizerBase:
+    """Test FlowVisualizer abstract base class."""
+
+    def test_cannot_instantiate_directly(self):
+        """Test that FlowVisualizer cannot be instantiated directly."""
+        with pytest.raises(TypeError):
+            FlowVisualizer()
+
+    def test_default_theme(self):
+        """Test that default theme is DATAIKU_LIGHT."""
+        visualizer = SVGVisualizer()
+        assert visualizer.theme == DATAIKU_LIGHT
+
+    def test_custom_theme(self):
+        """Test that custom theme is applied."""
+        visualizer = SVGVisualizer(theme=DATAIKU_DARK)
+        assert visualizer.theme == DATAIKU_DARK
+
+    def test_save_method(self, simple_flow, tmp_path):
+        """Test that save method writes to file."""
+        visualizer = SVGVisualizer()
+        output_path = str(tmp_path / "test_output.svg")
+        visualizer.save(simple_flow, output_path)
+
+        with open(output_path, 'r') as f:
+            content = f.read()
+        assert "<svg" in content
+
+    def test_save_ascii(self, simple_flow, tmp_path):
+        """Test saving ASCII visualization."""
+        visualizer = ASCIIVisualizer()
+        output_path = str(tmp_path / "test_output.txt")
+        visualizer.save(simple_flow, output_path)
+
+        with open(output_path, 'r') as f:
+            content = f.read()
+        assert "DATAIKU FLOW" in content
+
+
+# Recipe Icons Additional Tests
+
+class TestRecipeIconsDetailed:
+    """Additional tests for recipe icons."""
+
+    def test_all_recipe_types_have_unicode(self):
+        """Test that all standard recipe types have Unicode icons."""
+        recipe_types = ["prepare", "join", "grouping", "split", "sort",
+                       "distinct", "stack", "python", "window"]
+        for rt in recipe_types:
+            icon = RecipeIcons.get_unicode(rt)
+            assert icon is not None
+            assert len(icon) > 0
+
+    def test_all_recipe_types_have_ascii(self):
+        """Test that all standard recipe types have ASCII icons."""
+        recipe_types = ["prepare", "join", "grouping", "split", "sort",
+                       "distinct", "stack", "python", "window"]
+        for rt in recipe_types:
+            icon = RecipeIcons.get_ascii(rt)
+            assert icon is not None
+            assert len(icon) > 0
+
+    def test_all_recipe_types_have_labels(self):
+        """Test that all standard recipe types have labels."""
+        recipe_types = ["prepare", "join", "grouping", "split", "sort",
+                       "distinct", "stack", "python", "window"]
+        for rt in recipe_types:
+            label = RecipeIcons.get_label(rt)
+            assert label is not None
+            assert len(label) > 0
+
+    def test_default_fallback(self):
+        """Test fallback for completely unknown type."""
+        icon = RecipeIcons.get_unicode("nonexistent_type_xyz")
+        assert icon == RecipeIcons.UNICODE["default"]
+
+
+# Theme Additional Tests
+
+class TestThemeDetailed:
+    """Additional theme tests."""
+
+    def test_all_recipe_colors_have_three_values(self):
+        """Test that all recipe colors have bg, border, text."""
+        for recipe_type, colors in DATAIKU_LIGHT.recipe_colors.items():
+            assert len(colors) == 3, f"Recipe type {recipe_type} missing color values"
+
+    def test_dark_theme_recipe_colors(self):
+        """Test dark theme also has recipe colors."""
+        assert len(DATAIKU_DARK.recipe_colors) > 0
+        for recipe_type, colors in DATAIKU_DARK.recipe_colors.items():
+            assert len(colors) == 3
+
+    def test_theme_spacing_attributes(self):
+        """Test that theme has spacing attributes for layout."""
+        theme = DATAIKU_LIGHT
+        assert hasattr(theme, 'layer_spacing')
+        assert hasattr(theme, 'node_spacing')
+        assert hasattr(theme, 'dataset_width')
+        assert hasattr(theme, 'dataset_height')
+        assert hasattr(theme, 'recipe_size')
+        assert hasattr(theme, 'padding')
+
+    def test_theme_font_attributes(self):
+        """Test that theme has font attributes."""
+        theme = DATAIKU_LIGHT
+        assert hasattr(theme, 'font_family')
+        assert hasattr(theme, 'dataset_font_size')
+        assert hasattr(theme, 'recipe_font_size')
+        assert hasattr(theme, 'icon_font_size')

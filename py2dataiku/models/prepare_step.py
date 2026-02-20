@@ -137,6 +137,26 @@ class ProcessorType(Enum):
     ADDRESS_PARSER = "AddressParser"
     REVERSE_GEOCODER = "ReverseGeocoder"
 
+    # Conditional logic
+    IF_THEN_ELSE = "IfThenElse"
+    SWITCH_CASE = "SwitchCase"
+
+    # Value translation
+    TRANSLATE_VALUES = "TranslateValues"
+
+    # Data extraction
+    EXTRACT_WITH_JSONPATH = "ExtractWithJSONPath"
+    SPLIT_URL = "SplitURL"
+
+    # Reshaping
+    FOLD_MULTIPLE_COLUMNS = "FoldMultipleColumns"
+    TRANSPOSE_ROWS_TO_COLUMNS = "TransposeRowsToColumns"
+    UNFOLD = "Unfold"
+
+    # Value manipulation
+    COALESCE = "Coalesce"
+    FILL_COLUMN = "FillColumn"
+
     # Array/JSON operations
     ARRAY_SPLITTER = "ArraySplitter"
     ARRAY_JOINER = "ArrayJoiner"
@@ -344,6 +364,18 @@ class PrepareStep:
         return self.to_dict()
 
     @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PrepareStep":
+        """Reconstruct a PrepareStep from a dictionary (inverse of to_dict)."""
+        processor_type = ProcessorType(data["type"])
+        return cls(
+            processor_type=processor_type,
+            params=data.get("params", {}),
+            disabled=data.get("disabled", False),
+            name=data.get("name"),
+            meta_type=data.get("metaType", "PROCESSOR"),
+        )
+
+    @classmethod
     def fill_empty(
         cls,
         column: str,
@@ -531,6 +563,193 @@ class PrepareStep:
                 "inputColumns": input_columns,
                 "outputColumn": output_column,
             },
+            source_line=source_line,
+        )
+
+    @classmethod
+    def if_then_else(
+        cls,
+        column: str,
+        condition: str,
+        then_value: Any,
+        else_value: Any,
+        output_column: Optional[str] = None,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create an IfThenElse step for conditional value assignment."""
+        params = {
+            "column": column,
+            "condition": condition,
+            "thenValue": str(then_value),
+            "elseValue": str(else_value),
+        }
+        if output_column:
+            params["outputColumn"] = output_column
+        return cls(
+            processor_type=ProcessorType.IF_THEN_ELSE,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def switch_case(
+        cls,
+        column: str,
+        cases: Dict[str, Any],
+        default_value: Any = None,
+        output_column: Optional[str] = None,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a SwitchCase step for multi-branch conditional logic."""
+        params = {
+            "column": column,
+            "cases": [
+                {"value": str(k), "output": str(v)} for k, v in cases.items()
+            ],
+        }
+        if default_value is not None:
+            params["defaultValue"] = str(default_value)
+        if output_column:
+            params["outputColumn"] = output_column
+        return cls(
+            processor_type=ProcessorType.SWITCH_CASE,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def translate_values(
+        cls,
+        column: str,
+        translations: Dict[str, str],
+        output_column: Optional[str] = None,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a TranslateValues step for value mapping/replacement."""
+        params = {
+            "column": column,
+            "translations": [
+                {"from": k, "to": v} for k, v in translations.items()
+            ],
+        }
+        if output_column:
+            params["outputColumn"] = output_column
+        return cls(
+            processor_type=ProcessorType.TRANSLATE_VALUES,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def extract_with_jsonpath(
+        cls,
+        column: str,
+        json_path: str,
+        output_column: Optional[str] = None,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create an ExtractWithJSONPath step for JSON data extraction."""
+        params = {
+            "column": column,
+            "jsonPath": json_path,
+        }
+        if output_column:
+            params["outputColumn"] = output_column
+        return cls(
+            processor_type=ProcessorType.EXTRACT_WITH_JSONPATH,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def split_url(
+        cls,
+        column: str,
+        extract_components: Optional[List[str]] = None,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a SplitURL step for URL parsing."""
+        params = {"column": column}
+        if extract_components:
+            params["extractComponents"] = extract_components
+        return cls(
+            processor_type=ProcessorType.SPLIT_URL,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def fold_multiple_columns(
+        cls,
+        columns: List[str],
+        var_name: str = "variable",
+        value_name: str = "value",
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a FoldMultipleColumns step (melt/unpivot)."""
+        return cls(
+            processor_type=ProcessorType.FOLD_MULTIPLE_COLUMNS,
+            params={
+                "columns": columns,
+                "varName": var_name,
+                "valueName": value_name,
+            },
+            source_line=source_line,
+        )
+
+    @classmethod
+    def transpose_rows_to_columns(
+        cls,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a TransposeRowsToColumns step."""
+        return cls(
+            processor_type=ProcessorType.TRANSPOSE_ROWS_TO_COLUMNS,
+            params={},
+            source_line=source_line,
+        )
+
+    @classmethod
+    def unfold(
+        cls,
+        column: str,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create an Unfold step for exploding list-like columns."""
+        return cls(
+            processor_type=ProcessorType.UNFOLD,
+            params={"column": column},
+            source_line=source_line,
+        )
+
+    @classmethod
+    def coalesce(
+        cls,
+        columns: List[str],
+        output_column: Optional[str] = None,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a Coalesce step to pick the first non-null value."""
+        params = {"columns": columns}
+        if output_column:
+            params["outputColumn"] = output_column
+        return cls(
+            processor_type=ProcessorType.COALESCE,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def fill_column(
+        cls,
+        column: str,
+        value: Any,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a FillColumn step to set an entire column to a constant."""
+        return cls(
+            processor_type=ProcessorType.FILL_COLUMN,
+            params={"column": column, "value": str(value)},
             source_line=source_line,
         )
 

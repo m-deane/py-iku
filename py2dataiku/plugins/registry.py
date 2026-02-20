@@ -4,6 +4,7 @@ This module provides a centralized registry for plugins that extend
 py2dataiku's conversion capabilities.
 """
 
+import copy
 import functools
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
@@ -18,151 +19,245 @@ class PluginRegistry:
 
     This class maintains mappings between pandas operations and Dataiku
     constructs, allowing users to extend the default behavior.
+
+    Can be used as instance-based (for isolated registries) or via the
+    default global instance through classmethods for backward compatibility.
     """
 
-    # Custom recipe mappings: pandas_method -> RecipeType
-    _recipe_mappings: Dict[str, RecipeType] = {}
+    # Default global instance (lazily created)
+    _default_instance: Optional["PluginRegistry"] = None
 
-    # Custom processor mappings: pandas_method -> ProcessorType
-    _processor_mappings: Dict[str, ProcessorType] = {}
+    def __init__(self):
+        self._recipe_mappings: Dict[str, RecipeType] = {}
+        self._processor_mappings: Dict[str, ProcessorType] = {}
+        self._method_handlers: Dict[str, Callable] = {}
+        self._recipe_handlers: Dict[RecipeType, Callable] = {}
+        self._processor_handlers: Dict[ProcessorType, Callable] = {}
+        self._plugins: Dict[str, Dict[str, Any]] = {}
 
-    # Custom method handlers: method_name -> handler_function
-    _method_handlers: Dict[str, Callable] = {}
+    @classmethod
+    def _get_default(cls) -> "PluginRegistry":
+        """Get or create the default global instance."""
+        if cls._default_instance is None:
+            cls._default_instance = cls()
+        return cls._default_instance
 
-    # Custom recipe handlers: recipe_type -> handler_function
-    _recipe_handlers: Dict[RecipeType, Callable] = {}
+    def copy(self) -> "PluginRegistry":
+        """Create an independent copy of this registry."""
+        new = PluginRegistry()
+        new._recipe_mappings = self._recipe_mappings.copy()
+        new._processor_mappings = self._processor_mappings.copy()
+        new._method_handlers = self._method_handlers.copy()
+        new._recipe_handlers = self._recipe_handlers.copy()
+        new._processor_handlers = self._processor_handlers.copy()
+        new._plugins = copy.deepcopy(self._plugins)
+        return new
 
-    # Custom processor handlers: processor_type -> handler_function
-    _processor_handlers: Dict[ProcessorType, Callable] = {}
+    # --- Instance methods ---
 
-    # Registered plugins
-    _plugins: Dict[str, Dict[str, Any]] = {}
+    def add_recipe_mapping(
+        self,
+        pandas_method: str,
+        recipe_type: RecipeType,
+        override: bool = False,
+    ) -> None:
+        """Register a mapping from a pandas method to a Dataiku recipe type."""
+        if pandas_method in self._recipe_mappings and not override:
+            raise ValueError(
+                f"Recipe mapping for '{pandas_method}' already exists. "
+                "Use override=True to replace."
+            )
+        self._recipe_mappings[pandas_method] = recipe_type
+
+    def add_processor_mapping(
+        self,
+        pandas_method: str,
+        processor_type: ProcessorType,
+        override: bool = False,
+    ) -> None:
+        """Register a mapping from a pandas method to a Dataiku processor type."""
+        if pandas_method in self._processor_mappings and not override:
+            raise ValueError(
+                f"Processor mapping for '{pandas_method}' already exists. "
+                "Use override=True to replace."
+            )
+        self._processor_mappings[pandas_method] = processor_type
+
+    def add_method_handler(
+        self,
+        method_name: str,
+        handler: Callable,
+        override: bool = False,
+    ) -> None:
+        """Register a custom handler for a pandas method."""
+        if method_name in self._method_handlers and not override:
+            raise ValueError(
+                f"Handler for '{method_name}' already exists. "
+                "Use override=True to replace."
+            )
+        self._method_handlers[method_name] = handler
+
+    def add_recipe_handler(
+        self,
+        recipe_type: RecipeType,
+        handler: Callable,
+        override: bool = False,
+    ) -> None:
+        """Register a custom handler for generating a recipe type."""
+        if recipe_type in self._recipe_handlers and not override:
+            raise ValueError(
+                f"Handler for recipe type '{recipe_type}' already exists. "
+                "Use override=True to replace."
+            )
+        self._recipe_handlers[recipe_type] = handler
+
+    def add_processor_handler(
+        self,
+        processor_type: ProcessorType,
+        handler: Callable,
+        override: bool = False,
+    ) -> None:
+        """Register a custom handler for generating a processor type."""
+        if processor_type in self._processor_handlers and not override:
+            raise ValueError(
+                f"Handler for processor type '{processor_type}' already exists. "
+                "Use override=True to replace."
+            )
+        self._processor_handlers[processor_type] = handler
+
+    def add_plugin(
+        self,
+        name: str,
+        version: str = "1.0.0",
+        description: str = "",
+        **kwargs,
+    ) -> None:
+        """Register a plugin with metadata."""
+        self._plugins[name] = {
+            "version": version,
+            "description": description,
+            **kwargs,
+        }
+
+    def find_recipe_mapping(self, method: str) -> Optional[RecipeType]:
+        """Get custom recipe mapping for a method."""
+        return self._recipe_mappings.get(method)
+
+    def find_processor_mapping(self, method: str) -> Optional[ProcessorType]:
+        """Get custom processor mapping for a method."""
+        return self._processor_mappings.get(method)
+
+    def find_method_handler(self, method: str) -> Optional[Callable]:
+        """Get custom handler for a method."""
+        return self._method_handlers.get(method)
+
+    def find_recipe_handler(self, recipe_type: RecipeType) -> Optional[Callable]:
+        """Get custom handler for a recipe type."""
+        return self._recipe_handlers.get(recipe_type)
+
+    def find_processor_handler(
+        self, processor_type: ProcessorType
+    ) -> Optional[Callable]:
+        """Get custom handler for a processor type."""
+        return self._processor_handlers.get(processor_type)
+
+    def remove_recipe_mapping(self, method: str) -> bool:
+        """Remove a recipe mapping. Returns True if removed."""
+        if method in self._recipe_mappings:
+            del self._recipe_mappings[method]
+            return True
+        return False
+
+    def remove_processor_mapping(self, method: str) -> bool:
+        """Remove a processor mapping. Returns True if removed."""
+        if method in self._processor_mappings:
+            del self._processor_mappings[method]
+            return True
+        return False
+
+    def remove_method_handler(self, method: str) -> bool:
+        """Remove a method handler. Returns True if removed."""
+        if method in self._method_handlers:
+            del self._method_handlers[method]
+            return True
+        return False
+
+    def clear_all(self) -> None:
+        """Clear all registered plugins and mappings."""
+        self._recipe_mappings.clear()
+        self._processor_mappings.clear()
+        self._method_handlers.clear()
+        self._recipe_handlers.clear()
+        self._processor_handlers.clear()
+        self._plugins.clear()
+
+    # --- Classmethod backward-compatible API (delegates to default instance) ---
 
     @classmethod
     def register_recipe_mapping(
         cls,
         pandas_method: str,
         recipe_type: RecipeType,
-        override: bool = False
+        override: bool = False,
     ) -> None:
-        """
-        Register a mapping from a pandas method to a Dataiku recipe type.
-
-        Args:
-            pandas_method: The pandas method name (e.g., "custom_agg")
-            recipe_type: The Dataiku RecipeType to map to
-            override: If True, override existing mappings
+        """Register a mapping from a pandas method to a Dataiku recipe type.
 
         Example:
             >>> PluginRegistry.register_recipe_mapping("my_merge", RecipeType.JOIN)
         """
-        if pandas_method in cls._recipe_mappings and not override:
-            raise ValueError(
-                f"Recipe mapping for '{pandas_method}' already exists. "
-                "Use override=True to replace."
-            )
-        cls._recipe_mappings[pandas_method] = recipe_type
+        cls._get_default().add_recipe_mapping(pandas_method, recipe_type, override)
 
     @classmethod
     def register_processor_mapping(
         cls,
         pandas_method: str,
         processor_type: ProcessorType,
-        override: bool = False
+        override: bool = False,
     ) -> None:
-        """
-        Register a mapping from a pandas method to a Dataiku processor type.
-
-        Args:
-            pandas_method: The pandas method name (e.g., "custom_fill")
-            processor_type: The Dataiku ProcessorType to map to
-            override: If True, override existing mappings
+        """Register a mapping from a pandas method to a Dataiku processor type.
 
         Example:
             >>> PluginRegistry.register_processor_mapping(
             ...     "my_fillna", ProcessorType.FILL_EMPTY_WITH_VALUE
             ... )
         """
-        if pandas_method in cls._processor_mappings and not override:
-            raise ValueError(
-                f"Processor mapping for '{pandas_method}' already exists. "
-                "Use override=True to replace."
-            )
-        cls._processor_mappings[pandas_method] = processor_type
+        cls._get_default().add_processor_mapping(pandas_method, processor_type, override)
 
     @classmethod
     def register_method_handler(
         cls,
         method_name: str,
         handler: Callable,
-        override: bool = False
+        override: bool = False,
     ) -> None:
-        """
-        Register a custom handler for a pandas method.
-
-        The handler should accept (node, context) and return a Transformation
-        or list of Transformations.
-
-        Args:
-            method_name: The method name to handle
-            handler: Callable that processes the AST node
-            override: If True, override existing handlers
+        """Register a custom handler for a pandas method.
 
         Example:
             >>> def my_handler(node, context):
             ...     return Transformation(...)
             >>> PluginRegistry.register_method_handler("my_method", my_handler)
         """
-        if method_name in cls._method_handlers and not override:
-            raise ValueError(
-                f"Handler for '{method_name}' already exists. "
-                "Use override=True to replace."
-            )
-        cls._method_handlers[method_name] = handler
+        cls._get_default().add_method_handler(method_name, handler, override)
 
     @classmethod
     def register_recipe_handler(
         cls,
         recipe_type: RecipeType,
         handler: Callable,
-        override: bool = False
+        override: bool = False,
     ) -> None:
-        """
-        Register a custom handler for generating a recipe type.
-
-        Args:
-            recipe_type: The RecipeType to handle
-            handler: Callable that generates recipe configuration
-            override: If True, override existing handlers
-        """
-        if recipe_type in cls._recipe_handlers and not override:
-            raise ValueError(
-                f"Handler for recipe type '{recipe_type}' already exists. "
-                "Use override=True to replace."
-            )
-        cls._recipe_handlers[recipe_type] = handler
+        """Register a custom handler for generating a recipe type."""
+        cls._get_default().add_recipe_handler(recipe_type, handler, override)
 
     @classmethod
     def register_processor_handler(
         cls,
         processor_type: ProcessorType,
         handler: Callable,
-        override: bool = False
+        override: bool = False,
     ) -> None:
-        """
-        Register a custom handler for generating a processor type.
-
-        Args:
-            processor_type: The ProcessorType to handle
-            handler: Callable that generates processor configuration
-            override: If True, override existing handlers
-        """
-        if processor_type in cls._processor_handlers and not override:
-            raise ValueError(
-                f"Handler for processor type '{processor_type}' already exists. "
-                "Use override=True to replace."
-            )
-        cls._processor_handlers[processor_type] = handler
+        """Register a custom handler for generating a processor type."""
+        cls._get_default().add_processor_handler(processor_type, handler, override)
 
     @classmethod
     def register_plugin(
@@ -170,98 +265,72 @@ class PluginRegistry:
         name: str,
         version: str = "1.0.0",
         description: str = "",
-        **kwargs
+        **kwargs,
     ) -> None:
-        """
-        Register a plugin with metadata.
-
-        Args:
-            name: Plugin name
-            version: Plugin version string
-            description: Plugin description
-            **kwargs: Additional plugin metadata
-        """
-        cls._plugins[name] = {
-            "version": version,
-            "description": description,
-            **kwargs
-        }
+        """Register a plugin with metadata."""
+        cls._get_default().add_plugin(name, version, description, **kwargs)
 
     @classmethod
     def get_recipe_mapping(cls, method: str) -> Optional[RecipeType]:
         """Get custom recipe mapping for a method."""
-        return cls._recipe_mappings.get(method)
+        return cls._get_default().find_recipe_mapping(method)
 
     @classmethod
     def get_processor_mapping(cls, method: str) -> Optional[ProcessorType]:
         """Get custom processor mapping for a method."""
-        return cls._processor_mappings.get(method)
+        return cls._get_default().find_processor_mapping(method)
 
     @classmethod
     def get_method_handler(cls, method: str) -> Optional[Callable]:
         """Get custom handler for a method."""
-        return cls._method_handlers.get(method)
+        return cls._get_default().find_method_handler(method)
 
     @classmethod
     def get_recipe_handler(cls, recipe_type: RecipeType) -> Optional[Callable]:
         """Get custom handler for a recipe type."""
-        return cls._recipe_handlers.get(recipe_type)
+        return cls._get_default().find_recipe_handler(recipe_type)
 
     @classmethod
     def get_processor_handler(
         cls, processor_type: ProcessorType
     ) -> Optional[Callable]:
         """Get custom handler for a processor type."""
-        return cls._processor_handlers.get(processor_type)
+        return cls._get_default().find_processor_handler(processor_type)
 
     @classmethod
     def list_recipe_mappings(cls) -> Dict[str, RecipeType]:
         """List all registered recipe mappings."""
-        return cls._recipe_mappings.copy()
+        return cls._get_default()._recipe_mappings.copy()
 
     @classmethod
     def list_processor_mappings(cls) -> Dict[str, ProcessorType]:
         """List all registered processor mappings."""
-        return cls._processor_mappings.copy()
+        return cls._get_default()._processor_mappings.copy()
 
     @classmethod
     def list_plugins(cls) -> Dict[str, Dict[str, Any]]:
         """List all registered plugins."""
-        return cls._plugins.copy()
+        return cls._get_default()._plugins.copy()
 
     @classmethod
     def clear(cls) -> None:
-        """Clear all registered plugins and mappings."""
-        cls._recipe_mappings.clear()
-        cls._processor_mappings.clear()
-        cls._method_handlers.clear()
-        cls._recipe_handlers.clear()
-        cls._processor_handlers.clear()
-        cls._plugins.clear()
+        """Clear all registered plugins and mappings on the default instance."""
+        cls._get_default().clear_all()
 
     @classmethod
     def unregister_recipe_mapping(cls, method: str) -> bool:
         """Remove a recipe mapping. Returns True if removed."""
-        if method in cls._recipe_mappings:
-            del cls._recipe_mappings[method]
-            return True
-        return False
+        return cls._get_default().remove_recipe_mapping(method)
 
     @classmethod
     def unregister_processor_mapping(cls, method: str) -> bool:
         """Remove a processor mapping. Returns True if removed."""
-        if method in cls._processor_mappings:
-            del cls._processor_mappings[method]
-            return True
-        return False
+        return cls._get_default().remove_processor_mapping(method)
 
     @classmethod
     def unregister_method_handler(cls, method: str) -> bool:
         """Remove a method handler. Returns True if removed."""
-        if method in cls._method_handlers:
-            del cls._method_handlers[method]
-            return True
-        return False
+        return cls._get_default().remove_method_handler(method)
 
 
 def plugin_hook(hook_type: str):
@@ -417,7 +486,8 @@ class Plugin:
     version: str = "1.0.0"
     description: str = ""
 
-    def __init__(self):
+    def __init__(self, registry: Optional[PluginRegistry] = None):
+        self._registry = registry or PluginRegistry._get_default()
         self._local_recipe_mappings: Dict[str, RecipeType] = {}
         self._local_processor_mappings: Dict[str, ProcessorType] = {}
         self._local_handlers: Dict[str, Callable] = {}
@@ -433,7 +503,7 @@ class Plugin:
     def activate(self) -> None:
         """Activate this plugin, registering all components."""
         # Register plugin metadata
-        PluginRegistry.register_plugin(
+        self._registry.add_plugin(
             self.name,
             version=self.version,
             description=self.description,
@@ -444,24 +514,24 @@ class Plugin:
 
         # Register local mappings
         for method, recipe_type in self._local_recipe_mappings.items():
-            PluginRegistry.register_recipe_mapping(method, recipe_type)
+            self._registry.add_recipe_mapping(method, recipe_type)
 
         for method, processor_type in self._local_processor_mappings.items():
-            PluginRegistry.register_processor_mapping(method, processor_type)
+            self._registry.add_processor_mapping(method, processor_type)
 
         for method, handler in self._local_handlers.items():
-            PluginRegistry.register_method_handler(method, handler)
+            self._registry.add_method_handler(method, handler)
 
     def deactivate(self) -> None:
         """Deactivate this plugin, removing all components."""
         for method in self._local_recipe_mappings:
-            PluginRegistry.unregister_recipe_mapping(method)
+            self._registry.remove_recipe_mapping(method)
 
         for method in self._local_processor_mappings:
-            PluginRegistry.unregister_processor_mapping(method)
+            self._registry.remove_processor_mapping(method)
 
         for method in self._local_handlers:
-            PluginRegistry.unregister_method_handler(method)
+            self._registry.remove_method_handler(method)
 
     def add_recipe_mapping(
         self, pandas_method: str, recipe_type: RecipeType

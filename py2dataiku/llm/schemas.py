@@ -49,6 +49,16 @@ class OperationType(Enum):
     CAST_TYPE = "cast_type"
     PARSE_DATE = "parse_date"
 
+    # String/Column operations
+    SPLIT_COLUMN = "split_column"
+    ENCODE_CATEGORICAL = "encode_categorical"
+
+    # Scaling/Normalization
+    NORMALIZE_SCALE = "normalize_scale"
+
+    # Geographic
+    GEO_OPERATION = "geo_operation"
+
     # Custom/Complex
     CUSTOM_FUNCTION = "custom_function"
     UNKNOWN = "unknown"
@@ -173,9 +183,13 @@ class DataStep:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DataStep":
         """Create from dictionary (LLM response)."""
+        try:
+            operation = OperationType(data.get("operation", "unknown"))
+        except ValueError:
+            operation = OperationType.UNKNOWN
         return cls(
             step_number=data.get("step_number", 0),
-            operation=OperationType(data.get("operation", "unknown")),
+            operation=operation,
             description=data.get("description", ""),
             input_datasets=data.get("input_datasets", []),
             output_dataset=data.get("output_dataset"),

@@ -16,7 +16,14 @@ Visualization formats:
 - Mermaid: GitHub/Notion compatible
 """
 
-__version__ = "0.3.0"
+try:
+    from importlib.metadata import version as _get_version
+    __version__ = _get_version("py-iku")
+except Exception:
+    __version__ = "0.3.0"
+
+import warnings
+from typing import Optional
 
 # Rule-based components (legacy)
 from py2dataiku.parser.ast_analyzer import CodeAnalyzer
@@ -29,16 +36,76 @@ from py2dataiku.llm.providers import (
     LLMProvider,
     AnthropicProvider,
     OpenAIProvider,
+    MockProvider,
     get_provider,
 )
 from py2dataiku.llm.schemas import AnalysisResult, DataStep, OperationType
 from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
 
 # Core models
-from py2dataiku.models.dataiku_flow import DataikuFlow
-from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
-from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
-from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
+from py2dataiku.models.dataiku_flow import DataikuFlow, FlowZone
+from py2dataiku.models.dataiku_recipe import (
+    DataikuRecipe,
+    RecipeType,
+    Aggregation,
+    JoinKey,
+    JoinType,
+    AggregationFunction,
+    WindowFunctionType,
+    SplitMode,
+    SamplingMethod,
+)
+from py2dataiku.models.dataiku_dataset import (
+    DataikuDataset,
+    DatasetType,
+    DatasetConnectionType,
+    ColumnSchema,
+)
+from py2dataiku.models.prepare_step import (
+    PrepareStep,
+    ProcessorType,
+    StringTransformerMode,
+    NumericalTransformerMode,
+    FilterMatchMode,
+)
+
+# Scenario model
+from py2dataiku.models.dataiku_scenario import (
+    DataikuScenario,
+    ScenarioTrigger,
+    ScenarioStep,
+    ScenarioReporter,
+    TriggerType,
+    StepType,
+    ReporterType,
+)
+
+# Metrics and checks
+from py2dataiku.models.dataiku_metrics import (
+    DataikuMetric,
+    DataikuCheck,
+    DataQualityRule,
+    MetricType,
+    CheckCondition,
+    CheckSeverity,
+)
+
+# MLOps models
+from py2dataiku.models.dataiku_mlops import (
+    APIEndpoint,
+    ModelVersion,
+    DriftConfig,
+    EndpointType,
+    ModelFramework,
+    DriftMetricType,
+)
+
+# Configuration
+from py2dataiku.config import (
+    Py2DataikuConfig,
+    load_config,
+    find_config_file,
+)
 
 # Visualizers
 from py2dataiku.visualizers import (
@@ -68,6 +135,18 @@ from py2dataiku.exporters import (
     export_to_dss,
 )
 
+# Exceptions
+from py2dataiku.exceptions import (
+    Py2DataikuError,
+    ConversionError,
+    ProviderError,
+    LLMResponseParseError,
+    InvalidPythonCodeError,
+    ValidationError,
+    ExportError,
+    ConfigurationError,
+)
+
 __all__ = [
     # LLM-based (recommended)
     "LLMCodeAnalyzer",
@@ -75,6 +154,7 @@ __all__ = [
     "LLMProvider",
     "AnthropicProvider",
     "OpenAIProvider",
+    "MockProvider",
     "get_provider",
     "AnalysisResult",
     "DataStep",
@@ -91,6 +171,45 @@ __all__ = [
     "RecipeType",
     "ProcessorType",
     "DatasetType",
+    "DatasetConnectionType",
+    "Aggregation",
+    "JoinKey",
+    "JoinType",
+    "AggregationFunction",
+    "WindowFunctionType",
+    "SplitMode",
+    "SamplingMethod",
+    "StringTransformerMode",
+    "NumericalTransformerMode",
+    "FilterMatchMode",
+    "ColumnSchema",
+    "FlowZone",
+    # Scenario
+    "DataikuScenario",
+    "ScenarioTrigger",
+    "ScenarioStep",
+    "ScenarioReporter",
+    "TriggerType",
+    "StepType",
+    "ReporterType",
+    # Metrics and checks
+    "DataikuMetric",
+    "DataikuCheck",
+    "DataQualityRule",
+    "MetricType",
+    "CheckCondition",
+    "CheckSeverity",
+    # MLOps
+    "APIEndpoint",
+    "ModelVersion",
+    "DriftConfig",
+    "EndpointType",
+    "ModelFramework",
+    "DriftMetricType",
+    # Configuration
+    "Py2DataikuConfig",
+    "load_config",
+    "find_config_file",
     # Visualizers
     "SVGVisualizer",
     "ASCIIVisualizer",
@@ -103,6 +222,8 @@ __all__ = [
     # Convenience functions
     "convert",
     "convert_with_llm",
+    "convert_file",
+    "convert_file_with_llm",
     # Plugin system
     "PluginRegistry",
     "plugin_hook",
@@ -113,6 +234,15 @@ __all__ = [
     "DSSExporter",
     "DSSProjectConfig",
     "export_to_dss",
+    # Exceptions
+    "Py2DataikuError",
+    "ConversionError",
+    "ProviderError",
+    "LLMResponseParseError",
+    "InvalidPythonCodeError",
+    "ValidationError",
+    "ExportError",
+    "ConfigurationError",
 ]
 
 
@@ -142,8 +272,8 @@ def convert(code: str, optimize: bool = True) -> DataikuFlow:
 def convert_with_llm(
     code: str,
     provider: str = "anthropic",
-    api_key: str = None,
-    model: str = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
     optimize: bool = True,
     flow_name: str = "converted_flow",
 ) -> DataikuFlow:
@@ -187,6 +317,63 @@ def convert_with_llm(
     return flow
 
 
+def convert_file(path: str, optimize: bool = True) -> DataikuFlow:
+    """
+    Convert a Python file to a Dataiku flow using rule-based analysis.
+
+    Args:
+        path: Path to a Python file
+        optimize: Whether to optimize the flow
+
+    Returns:
+        DataikuFlow object representing the converted pipeline
+    """
+    with open(path, "r", encoding="utf-8") as f:
+        code = f.read()
+    flow = convert(code, optimize=optimize)
+    flow.source_file = path
+    return flow
+
+
+def convert_file_with_llm(
+    path: str,
+    provider: str = "anthropic",
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    optimize: bool = True,
+    flow_name: Optional[str] = None,
+) -> DataikuFlow:
+    """
+    Convert a Python file to a Dataiku flow using LLM-based analysis.
+
+    Args:
+        path: Path to a Python file
+        provider: LLM provider ("anthropic", "openai")
+        api_key: API key (uses environment variable if not provided)
+        model: Model name (uses provider default if not provided)
+        optimize: Whether to optimize the flow
+        flow_name: Name for the generated flow (defaults to filename)
+
+    Returns:
+        DataikuFlow object representing the converted pipeline
+    """
+    import os
+    with open(path, "r", encoding="utf-8") as f:
+        code = f.read()
+    if flow_name is None:
+        flow_name = os.path.splitext(os.path.basename(path))[0]
+    flow = convert_with_llm(
+        code,
+        provider=provider,
+        api_key=api_key,
+        model=model,
+        optimize=optimize,
+        flow_name=flow_name,
+    )
+    flow.source_file = path
+    return flow
+
+
 class Py2Dataiku:
     """
     Main converter class with hybrid LLM + rule-based approach.
@@ -198,8 +385,8 @@ class Py2Dataiku:
     def __init__(
         self,
         provider: str = "anthropic",
-        api_key: str = None,
-        model: str = None,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
         use_llm: bool = True,
     ):
         """
@@ -225,7 +412,10 @@ class Py2Dataiku:
                 self.analyzer = LLMCodeAnalyzer(provider=llm_provider)
                 self.flow_generator = LLMFlowGenerator()
             except (ValueError, ImportError) as e:
-                print(f"Warning: Could not initialize LLM ({e}). Falling back to rule-based.")
+                warnings.warn(
+                    f"Could not initialize LLM ({e}). Falling back to rule-based.",
+                    stacklevel=2,
+                )
                 self.use_llm = False
                 self.analyzer = CodeAnalyzer()
                 self.flow_generator = FlowGenerator()

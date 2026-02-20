@@ -3,6 +3,7 @@
 import json
 from typing import List, Optional
 
+from py2dataiku.exceptions import LLMResponseParseError, ProviderError
 from py2dataiku.llm.providers import LLMProvider, get_provider
 from py2dataiku.llm.schemas import AnalysisResult, DataStep, OperationType
 
@@ -163,20 +164,7 @@ class LLMCodeAnalyzer:
             return result
 
         except json.JSONDecodeError as e:
-            # Return error result
-            return AnalysisResult(
-                steps=[],
-                datasets=[],
-                code_summary=f"Error parsing LLM response: {e}",
-                warnings=[f"JSON parse error: {e}"],
-            )
-        except Exception as e:
-            return AnalysisResult(
-                steps=[],
-                datasets=[],
-                code_summary=f"Error during analysis: {e}",
-                warnings=[f"Analysis error: {e}"],
-            )
+            raise LLMResponseParseError(f"Failed to parse LLM response as JSON: {e}") from e
 
     def analyze_with_context(
         self,
@@ -216,13 +204,8 @@ class LLMCodeAnalyzer:
 
             return result
 
-        except Exception as e:
-            return AnalysisResult(
-                steps=[],
-                datasets=[],
-                code_summary=f"Error: {e}",
-                warnings=[str(e)],
-            )
+        except json.JSONDecodeError as e:
+            raise LLMResponseParseError(f"Failed to parse LLM response as JSON: {e}") from e
 
     def _post_process(self, result: AnalysisResult) -> AnalysisResult:
         """Post-process the analysis result for consistency."""

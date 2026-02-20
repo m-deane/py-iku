@@ -16,6 +16,7 @@ import sys
 from typing import Optional
 
 from py2dataiku import (
+    __version__,
     convert,
     DataikuFlow,
     CodeAnalyzer,
@@ -32,7 +33,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 0.3.0",
+        version=f"%(prog)s {__version__}",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

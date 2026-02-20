@@ -26,13 +26,22 @@ df = df.drop_duplicates()
         generator = FlowGenerator()
         flow = generator.generate(transformations)
 
-        # Should have input dataset and prepare recipe
-        assert len(flow.datasets) >= 1
+        # Should have input dataset and output datasets
+        assert len(flow.datasets) >= 2
         assert len(flow.recipes) >= 1
 
-        # Should have at least one Prepare recipe
+        # Verify dataset types: at least one INPUT dataset from read_csv
+        from py2dataiku.models.dataiku_dataset import DatasetType
+        input_datasets = [d for d in flow.datasets if d.dataset_type == DatasetType.INPUT]
+        assert len(input_datasets) >= 1
+        # Name comes from variable or filename
+        assert len(input_datasets[0].name) > 0
+
+        # Should have at least one Prepare recipe for the cleaning operations
         prepare_recipes = flow.get_recipes_by_type(RecipeType.PREPARE)
         assert len(prepare_recipes) >= 1
+        # Prepare recipe should have multiple steps (strip, dropna, drop_duplicates)
+        assert len(prepare_recipes[0].steps) >= 2
 
     def test_join_pipeline(self):
         """Test converting merge/join operations."""
@@ -66,13 +75,16 @@ summary = df.groupby('category').agg({'amount': 'sum', 'count': 'count'})
         analyzer = CodeAnalyzer()
         transformations = analyzer.analyze(code)
 
-        # Should detect groupby transformation (may be detected as part of chain)
+        # Should detect at least a read_data and a groupby transformation
+        assert len(transformations) >= 2
+        read_trans = [t for t in transformations if t.transformation_type.value == 'read_data']
+        assert len(read_trans) == 1
+
+        # Should detect groupby transformation
         groupby_trans = [t for t in transformations
                         if t.suggested_recipe == 'grouping'
                         or t.transformation_type.value == 'groupby']
-        # Note: Complex method chains like groupby().agg() require enhanced parsing
-        # For now, verify we at least detect some transformations
-        assert len(transformations) >= 1
+        assert len(groupby_trans) >= 1
 
     def test_filter_pipeline(self):
         """Test converting filter operations."""
@@ -164,8 +176,10 @@ df = df.dropna()
         diagram_gen = DiagramGenerator()
         ascii_diagram = diagram_gen.to_ascii(flow)
 
-        # Should produce some output
-        assert len(ascii_diagram) > 0
+        # Should produce meaningful output with flow elements
+        assert len(ascii_diagram) > 10
+        # ASCII diagrams typically contain box-drawing or arrow characters
+        assert any(c in ascii_diagram for c in ['-', '>', '|', '+', '[', ']'])
 
     def test_plantuml_generation(self):
         """Test PlantUML diagram generation."""
