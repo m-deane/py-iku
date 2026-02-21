@@ -1,0 +1,93 @@
+site_name: py-iku
+site_description: Convert Python data processing code to Dataiku DSS recipes and flows
+site_url: https://m-deane.github.io/py-iku
+repo_url: https://github.com/m-deane/py-iku
+repo_name: m-deane/py-iku
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_bases: true
+            members_order: source
+            docstring_style: google
+            merge_init_into_class: true
+            show_root_heading: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.snippets
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - API Reference:
+    - Overview: api/index.md
+    - Core Functions: api/core-functions.md
+    - Py2Dataiku Class: api/py2dataiku-class.md
+    - Models: api/models.md
+    - Enums: api/enums.md
+    - LLM Providers: api/llm-providers.md
+    - Visualizers: api/visualizers.md
+    - Exporters: api/exporters.md
+    - Plugin System: api/plugins.md
+    - Configuration: api/configuration.md
+    - Exceptions: api/exceptions.md
+    - Graph: api/graph.md
+    - Recipe Settings: api/recipe-settings.md
+    - Scenarios & Metrics: api/scenarios-metrics.md
+    - MLOps: api/mlops.md
+  - Auto-generated API:
+    - py2dataiku: reference/index.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/m-deane/py-iku
