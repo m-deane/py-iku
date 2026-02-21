@@ -1,0 +1,7301 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Convert Python data processing code to Dataiku DSS recipes and flows">
+      
+      
+      
+        <link rel="canonical" href="https://m-deane.github.io/py-iku/reference/">
+      
+      
+        <link rel="prev" href="../api/mlops/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+    
+    
+      
+        <title>py2dataiku - py-iku</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#auto-generated-api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="py-iku" class="md-header__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            py-iku
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              py2dataiku
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Auto-generated API
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="py-iku" class="md-nav__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    py-iku
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/core-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/py2dataiku-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Py2Dataiku Class
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enums
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/llm-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/visualizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualizers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/exporters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/exceptions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/recipe-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/scenarios-metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/mlops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-generated API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auto-generated API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    py2dataiku
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    py2dataiku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#core-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Module
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        py2dataiku
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="py2dataiku">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Py2Dataiku
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Py2Dataiku">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.convert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.analyze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        analyze
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.generate_diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.visualize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        visualize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.save_visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_visualization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert_with_llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert_with_llm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert_file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert_file_with_llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert_file_with_llm
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataikuFlow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DataikuFlow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.input_datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input_datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.output_datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        output_datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.intermediate_datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        intermediate_datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_dataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_dataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_recipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_recipe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_recipe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recipes_by_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_recipes_by_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_recommendations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_recommendation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_column_lineage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_column_lineage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_zone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_zone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_zone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_zone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_recipe_configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_recipe_configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.export_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        export_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.visualize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        visualize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_svg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_svg
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_ascii
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_html" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_html
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_plantuml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_plantuml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_png" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_png
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_pdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_pdf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.__len__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __len__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.__iter__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __iter__
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataikuRecipe
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DataikuRecipe">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_api_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_api_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_aggregation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_join_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_join_key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.get_step_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_step_summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_prepare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_prepare
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_join
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_python
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataikuDataset
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DataikuDataset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.is_input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_input
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.is_output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.add_column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.add_note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_note
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrepareStep
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PrepareStep">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.fill_empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fill_empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.rename_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rename_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.delete_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.string_transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        string_transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.set_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        set_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.parse_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse_date
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.filter_on_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filter_on_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.remove_rows_on_empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        remove_rows_on_empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.remove_duplicates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        remove_duplicates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.create_column_grel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_column_grel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.regexp_extract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        regexp_extract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.python_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        python_udf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.if_then_else" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        if_then_else
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.switch_case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        switch_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.translate_values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        translate_values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.extract_with_jsonpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_with_jsonpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.split_url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        split_url
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.fold_multiple_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fold_multiple_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.transpose_rows_to_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transpose_rows_to_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.unfold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unfold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.coalesce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coalesce
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.fill_column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fill_column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.get_description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_description
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exceptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exceptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exceptions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="exceptions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.Py2DataikuError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Py2DataikuError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ConversionError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConversionError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ProviderError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProviderError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.LLMResponseParseError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLMResponseParseError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.InvalidPythonCodeError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InvalidPythonCodeError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ValidationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ValidationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ExportError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExportError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ConfigurationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigurationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#core-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Module
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        py2dataiku
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="py2dataiku">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Py2Dataiku
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Py2Dataiku">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.convert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.analyze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        analyze
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.generate_diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.visualize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        visualize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.Py2Dataiku.save_visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_visualization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert_with_llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert_with_llm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert_file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.convert_file_with_llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        convert_file_with_llm
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataikuFlow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DataikuFlow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.input_datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input_datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.output_datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        output_datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.intermediate_datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        intermediate_datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_dataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_dataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_recipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_recipe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_recipe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recipes_by_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_recipes_by_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_recommendations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_recommendation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_column_lineage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_column_lineage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_zone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_zone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_zone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_zone
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_recipe_configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_recipe_configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.export_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        export_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.visualize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        visualize
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_svg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_svg
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_ascii
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_html" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_html
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_plantuml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_plantuml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_png" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_png
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_pdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_pdf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.__len__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __len__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_flow.DataikuFlow.__iter__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __iter__
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataikuRecipe
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DataikuRecipe">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_api_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_api_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_aggregation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_join_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_join_key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.get_step_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_step_summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_prepare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_prepare
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_join" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_join
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_python
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataikuDataset
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DataikuDataset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.is_input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_input
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.is_output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.add_column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.add_note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_note
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrepareStep
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PrepareStep">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.to_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.from_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.fill_empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fill_empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.rename_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rename_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.delete_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        delete_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.string_transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        string_transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.set_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        set_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.parse_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse_date
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.filter_on_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filter_on_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.remove_rows_on_empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        remove_rows_on_empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.remove_duplicates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        remove_duplicates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.create_column_grel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_column_grel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.regexp_extract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        regexp_extract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.python_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        python_udf
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.if_then_else" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        if_then_else
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.switch_case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        switch_case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.translate_values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        translate_values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.extract_with_jsonpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_with_jsonpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.split_url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        split_url
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.fold_multiple_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fold_multiple_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.transpose_rows_to_columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transpose_rows_to_columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.unfold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unfold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.coalesce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coalesce
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.fill_column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fill_column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.models.prepare_step.PrepareStep.get_description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_description
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exceptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exceptions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        exceptions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="exceptions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.Py2DataikuError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Py2DataikuError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ConversionError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConversionError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ProviderError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProviderError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.LLMResponseParseError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLMResponseParseError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.InvalidPythonCodeError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InvalidPythonCodeError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ValidationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ValidationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ExportError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ExportError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#py2dataiku.exceptions.ConfigurationError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigurationError
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="auto-generated-api-reference">Auto-generated API Reference<a class="headerlink" href="#auto-generated-api-reference" title="Permanent link">&para;</a></h1>
+<p>API documentation auto-generated from source code docstrings.</p>
+<h2 id="core-module">Core Module<a class="headerlink" href="#core-module" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="py2dataiku" class="doc doc-heading">
+            <code>py2dataiku</code>
+
+
+<a href="#py2dataiku" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>py2dataiku - Convert Python data processing code to Dataiku DSS recipes and flows.</p>
+<p>This library analyzes Python code (pandas, numpy, scikit-learn) and generates
+equivalent Dataiku DSS recipe configurations, flow structures, and visual diagrams.</p>
+<p>Two analysis modes are available:
+1. LLM-based (recommended): Uses AI to understand code semantics
+2. Rule-based (fallback): Uses AST pattern matching</p>
+<p>Visualization formats:
+- SVG: Scalable vector graphics (pixel-accurate Dataiku styling)
+- HTML: Interactive canvas with hover/click
+- ASCII: Terminal-friendly text art
+- PlantUML: Documentation-ready diagrams
+- Mermaid: GitHub/Notion compatible</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.Py2Dataiku" class="doc doc-heading">
+              <code class="highlight language-python"><span class="n">Py2Dataiku</span><span class="p">(</span><span class="n">provider</span><span class="o">=</span><span class="s1">&#39;anthropic&#39;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_llm</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.Py2Dataiku" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Main converter class with hybrid LLM + rule-based approach.</p>
+<p>This class provides a unified interface for converting Python code
+to Dataiku flows, with LLM as primary and rule-based as fallback.</p>
+
+        <p>Initialize the converter.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>provider</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>LLM provider name ("anthropic", "openai")</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;anthropic&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>api_key</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>API key for LLM provider</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model name override</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>use_llm</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use LLM (True) or rule-based (False)</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="py2dataiku.Py2Dataiku.convert" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">flow_name</span><span class="o">=</span><span class="s1">&#39;converted_flow&#39;</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.Py2Dataiku.convert" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert Python code to a Dataiku flow.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>code</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Python source code</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name for the generated flow</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;converted_flow&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>optimize</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to optimize the flow</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow object</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="py2dataiku.Py2Dataiku.analyze" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">analyze</span><span class="p">(</span><span class="n">code</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.Py2Dataiku.analyze" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Analyze code without generating flow (LLM mode only).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>code</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Python source code</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="py2dataiku.llm.schemas.AnalysisResult">AnalysisResult</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>AnalysisResult with extracted steps and metadata</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="py2dataiku.Py2Dataiku.generate_diagram" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">generate_diagram</span><span class="p">(</span><span class="n">flow</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mermaid&#39;</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.Py2Dataiku.generate_diagram" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate a diagram for a flow (legacy method).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow to visualize</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Diagram format ("mermaid", "graphviz", "ascii", "plantuml")</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mermaid&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Diagram string in specified format</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="py2dataiku.Py2Dataiku.visualize" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">visualize</span><span class="p">(</span><span class="n">flow</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;svg&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.Py2Dataiku.visualize" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate Dataiku-style visualization of a flow.</p>
+<p>This method produces pixel-accurate representations matching
+the Dataiku DSS interface styling.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow to visualize</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output format ("svg", "html", "ascii", "plantuml")</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;svg&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Additional arguments for the visualizer</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Visualization string in the specified format</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="py2dataiku.Py2Dataiku.save_visualization" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">save_visualization</span><span class="p">(</span><span class="n">flow</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.Py2Dataiku.save_visualization" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Save flow visualization to a file.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow to visualize</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save the file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output format (auto-detected from extension if not provided)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.convert" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.convert" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert Python code to a Dataiku flow using rule-based analysis.</p>
+<p>This is the legacy method using AST pattern matching.
+For better results, use convert_with_llm() instead.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>code</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Python source code string</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>optimize</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to optimize the flow (merge recipes, reorder steps)</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow object representing the converted pipeline</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.convert_with_llm" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_with_llm</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">provider</span><span class="o">=</span><span class="s1">&#39;anthropic&#39;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">flow_name</span><span class="o">=</span><span class="s1">&#39;converted_flow&#39;</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.convert_with_llm" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert Python code to a Dataiku flow using LLM-based analysis.</p>
+<p>This is the recommended method - uses AI to understand code semantics
+and produces more accurate mappings, especially for complex code.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>code</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Python source code string</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>provider</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>LLM provider ("anthropic", "openai")</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;anthropic&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>api_key</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>API key (uses environment variable if not provided)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model name (uses provider default if not provided)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>optimize</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to optimize the flow</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name for the generated flow</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;converted_flow&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow object representing the converted pipeline</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <blockquote>
+<blockquote>
+<blockquote>
+<p>flow = convert_with_llm('''
+... import pandas as pd
+... df = pd.read_csv('data.csv')
+... df = df.dropna()
+... result = df.groupby('category').agg({'amount': 'sum'})
+... ''')
+print(flow.get_summary())</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.convert_file" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.convert_file" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert a Python file to a Dataiku flow using rule-based analysis.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to a Python file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>optimize</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to optimize the flow</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow object representing the converted pipeline</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.convert_file_with_llm" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_file_with_llm</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">provider</span><span class="o">=</span><span class="s1">&#39;anthropic&#39;</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">flow_name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.convert_file_with_llm" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert a Python file to a Dataiku flow using LLM-based analysis.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to a Python file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>provider</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>LLM provider ("anthropic", "openai")</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;anthropic&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>api_key</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>API key (uses environment variable if not provided)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>model</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Model name (uses provider default if not provided)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>optimize</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to optimize the flow</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>flow_name</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name for the generated flow (defaults to filename)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="py2dataiku.models.dataiku_flow.DataikuFlow(name='converted_flow', source_file=None, generation_timestamp=None, datasets=list(), recipes=list(), zones=list(), recommendations=list(), optimization_notes=list(), warnings=list())
+
+  
+      dataclass
+   (py2dataiku.models.dataiku_flow.DataikuFlow)" href="#py2dataiku.models.dataiku_flow.DataikuFlow">DataikuFlow</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataikuFlow object representing the converted pipeline</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="models">Models<a class="headerlink" href="#models" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="py2dataiku.models.dataiku_flow.DataikuFlow" class="doc doc-heading">
+              <code class="highlight language-python"><span class="n">py2dataiku</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">dataiku_flow</span><span class="o">.</span><span class="n">DataikuFlow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;converted_flow&#39;</span><span class="p">,</span> <span class="n">source_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">generation_timestamp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">datasets</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">recipes</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">zones</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">recommendations</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">optimization_notes</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">warnings</span><span class="o">=</span><span class="nb">list</span><span class="p">())</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Represents a complete Dataiku flow (pipeline).</p>
+<p>A flow is a directed acyclic graph (DAG) of datasets connected by recipes.
+This is the main output of the py2dataiku conversion process.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.graph" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">graph</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.graph" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Build and return a DAG representation of this flow.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.input_datasets" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">input_datasets</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.input_datasets" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get all input datasets.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.output_datasets" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">output_datasets</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.output_datasets" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get all output datasets.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.intermediate_datasets" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">intermediate_datasets</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.intermediate_datasets" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get all intermediate datasets.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.add_dataset" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_dataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_dataset" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a dataset to the flow.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_dataset" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_dataset" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a dataset by name.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.add_recipe" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_recipe</span><span class="p">(</span><span class="n">recipe</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_recipe" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a recipe to the flow.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_recipe" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_recipe</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recipe" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a recipe by name.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_recipes_by_type" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_recipes_by_type</span><span class="p">(</span><span class="n">recipe_type</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recipes_by_type" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get all recipes of a specific type.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_recommendations" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_recommendations</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_recommendations" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get optimization recommendations for the flow.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.add_recommendation" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_recommendation</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">priority</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_recommendation" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a recommendation.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_column_lineage" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_column_lineage</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_column_lineage" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get lineage information for a column.</p>
+<p>Traces a column backward through the flow's recipes to find its
+origin dataset and any transformations applied along the way.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>column</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The column name to trace.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dataset</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dataset containing the column. If None, searches
+     output datasets first, then all datasets.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="py2dataiku.models.dataiku_flow.ColumnLineage">ColumnLineage</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ColumnLineage describing the column's origin and transformations.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the column or dataset cannot be found in the flow.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.validate" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">validate</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.validate" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Validate the flow structure using DAG analysis.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.add_zone" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_zone</span><span class="p">(</span><span class="n">zone</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.add_zone" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a zone to the flow.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_zone" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_zone</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_zone" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a zone by name.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to dictionary representation.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.from_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstruct a DataikuFlow from a dictionary (inverse of to_dict).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.from_json" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_json</span><span class="p">(</span><span class="n">json_str</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_json" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstruct a DataikuFlow from a JSON string.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.from_yaml" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_yaml</span><span class="p">(</span><span class="n">yaml_str</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.from_yaml" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstruct a DataikuFlow from a YAML string.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_yaml" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_yaml</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_yaml" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to YAML string.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_json" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_json</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_json" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to JSON string.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_recipe_configs" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_recipe_configs</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_recipe_configs" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get Dataiku API-compatible recipe configurations.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.get_summary" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_summary</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.get_summary" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a text summary of the flow.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.export_all" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">export_all</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.export_all" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Export all flow artifacts to a directory.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.visualize" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">visualize</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;svg&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.visualize" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate a visual representation of the flow.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>format</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Output format - "svg", "ascii", "plantuml", "html", "mermaid"</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;svg&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Additional arguments passed to the visualizer</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>String containing the visualization in the requested format</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_svg" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_svg</span><span class="p">(</span><span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_svg" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate SVG visualization.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional file path to save the SVG</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SVG content as string</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_ascii" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_ascii</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_ascii" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate ASCII art visualization.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_html" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_html</span><span class="p">(</span><span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_html" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate interactive HTML visualization.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional file path to save the HTML</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>HTML content as string</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_plantuml" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_plantuml</span><span class="p">(</span><span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_plantuml" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generate PlantUML visualization.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional file path to save the PlantUML code</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PlantUML content as string</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_png" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_png</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_png" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Export flow as PNG image.</p>
+<p>Requires cairosvg package: pip install cairosvg</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>File path to save the PNG</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>scale</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scale factor for resolution (default 2.0)</p>
+              </div>
+            </td>
+            <td>
+                  <code>2.0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.to_pdf" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_pdf</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.to_pdf" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Export flow as PDF.</p>
+<p>Requires cairosvg package: pip install cairosvg</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>output_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>File path to save the PDF</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.__len__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.__len__" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return the number of recipes in this flow.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_flow.DataikuFlow.__iter__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_flow.DataikuFlow.__iter__" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Iterate over the recipes in this flow.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="py2dataiku.models.dataiku_recipe.DataikuRecipe" class="doc doc-heading">
+              <code class="highlight language-python"><span class="n">py2dataiku</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">dataiku_recipe</span><span class="o">.</span><span class="n">DataikuRecipe</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">recipe_type</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">outputs</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">steps</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">group_keys</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">aggregations</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">join_type</span><span class="o">=</span><span class="n">JoinType</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">join_keys</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">selected_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">partition_columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">order_columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">window_aggregations</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">sampling_method</span><span class="o">=</span><span class="n">SamplingMethod</span><span class="o">.</span><span class="n">RANDOM</span><span class="p">,</span> <span class="n">sample_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">split_condition</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sort_columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">top_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ranking_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_lines</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">notes</span><span class="o">=</span><span class="nb">list</span><span class="p">())</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Represents a recipe in a Dataiku flow.</p>
+<p>Recipes are the transformation nodes that process data.
+They appear as circles in the Dataiku flow visualization.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.to_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to dictionary representation.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.from_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.from_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstruct a DataikuRecipe from a dictionary (inverse of to_dict).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.to_api_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_api_dict</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_api_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to Dataiku API-compatible dictionary.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.to_json" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_json</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.to_json" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to Dataiku API-compatible dictionary.</p>
+<p>Note: This method returns a dict, not a JSON string. It is an alias
+for <code>to_api_dict()</code> kept for backward compatibility.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.add_step" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_step</span><span class="p">(</span><span class="n">step</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_step" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a step to a Prepare recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.add_aggregation" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_aggregation</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_aggregation" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add an aggregation to a Grouping recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.add_join_key" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_join_key</span><span class="p">(</span><span class="n">left_column</span><span class="p">,</span> <span class="n">right_column</span><span class="p">,</span> <span class="n">match_type</span><span class="o">=</span><span class="s1">&#39;EXACT&#39;</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_join_key" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a join key to a Join recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.add_note" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_note</span><span class="p">(</span><span class="n">note</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.add_note" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a note about this recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.get_step_summary" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_step_summary</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.get_step_summary" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a summary of steps for Prepare recipes.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.create_prepare" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_prepare</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">input_dataset</span><span class="p">,</span> <span class="n">output_dataset</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_prepare" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Factory method to create a Prepare recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.create_grouping" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_grouping</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">input_dataset</span><span class="p">,</span> <span class="n">output_dataset</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">aggregations</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_grouping" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Factory method to create a Grouping recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.create_join" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">left_dataset</span><span class="p">,</span> <span class="n">right_dataset</span><span class="p">,</span> <span class="n">output_dataset</span><span class="p">,</span> <span class="n">join_keys</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="n">JoinType</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_join" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Factory method to create a Join recipe.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_recipe.DataikuRecipe.create_python" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_python</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">code</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_recipe.DataikuRecipe.create_python" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Factory method to create a Python recipe.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="py2dataiku.models.dataiku_dataset.DataikuDataset" class="doc doc-heading">
+              <code class="highlight language-python"><span class="n">py2dataiku</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">dataiku_dataset</span><span class="o">.</span><span class="n">DataikuDataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dataset_type</span><span class="o">=</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">INTERMEDIATE</span><span class="p">,</span> <span class="n">connection_type</span><span class="o">=</span><span class="n">DatasetConnectionType</span><span class="o">.</span><span class="n">FILESYSTEM</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="nb">list</span><span class="p">(),</span> <span class="n">source_variable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes</span><span class="o">=</span><span class="nb">list</span><span class="p">())</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Represents a dataset (node) in a Dataiku flow.</p>
+<p>Datasets are the data containers that recipes read from and write to.
+They appear as blue squares in the Dataiku flow visualization.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.is_input" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">is_input</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.is_input" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Check if this is an input dataset.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.is_output" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">is_output</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.is_output" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Check if this is an output dataset.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.to_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.to_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to dictionary representation.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.to_json" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_json</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.to_json" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to Dataiku API-compatible JSON.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.from_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.from_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstruct a DataikuDataset from a dictionary (inverse of to_dict).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.add_column" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_column</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">col_type</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.add_column" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a column to the schema.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.dataiku_dataset.DataikuDataset.add_note" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_note</span><span class="p">(</span><span class="n">note</span><span class="p">)</span></code>
+
+<a href="#py2dataiku.models.dataiku_dataset.DataikuDataset.add_note" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Add a note about this dataset.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="py2dataiku.models.prepare_step.PrepareStep" class="doc doc-heading">
+              <code class="highlight language-python"><span class="n">py2dataiku</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">prepare_step</span><span class="o">.</span><span class="n">PrepareStep</span><span class="p">(</span><span class="n">processor_type</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span> <span class="n">disabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">meta_type</span><span class="o">=</span><span class="s1">&#39;PROCESSOR&#39;</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_code</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Represents a single step/processor in a Dataiku Prepare recipe.</p>
+<p>Each step performs a specific transformation on the data.
+Steps are executed in order within a Prepare recipe.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.to_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.to_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to dictionary representation.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.to_json" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">to_json</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.to_json" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert to Dataiku API-compatible JSON.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.from_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.from_dict" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Reconstruct a PrepareStep from a dictionary (inverse of to_dict).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.fill_empty" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fill_empty</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.fill_empty" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a FillEmptyWithValue step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.rename_columns" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">rename_columns</span><span class="p">(</span><span class="n">renamings</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.rename_columns" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a ColumnRenamer step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.delete_columns" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">delete_columns</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.delete_columns" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a ColumnDeleter step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.string_transform" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">string_transform</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.string_transform" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a StringTransformer step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.set_type" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_type</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">target_type</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.set_type" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a TypeSetter step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.parse_date" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">parse_date</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">formats</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.parse_date" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a DateParser step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.filter_on_value" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">filter_on_value</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">matching_mode</span><span class="o">=</span><span class="s1">&#39;EQUALS&#39;</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.filter_on_value" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a FilterOnValue step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.remove_rows_on_empty" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">remove_rows_on_empty</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">keep_empty</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.remove_rows_on_empty" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a RemoveRowsOnEmpty step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.remove_duplicates" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">remove_duplicates</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.remove_duplicates" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a RemoveDuplicates step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.create_column_grel" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_column_grel</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.create_column_grel" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a CreateColumnWithGREL step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.regexp_extract" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">regexp_extract</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">output_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.regexp_extract" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a RegexpExtractor step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.python_udf" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">python_udf</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">input_columns</span><span class="p">,</span> <span class="n">output_column</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.python_udf" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a PythonUDF step (fallback for complex operations).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.if_then_else" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">if_then_else</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">then_value</span><span class="p">,</span> <span class="n">else_value</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.if_then_else" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create an IfThenElse step for conditional value assignment.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.switch_case" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">switch_case</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">cases</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.switch_case" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a SwitchCase step for multi-branch conditional logic.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.translate_values" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">translate_values</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">translations</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.translate_values" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a TranslateValues step for value mapping/replacement.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.extract_with_jsonpath" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_with_jsonpath</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">json_path</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.extract_with_jsonpath" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create an ExtractWithJSONPath step for JSON data extraction.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.split_url" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">split_url</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">extract_components</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.split_url" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a SplitURL step for URL parsing.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.fold_multiple_columns" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fold_multiple_columns</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">var_name</span><span class="o">=</span><span class="s1">&#39;variable&#39;</span><span class="p">,</span> <span class="n">value_name</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.fold_multiple_columns" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a FoldMultipleColumns step (melt/unpivot).</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.transpose_rows_to_columns" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">transpose_rows_to_columns</span><span class="p">(</span><span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.transpose_rows_to_columns" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a TransposeRowsToColumns step.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.unfold" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">unfold</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.unfold" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create an Unfold step for exploding list-like columns.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.coalesce" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">coalesce</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.coalesce" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a Coalesce step to pick the first non-null value.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.fill_column" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fill_column</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">source_line</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.fill_column" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Create a FillColumn step to set an entire column to a constant.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="py2dataiku.models.prepare_step.PrepareStep.get_description" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_description</span><span class="p">()</span></code>
+
+<a href="#py2dataiku.models.prepare_step.PrepareStep.get_description" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Get a human-readable description of this step.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="exceptions">Exceptions<a class="headerlink" href="#exceptions" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="py2dataiku.exceptions" class="doc doc-heading">
+            <code>py2dataiku.exceptions</code>
+
+
+<a href="#py2dataiku.exceptions" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+        <p>Custom exception hierarchy for py2dataiku.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.Py2DataikuError" class="doc doc-heading">
+            <code>Py2DataikuError</code>
+
+
+<a href="#py2dataiku.exceptions.Py2DataikuError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="Exception">Exception</span></code></p>
+
+
+
+        <p>Base exception for all py2dataiku errors.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.ConversionError" class="doc doc-heading">
+            <code>ConversionError</code>
+
+
+<a href="#py2dataiku.exceptions.ConversionError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Py2DataikuError (py2dataiku.exceptions.Py2DataikuError)" href="#py2dataiku.exceptions.Py2DataikuError">Py2DataikuError</a></code></p>
+
+
+
+        <p>Error during code-to-flow conversion.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.ProviderError" class="doc doc-heading">
+            <code>ProviderError</code>
+
+
+<a href="#py2dataiku.exceptions.ProviderError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Py2DataikuError (py2dataiku.exceptions.Py2DataikuError)" href="#py2dataiku.exceptions.Py2DataikuError">Py2DataikuError</a></code></p>
+
+
+
+        <p>Error communicating with an LLM provider.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.LLMResponseParseError" class="doc doc-heading">
+            <code>LLMResponseParseError</code>
+
+
+<a href="#py2dataiku.exceptions.LLMResponseParseError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ProviderError (py2dataiku.exceptions.ProviderError)" href="#py2dataiku.exceptions.ProviderError">ProviderError</a></code></p>
+
+
+
+        <p>Error parsing the JSON response from an LLM provider.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.InvalidPythonCodeError" class="doc doc-heading">
+            <code>InvalidPythonCodeError</code>
+
+
+<a href="#py2dataiku.exceptions.InvalidPythonCodeError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="ConversionError (py2dataiku.exceptions.ConversionError)" href="#py2dataiku.exceptions.ConversionError">ConversionError</a></code></p>
+
+
+
+        <p>The provided Python code could not be parsed or analyzed.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.ValidationError" class="doc doc-heading">
+            <code>ValidationError</code>
+
+
+<a href="#py2dataiku.exceptions.ValidationError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Py2DataikuError (py2dataiku.exceptions.Py2DataikuError)" href="#py2dataiku.exceptions.Py2DataikuError">Py2DataikuError</a></code></p>
+
+
+
+        <p>Error during flow or recipe validation.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.ExportError" class="doc doc-heading">
+            <code>ExportError</code>
+
+
+<a href="#py2dataiku.exceptions.ExportError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Py2DataikuError (py2dataiku.exceptions.Py2DataikuError)" href="#py2dataiku.exceptions.Py2DataikuError">Py2DataikuError</a></code></p>
+
+
+
+        <p>Error during DSS project export.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="py2dataiku.exceptions.ConfigurationError" class="doc doc-heading">
+            <code>ConfigurationError</code>
+
+
+<a href="#py2dataiku.exceptions.ConfigurationError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Py2DataikuError (py2dataiku.exceptions.Py2DataikuError)" href="#py2dataiku.exceptions.Py2DataikuError">Py2DataikuError</a></code></p>
+
+
+
+        <p>Error in py2dataiku configuration.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/m-deane/py-iku" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
