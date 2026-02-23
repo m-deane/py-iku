@@ -95,7 +95,8 @@ class TestConvertFunction:
         assert len(input_ds) >= 1
 
     def test_convert_syntax_error_raises(self):
-        with pytest.raises(SyntaxError):
+        from py2dataiku.exceptions import InvalidPythonCodeError
+        with pytest.raises(InvalidPythonCodeError):
             convert("import pandas as pd\ndf = pd.read_csv('test.csv'")
 
 

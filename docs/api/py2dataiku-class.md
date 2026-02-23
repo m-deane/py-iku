@@ -120,7 +120,7 @@ def visualize(self, flow: DataikuFlow, format: str = "svg", **kwargs) -> str
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `flow` | `DataikuFlow` | *required* | Flow to visualize |
-| `format` | `str` | `"svg"` | `"svg"`, `"html"`, `"ascii"`, `"plantuml"`, `"mermaid"` |
+| `format` | `str` | `"svg"` | `"svg"`, `"html"`, `"ascii"`, `"plantuml"`, `"mermaid"`, `"interactive"` |
 
 **Returns:** `str` - Visualization in the specified format
 

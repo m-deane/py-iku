@@ -777,7 +777,8 @@ class PrepareStep:
                 return f"Remove duplicates on columns: {', '.join(cols)}"
             return "Remove duplicate rows"
         elif self.processor_type == ProcessorType.REMOVE_ROWS_ON_EMPTY:
-            cols = ", ".join(params.get("columns", []))
+            cols_list = params.get("columns") or []
+            cols = ", ".join(cols_list) if cols_list else "all columns"
             return f"Remove rows with empty values in: {cols}"
         else:
             return f"{ptype}: {params}"

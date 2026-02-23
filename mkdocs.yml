@@ -68,6 +68,7 @@ nav:
   - Getting Started:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
+  - Notebooks & Examples: notebooks.md
   - API Reference:
     - Overview: api/index.md
     - Core Functions: api/core-functions.md

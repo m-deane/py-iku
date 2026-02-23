@@ -3,6 +3,7 @@
 import ast
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from py2dataiku.exceptions import InvalidPythonCodeError
 from py2dataiku.mappings.pandas_mappings import PandasMapper
 from py2dataiku.models.transformation import Transformation, TransformationType
 from py2dataiku.plugins.registry import PluginRegistry, PluginContext
@@ -91,8 +92,8 @@ class CodeAnalyzer:
             tree = ast.parse(code)
             self._visit_module(tree)
         except SyntaxError as e:
-            # Re-raise syntax errors so callers know about invalid input
-            raise SyntaxError(
+            # Raise InvalidPythonCodeError so callers can catch it
+            raise InvalidPythonCodeError(
                 f"Invalid Python syntax at line {e.lineno}: {e.msg}"
             ) from e
 

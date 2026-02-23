@@ -141,6 +141,10 @@ converter.save_visualization(flow, "output.png")  # Requires cairosvg
 # Trace a column through the flow
 lineage = flow.get_column_lineage("amount")
 print(lineage)
+
+# Trace from a specific dataset
+lineage = flow.get_column_lineage("amount", dataset="output_data")
+print(lineage)
 ```
 
 ## DAG Analysis

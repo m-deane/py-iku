@@ -14,6 +14,7 @@ Visualization formats:
 - ASCII: Terminal-friendly text art
 - PlantUML: Documentation-ready diagrams
 - Mermaid: GitHub/Notion compatible
+- Interactive: Enhanced HTML with pan/zoom, search, and export
 """
 
 try:

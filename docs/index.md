@@ -46,7 +46,7 @@ py-iku analyzes your Python code (pandas, numpy, scikit-learn) and generates equ
 
 - **37 recipe types** - Visual, code, ML, and plugin recipes
 - **122 processor types** - Complete Dataiku Prepare recipe processor coverage
-- **5 visualization formats** - SVG, HTML, ASCII, Mermaid, PlantUML
+- **6 visualization formats** - SVG, HTML, ASCII, Mermaid, PlantUML, Interactive
 - **Round-trip serialization** - JSON, YAML, and dict export/import
 - **DAG analysis** - Topological sort, cycle detection, column lineage
 - **DSS project export** - Generate Dataiku-importable project bundles

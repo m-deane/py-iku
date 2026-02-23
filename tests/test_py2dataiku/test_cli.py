@@ -185,9 +185,10 @@ result = df.groupby('category').agg({'amount': 'sum'})
 
     def test_syntax_error_raises(self):
         """Test that syntax errors are propagated."""
+        from py2dataiku.exceptions import InvalidPythonCodeError
         code = "def broken("  # Invalid syntax
 
-        with pytest.raises(SyntaxError):
+        with pytest.raises(InvalidPythonCodeError):
             convert_code(code, use_llm=False)
 
     def test_optimize_disabled(self):

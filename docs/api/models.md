@@ -55,18 +55,20 @@ flow.get_recipes_by_type(RecipeType.JOIN)   # Get all JOIN recipes -> List[Datai
 ```python
 flow.validate()                    # Validate structure -> Dict[str, Any]
 flow.get_summary()                 # Text summary -> str
-flow.get_column_lineage("col")     # Trace column lineage -> ColumnLineage
+flow.get_column_lineage("col")              # Trace column lineage -> ColumnLineage
+flow.get_column_lineage("col", "dataset")  # Trace from a specific dataset
 flow.get_recommendations()         # Get recommendations -> List[FlowRecommendation]
 ```
 
 ### Visualization
 
 ```python
-flow.visualize(format="svg")       # SVG (pixel-accurate Dataiku styling)
-flow.visualize(format="html")      # Interactive canvas
-flow.visualize(format="ascii")     # Terminal-friendly
-flow.visualize(format="plantuml")  # Documentation-ready
-flow.visualize(format="mermaid")   # GitHub/Notion compatible
+flow.visualize(format="svg")         # SVG (pixel-accurate Dataiku styling)
+flow.visualize(format="html")        # Interactive canvas
+flow.visualize(format="ascii")       # Terminal-friendly
+flow.visualize(format="plantuml")    # Documentation-ready
+flow.visualize(format="mermaid")     # GitHub/Notion compatible
+flow.visualize(format="interactive") # Enhanced HTML with pan/zoom and search
 
 flow.to_svg("output.svg")         # Save SVG to file
 flow.to_html("output.html")       # Save HTML to file

@@ -297,12 +297,13 @@ df = df.sort_values(by=['col1'])
     def test_syntax_error_handling(self):
         """Test handling of syntax errors."""
         import pytest
+        from py2dataiku.exceptions import InvalidPythonCodeError
 
         code = "import pandas as pd\ndf = pd.read_csv('test.csv'"  # Missing closing paren
         analyzer = CodeAnalyzer()
 
-        # Should raise SyntaxError for invalid Python code
-        with pytest.raises(SyntaxError):
+        # Should raise InvalidPythonCodeError for invalid Python code
+        with pytest.raises(InvalidPythonCodeError):
             analyzer.analyze(code)
 
 

@@ -192,6 +192,7 @@ flow.visualize(format="html")
 flow.visualize(format="ascii")
 flow.visualize(format="plantuml")
 flow.visualize(format="mermaid")
+flow.visualize(format="interactive")
 
 # File output
 flow.to_svg("output.svg")
