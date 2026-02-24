@@ -2,13 +2,13 @@
 
 Interactive Jupyter notebooks demonstrating py-iku from beginner to expert level. Each notebook builds on the previous one and uses real library imports with executable code. The notebooks include use-case demos and feature showcases for recently added capabilities.
 
-All notebooks are in the [`notebooks/examples/`](https://github.com/m-deane/py-iku/tree/main/notebooks/examples) directory.
+All notebooks are in the [`notebooks/`](https://github.com/m-deane/py-iku/tree/main/notebooks) directory.
 
 ---
 
 ## 01 - Beginner: Getting Started
 
-**File:** [`notebooks/examples/01_beginner.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/examples/01_beginner.ipynb)
+**File:** [`notebooks/01_beginner.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/01_beginner.ipynb)
 
 Introduces the fundamentals of py-iku:
 
@@ -26,7 +26,7 @@ Introduces the fundamentals of py-iku:
 
 ## 02 - Intermediate: Recipe Types & Visualizations
 
-**File:** [`notebooks/examples/02_intermediate.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/examples/02_intermediate.ipynb)
+**File:** [`notebooks/02_intermediate.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/02_intermediate.ipynb)
 
 Explores recipe types and all visualization formats:
 
@@ -42,9 +42,42 @@ Explores recipe types and all visualization formats:
 
 ---
 
+## NumPy Operations
+
+**File:** [`notebooks/02_numpy_operations.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/02_numpy_operations.ipynb)
+
+Dedicated deep-dive on NumPy support:
+
+- Mathematical transformations: `np.log`, `np.exp`, `np.sqrt`, `np.power`, `np.abs`
+- Rounding and clipping: `np.round`, `np.floor`, `np.ceil`, `np.clip`
+- Conditional operations: `np.where`, `np.isnan`, `np.isfinite`, `np.nan_to_num`
+- Aggregation functions: `np.sum`, `np.mean`, `np.std`, `np.percentile`
+- Array operations: `np.concatenate`, `np.vstack`, `np.sort`, `np.unique`
+- Feature engineering pipeline combining NumPy and pandas
+- Complete supported NumPy functions reference (30+ functions)
+
+---
+
+## Scikit-learn Pipelines
+
+**File:** [`notebooks/03_sklearn_pipelines.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/03_sklearn_pipelines.ipynb)
+
+Demonstrates scikit-learn ML pipeline conversion:
+
+- Data scaling: `StandardScaler`, `MinMaxScaler`, `RobustScaler`
+- Categorical encoding: `LabelEncoder`, `OneHotEncoder`, `OrdinalEncoder`
+- Missing value imputation: `SimpleImputer`, `KNNImputer`
+- Train-test split: `train_test_split` to Dataiku Split recipe
+- Feature selection: `PCA`, `TruncatedSVD`, `SelectKBest`
+- Complete ML pipeline combining multiple sklearn components
+- sklearn Pipeline object recognition
+- sklearn-to-Dataiku mapping reference table
+
+---
+
 ## 03 - Advanced: Processors, DAG Analysis & Flow Optimization
 
-**File:** [`notebooks/examples/03_advanced.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/examples/03_advanced.ipynb)
+**File:** [`notebooks/03_advanced.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/03_advanced.ipynb)
 
 Covers advanced analysis and optimization features:
 
@@ -62,7 +95,7 @@ Covers advanced analysis and optimization features:
 
 ## 04 - Expert: LLM Analysis, DSS Export & Configuration
 
-**File:** [`notebooks/examples/04_expert.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/examples/04_expert.ipynb)
+**File:** [`notebooks/04_expert.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/04_expert.ipynb)
 
 Demonstrates LLM-based analysis and project export:
 
@@ -80,7 +113,7 @@ Demonstrates LLM-based analysis and project export:
 
 ## 05 - Master: Extensibility, Scenarios, MLOps & Pipelines
 
-**File:** [`notebooks/examples/05_master.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/examples/05_master.ipynb)
+**File:** [`notebooks/05_master.ipynb`](https://github.com/m-deane/py-iku/blob/main/notebooks/05_master.ipynb)
 
 The comprehensive master class covering all advanced features:
 

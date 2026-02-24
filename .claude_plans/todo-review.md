@@ -17,7 +17,7 @@ This document reviews TODO items 2-6 (item 1 is done) against the original use c
 ### a) Current State Assessment
 
 **What exists:**
-- 5 Jupyter notebooks in `notebooks/examples/`:
+- 5 Jupyter notebooks in `notebooks/`:
   - `01_beginner.ipynb` -- 32 code cells, 59 total cells
   - `02_intermediate.ipynb` -- 55 code cells, 89 total cells
   - `03_advanced.ipynb` -- 40 code cells, 51 total cells
@@ -149,10 +149,10 @@ This document reviews TODO items 2-6 (item 1 is done) against the original use c
 ### d) Scope & Deliverables
 
 **Files to modify:**
-- `notebooks/examples/01_beginner.ipynb` -- add 1-2 SVG visualization cells
-- `notebooks/examples/03_advanced.ipynb` -- add 4-6 visualization cells (processor results, optimization before/after, DAG graph)
-- `notebooks/examples/04_expert.ipynb` -- add 3-4 visualization cells (LLM flow diagrams, DSS export flow, rule vs LLM comparison)
-- `notebooks/examples/05_master.ipynb` -- add 3-4 visualization cells (production flow in multiple formats, zone-colored diagrams)
+- `notebooks/01_beginner.ipynb` -- add 1-2 SVG visualization cells
+- `notebooks/03_advanced.ipynb` -- add 4-6 visualization cells (processor results, optimization before/after, DAG graph)
+- `notebooks/04_expert.ipynb` -- add 3-4 visualization cells (LLM flow diagrams, DSS export flow, rule vs LLM comparison)
+- `notebooks/05_master.ipynb` -- add 3-4 visualization cells (production flow in multiple formats, zone-colored diagrams)
 
 **Specific visualizations to add:**
 

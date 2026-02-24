@@ -5,7 +5,7 @@ import pytest
 
 
 NOTEBOOKS_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "notebooks", "examples"
+    os.path.dirname(__file__), "..", "..", "notebooks"
 )
 
 # Patterns that indicate Jupyter-only features that should be skipped
