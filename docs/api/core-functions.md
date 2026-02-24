@@ -47,8 +47,9 @@ print(flow.get_summary())
 ```
 
 **Notes:**
-- This is the legacy method using AST pattern matching
+- This is the rule-based method using AST pattern matching
 - Fast and deterministic but less accurate for complex code
+- When `optimize=True` (the default), the `FlowOptimizer` merges consecutive Prepare recipes, removes orphan intermediate datasets, and reorders steps
 - For better results with complex pipelines, use [`convert_with_llm()`](#convert_with_llm)
 
 ---

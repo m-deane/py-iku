@@ -224,6 +224,25 @@ recipe.to_json()                                         # Alias for to_api_dict
 DataikuRecipe.from_dict(data)                            # Classmethod
 ```
 
+### to_api_dict() Format
+
+The `to_api_dict()` method produces output compatible with the Dataiku DSS API:
+
+- **Recipe type mapping**: PREPARE becomes `"shaker"`, STACK becomes `"vstack"`. Other types use their standard API name.
+- **Nested I/O structure**: Inputs and outputs use the `{"main": {"items": [{"ref": "name", "deps": []}]}}` format expected by the DSS API.
+- **Settings under `"params"`**: Recipe-specific settings are placed under a `"params"` key (not `"settings"`).
+
+```python
+api_dict = recipe.to_api_dict()
+# {
+#     "type": "shaker",              # DSS type name
+#     "name": "prepare_1",
+#     "inputs": {"main": {"items": [{"ref": "raw_data", "deps": []}]}},
+#     "outputs": {"main": {"items": [{"ref": "cleaned", "deps": []}]}},
+#     "params": {"mode": "NORMAL", "steps": [...]}
+# }
+```
+
 ---
 
 ## DataikuDataset

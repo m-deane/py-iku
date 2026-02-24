@@ -1,6 +1,6 @@
 # Notebooks & Examples
 
-Interactive Jupyter notebooks demonstrating py-iku from beginner to expert level. Each notebook builds on the previous one and uses real library imports with executable code.
+Interactive Jupyter notebooks demonstrating py-iku from beginner to expert level. Each notebook builds on the previous one and uses real library imports with executable code. The notebooks include use-case demos and feature showcases for recently added capabilities.
 
 All notebooks are in the [`notebooks/examples/`](https://github.com/m-deane/py-iku/tree/main/notebooks/examples) directory.
 
@@ -20,6 +20,7 @@ Introduces the fundamentals of py-iku:
 - Serialization round-trips (`to_dict`/`from_dict`, `to_json`/`from_json`)
 - Converting from `.py` files with `convert_file()`
 - Practical examples: `read_csv`, `dropna`, `sort_values`, `groupby`, `drop_duplicates`, `rename`
+- Use-case demos showing end-to-end conversion of common pandas pipelines
 
 ---
 
@@ -30,13 +31,14 @@ Introduces the fundamentals of py-iku:
 Explores recipe types and all visualization formats:
 
 - The `RecipeType` enum (all 37 types)
-- Pandas-to-recipe mappings: PREPARE, GROUPING, JOIN, STACK, SORT, DISTINCT, TOP_N, WINDOW, PIVOT, SPLIT, SAMPLING
+- Pandas-to-recipe mappings: PREPARE, GROUPING, JOIN, STACK, SORT, DISTINCT, TOP_N, WINDOW, PIVOT, SPLIT, SAMPLING, MELT
 - `DataikuRecipe` attributes and factory methods (`create_grouping`, `create_join`, etc.)
-- Recipe settings classes (`GroupingSettings`, `JoinSettings`, `WindowSettings`, etc.)
+- Recipe settings classes (`GroupingSettings`, `JoinSettings`, `WindowSettings`, `PivotSettings`, etc.)
 - All 6 visualization formats: SVG, ASCII, HTML, Mermaid, PlantUML, Interactive
 - Theme support: `DATAIKU_LIGHT`, `DATAIKU_DARK`, and custom themes
 - Jupyter inline display with `_repr_svg_()`
 - YAML serialization round-trips
+- Feature showcases for WINDOW, PIVOT, TOP_N, and SAMPLING recipe generation
 
 ---
 
@@ -50,9 +52,11 @@ Covers advanced analysis and optimization features:
 - Building `PrepareStep` instances for 17+ processor types
 - `PrepareSettings` for composing multi-step Prepare recipes
 - `FlowGraph` DAG analysis: topological sort, cycle detection, path finding, disconnected subgraphs
-- `FlowOptimizer`: merging consecutive Prepare recipes, removing orphan datasets
+- `FlowOptimizer`: merging consecutive Prepare recipes, removing orphan datasets, step reordering
+- `convert(optimize=True)` demonstration showing before/after recipe counts
 - Flow validation with `flow.validate()`
 - Column lineage tracing with `flow.get_column_lineage()`
+- `to_api_dict()` output format showcasing Dataiku API-compatible payloads
 
 ---
 

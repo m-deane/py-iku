@@ -44,10 +44,12 @@ py-iku analyzes your Python code (pandas, numpy, scikit-learn) and generates equ
 
 ## Features
 
-- **37 recipe types** - Visual, code, ML, and plugin recipes
+- **37 recipe types** - Visual, code, ML, and plugin recipes with working generators for PREPARE, GROUPING, JOIN, STACK, SORT, DISTINCT, WINDOW, TOP_N, PIVOT, SAMPLING, SPLIT, and MELT
 - **122 processor types** - Complete Dataiku Prepare recipe processor coverage
 - **6 visualization formats** - SVG, HTML, ASCII, Mermaid, PlantUML, Interactive
 - **Round-trip serialization** - JSON, YAML, and dict export/import
+- **Dataiku API-compatible output** - `to_api_dict()` produces valid DSS API payloads with correct types, nested I/O, and params
+- **Flow optimization** - `convert(optimize=True)` merges consecutive Prepare recipes, removes orphan datasets, and reorders steps
 - **DAG analysis** - Topological sort, cycle detection, column lineage
 - **DSS project export** - Generate Dataiku-importable project bundles
 - **Plugin system** - Extend with custom recipe/processor handlers

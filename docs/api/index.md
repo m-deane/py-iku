@@ -1,6 +1,6 @@
 # py-iku API Reference
 
-API documentation for **py-iku** v0.3.0 - Convert Python data processing code to Dataiku DSS recipes and flows.
+API documentation for **py-iku** - Convert Python data processing code to Dataiku DSS recipes and flows.
 
 ## Modules
 

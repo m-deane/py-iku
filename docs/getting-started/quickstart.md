@@ -70,6 +70,19 @@ result = flow.validate()
 print(result)
 ```
 
+## Flow Optimization
+
+The `optimize=True` flag (the default) merges consecutive Prepare recipes, removes orphan intermediate datasets, and reorders steps for efficiency.
+
+```python
+# Optimization is on by default
+flow = convert(code, optimize=True)
+
+# Check what the optimizer did
+for note in flow.optimization_notes:
+    print(note)
+```
+
 ## Export
 
 ```python
@@ -86,6 +99,24 @@ flow2 = DataikuFlow.from_json(json_str)
 # DSS project bundle
 from py2dataiku import export_to_dss
 export_to_dss(flow, "output/my_project", create_zip=True)
+```
+
+## Dataiku API Output
+
+Generate payloads compatible with the Dataiku DSS API.
+
+```python
+# Per-recipe API dicts
+for recipe in flow.recipes:
+    api_dict = recipe.to_api_dict()
+    print(api_dict)
+    # Output uses DSS conventions:
+    #   - type "shaker" for PREPARE recipes, "vstack" for STACK
+    #   - Nested I/O: {"main": {"items": [{"ref": "dataset_name", "deps": []}]}}
+    #   - Settings under "params" key
+
+# All recipes at once
+configs = flow.to_recipe_configs()
 ```
 
 ## Use LLM for Better Results

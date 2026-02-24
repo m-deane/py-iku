@@ -15,7 +15,7 @@ Targets Dataiku DSS 14 with 37 recipe types, 122 processor types, and 122 proces
 
 ### Running Tests
 ```bash
-# All tests (1693 tests)
+# All tests (1807 tests)
 python -m pytest tests/ -v
 
 # Single test file
@@ -178,14 +178,17 @@ registry.register_recipe_handler("custom", handler_fn)
 
 **Recipes:**
 - `df.groupby().agg()` → GROUPING
-- `pd.merge()` / `df.merge()` → JOIN
+- `pd.merge()` / `df.merge()` / `df.join()` → JOIN
 - `pd.concat()` → STACK
 - `df.drop_duplicates()` → DISTINCT
 - `df.sort_values()` → SORT
 - `df.pivot()` / `df.pivot_table()` → PIVOT
-- `df.rolling()` / `df.cumsum()` → WINDOW
+- `df.rolling()` / `df.cumsum()` / `df.expanding()` → WINDOW
 - `df.nlargest()` / `df.nsmallest()` → TOP_N
+- `df.head()` / `df.tail()` / `df.sample()` → SAMPLING
+- `pd.melt()` / `df.melt()` → PREPARE with FOLD_MULTIPLE_COLUMNS
 - `df[condition]` → SPLIT or FILTER processor
+- `df.round()` / `df.abs()` / `df.clip()` → PREPARE with NUMERIC_TRANSFORM processors
 - Other transformations → PREPARE recipe with processors
 
 **Processors (selected):**

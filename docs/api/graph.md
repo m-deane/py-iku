@@ -60,7 +60,7 @@ order = graph.topological_sort()
 
 #### Cycle Detection
 
-Finds all cycles in the graph using DFS.
+Finds all cycles in the graph using DFS. The FlowGenerator includes safeguards to prevent DAG cycles during generation (e.g., when a filter reassigns to the same variable, the output dataset name is automatically suffixed to avoid a self-loop).
 
 ```python
 cycles = graph.detect_cycles()

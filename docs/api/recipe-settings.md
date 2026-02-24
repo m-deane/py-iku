@@ -102,15 +102,16 @@ Settings for WINDOW recipes (window functions).
 
 ## PivotSettings
 
-Settings for PIVOT recipes.
+Settings for PIVOT recipes. Used by the FlowGenerator when converting `df.pivot()` or `df.pivot_table()` calls.
 
 ### Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `row_keys` | `List[str]` | `[]` | Row identifier columns |
-| `column_key` | `Optional[str]` | `None` | Column to pivot on |
-| `aggregations` | `List[Dict[str, Any]]` | `[]` | Value aggregations |
+| `row_columns` | `List[str]` | `[]` | Row identifier columns (the pivot index) |
+| `column_column` | `str` | `""` | Column to pivot on |
+| `value_column` | `str` | `""` | Column containing values |
+| `aggregation` | `str` | `"SUM"` | Aggregation function for values |
 
 ---
 
