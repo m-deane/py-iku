@@ -136,6 +136,14 @@ from py2dataiku.exporters import (
     export_to_dss,
 )
 
+# Integrations
+from py2dataiku.integrations import (
+    DSSFlowDeployer,
+    DeploymentResult,
+    generate_mcp_tool_calls,
+    format_mcp_script,
+)
+
 # Exceptions
 from py2dataiku.exceptions import (
     Py2DataikuError,
@@ -235,6 +243,11 @@ __all__ = [
     "DSSExporter",
     "DSSProjectConfig",
     "export_to_dss",
+    # Integrations
+    "DSSFlowDeployer",
+    "DeploymentResult",
+    "generate_mcp_tool_calls",
+    "format_mcp_script",
     # Exceptions
     "Py2DataikuError",
     "ConversionError",

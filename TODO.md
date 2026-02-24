@@ -1,6 +1,6 @@
 1. example notebooks for each feature - DONE
-2. test example notebooks
+2. test example notebooks - DONE - CHECK
+4. update docs - DONE - CHECK
+5. integrate with dataiku-mcp factory - DONE - CHECK
+6. review library against use case - DONE - CHECK
 3. add more visualisations and flow diagrams to notebooks
-4. update docs
-5. integrate with dataiku-mcp factory
-6. review library against use case

@@ -52,6 +52,7 @@ py-iku analyzes your Python code (pandas, numpy, scikit-learn) and generates equ
 - **Flow optimization** - `convert(optimize=True)` merges consecutive Prepare recipes, removes orphan datasets, and reorders steps
 - **DAG analysis** - Topological sort, cycle detection, column lineage
 - **DSS project export** - Generate Dataiku-importable project bundles
+- **DSS integration** - Deploy flows directly via the dataikuapi client or generate MCP tool calls for AI-assisted deployment
 - **Plugin system** - Extend with custom recipe/processor handlers
 - **Scenario & metrics** - Automation triggers, data quality checks
 

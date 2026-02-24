@@ -13,6 +13,7 @@ API documentation for **py-iku** - Convert Python data processing code to Dataik
 | [LLM Providers](llm-providers.md) | LLM integration: `AnthropicProvider`, `OpenAIProvider`, `LLMCodeAnalyzer` |
 | [Visualizers](visualizers.md) | Visualization engines: SVG, HTML, ASCII, Mermaid, PlantUML |
 | [Exporters](exporters.md) | DSS project export: `DSSExporter`, `DSSProjectConfig` |
+| [DSS Integration](integration.md) | Live deployment: `DSSFlowDeployer`, MCP tool calls, `DeploymentResult` |
 | [Plugin System](plugins.md) | Extension system: `PluginRegistry`, decorators, custom handlers |
 | [Configuration](configuration.md) | Config system: `Py2DataikuConfig`, file discovery, environment variables |
 | [Exceptions](exceptions.md) | Exception hierarchy: `Py2DataikuError` and subclasses |
@@ -77,6 +78,10 @@ py2dataiku
 │   └── PlantUMLVisualizer       # Documentation
 ├── exporters
 │   └── DSSExporter              # DSS project export
+├── integrations
+│   ├── DSSFlowDeployer          # Live DSS deployment
+│   ├── DeploymentResult         # Deployment summary
+│   └── generate_mcp_tool_calls  # MCP tool payloads
 ├── plugins
 │   └── PluginRegistry           # Extension system
 ├── config

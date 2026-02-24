@@ -12,6 +12,23 @@ from typing import Any, Dict, List, Optional
 from py2dataiku.models.prepare_step import PrepareStep
 
 
+def _default_engine_params() -> Dict[str, Any]:
+    """Return the default DSS engine parameters shared across recipe types."""
+    return {
+        "hive": {
+            "skipPrerunValidate": False,
+            "hiveconf": [],
+            "inheritConf": "default",
+        },
+        "sqlPipelineParams": {
+            "pipelineAllowMerge": True,
+            "pipelineAllowStart": True,
+        },
+        "impala": {"forceStreamMode": True},
+        "spark": {"inheritConf": "default", "sparkConf": []},
+    }
+
+
 class RecipeSettings(ABC):
     """Base class for recipe-specific settings."""
 
@@ -23,6 +40,23 @@ class RecipeSettings(ABC):
     @abstractmethod
     def to_display_dict(self) -> Dict[str, Any]:
         """Convert settings to a human-readable dictionary for to_dict() output."""
+        ...
+
+    @abstractmethod
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        """Convert settings to a dict suitable for the DSS recipe builder API.
+
+        The returned dict can be used to update recipe settings obtained from
+        ``recipe.get_settings()`` when using the dataikuapi builder pattern::
+
+            builder = project.new_recipe("shaker")
+            builder.with_input("dataset_in")
+            builder.with_output("dataset_out")
+            recipe = builder.create()
+            settings = recipe.get_settings()
+            settings.update(recipe_settings.to_dss_builder_args())
+            settings.save()
+        """
         ...
 
 
@@ -45,6 +79,40 @@ class PrepareSettings(RecipeSettings):
             "step_count": len(self.steps),
         }
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        steps = []
+        for step in self.steps:
+            step_config = {
+                "metaType": step.meta_type,
+                "type": step.processor_type.value if hasattr(step.processor_type, 'value') else str(step.processor_type),
+                "disabled": step.disabled,
+                "params": step.params,
+            }
+            steps.append(step_config)
+
+        engine_params = _default_engine_params()
+        engine_params["hive"]["addDkuUdf"] = False
+        engine_params["hive"]["executionEngine"] = "HIVESERVER2"
+        engine_params["spark"]["sparkConf"] = []
+        engine_params["dkuHadoop"] = {"inheritConf": "default"}
+
+        return {
+            "mode": "BATCH",
+            "steps": steps,
+            "maxJobsPerCategory": {
+                "PREPARE_FILTERING": 1,
+                "PREPARE_PARSING": 1,
+                "PREPARE_OTHERS": 1,
+                "PREPARE_MERGE_COLUMNS": 1,
+                "PREPARE_RESHAPING": 1,
+                "PREPARE_EXPLODE": 1,
+            },
+            "engineParams": engine_params,
+            "columnsSelection": {"mode": "ALL"},
+            "virtualInputs": [],
+            "filterExpression": {},
+        }
+
 
 @dataclass
 class GroupingSettings(RecipeSettings):
@@ -65,6 +133,25 @@ class GroupingSettings(RecipeSettings):
         return {
             "keys": self.keys,
             "aggregations": [a.to_dict() for a in self.aggregations],
+        }
+
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "engineParams": _default_engine_params(),
+            "keys": [{"column": k, "type": "string"} for k in self.keys],
+            "values": [
+                {
+                    "column": a.column,
+                    "type": "string",
+                    "$idx": i,
+                    "function": a.function.upper(),
+                }
+                for i, a in enumerate(self.aggregations)
+            ],
+            "globalCount": self.global_count,
+            "preFilter": {},
+            "postFilter": {},
+            "computedColumns": [],
         }
 
 
@@ -94,6 +181,35 @@ class JoinSettings(RecipeSettings):
             result["selected_columns"] = self.selected_columns
         return result
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        num_inputs = max(len(self.join_keys) + 1, 2) if self.join_keys else 2
+        joins = []
+        if self.join_keys:
+            joins.append({
+                "table1": 0,
+                "table2": 1,
+                "conditionsMode": "AND",
+                "type": self.join_type,
+                "on": [k.to_dict() for k in self.join_keys],
+                "outerJoinOnTheLeft": True,
+            })
+        result: Dict[str, Any] = {
+            "mode": self.join_type,
+            "engineParams": _default_engine_params(),
+            "virtualInputs": [
+                {"index": i, "computedColumns": [], "originLabel": f"input_{i}"}
+                for i in range(num_inputs)
+            ],
+            "joins": joins,
+            "preFilter": {},
+            "postFilter": {},
+            "enableAutoCastInJoinConditions": False,
+            "computedColumns": [],
+            "selectedColumns": self.selected_columns if self.selected_columns else [],
+            "outputColumnsSelectionMode": "MANUAL",
+        }
+        return result
+
 
 @dataclass
 class WindowSettings(RecipeSettings):
@@ -119,6 +235,19 @@ class WindowSettings(RecipeSettings):
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        processed_aggs = []
+        for agg in self.aggregations:
+            entry = dict(agg)
+            if "type" in entry and hasattr(entry["type"], "value"):
+                entry["type"] = entry["type"].value
+            processed_aggs.append(entry)
+        return {
+            "partitionColumns": [{"column": c} for c in self.partition_columns],
+            "orderColumns": [{"column": c} for c in self.order_columns],
+            "aggregations": processed_aggs,
+        }
+
 
 @dataclass
 class SamplingSettings(RecipeSettings):
@@ -138,6 +267,14 @@ class SamplingSettings(RecipeSettings):
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "samplingMethod": self.sampling_method,
+        }
+        if self.sample_size is not None:
+            result["sampleSize"] = self.sample_size
+        return result
+
 
 @dataclass
 class SplitSettings(RecipeSettings):
@@ -155,6 +292,12 @@ class SplitSettings(RecipeSettings):
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "splitMode": self.split_mode,
+            "condition": self.condition,
+        }
+
 
 @dataclass
 class SortSettings(RecipeSettings):
@@ -169,6 +312,20 @@ class SortSettings(RecipeSettings):
 
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
+
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "engineParams": _default_engine_params(),
+            "orders": [
+                {
+                    "column": sc.get("column", ""),
+                    "desc": sc.get("order", "asc").lower() == "desc",
+                }
+                for sc in self.sort_columns
+            ],
+            "preFilter": {},
+            "computedColumns": [],
+        }
 
 
 @dataclass
@@ -187,6 +344,12 @@ class TopNSettings(RecipeSettings):
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "topN": self.top_n,
+            "rankingColumn": self.ranking_column,
+        }
+
 
 @dataclass
 class DistinctSettings(RecipeSettings):
@@ -201,6 +364,15 @@ class DistinctSettings(RecipeSettings):
 
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
+
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "engineParams": _default_engine_params(),
+            "columns": [],
+            "preFilter": {},
+            "computedColumns": [],
+            "postFilter": {},
+        }
 
 
 @dataclass
@@ -217,6 +389,11 @@ class StackSettings(RecipeSettings):
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
 
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "mode": self.mode,
+        }
+
 
 @dataclass
 class PythonSettings(RecipeSettings):
@@ -231,6 +408,16 @@ class PythonSettings(RecipeSettings):
 
     def to_display_dict(self) -> Dict[str, Any]:
         return {"code": self.code}
+
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "code": self.code,
+            "envSelection": {"envMode": "INHERIT"},
+            "pythonParams": {
+                "pythonVersion": "python3",
+                "runAsUser": False,
+            },
+        }
 
 
 @dataclass
@@ -252,3 +439,11 @@ class PivotSettings(RecipeSettings):
 
     def to_display_dict(self) -> Dict[str, Any]:
         return self.to_dict()
+
+    def to_dss_builder_args(self) -> Dict[str, Any]:
+        return {
+            "rowColumns": self.row_columns,
+            "columnColumn": self.column_column,
+            "valueColumn": self.value_column,
+            "aggregation": self.aggregation,
+        }

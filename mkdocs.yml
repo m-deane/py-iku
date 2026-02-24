@@ -78,6 +78,7 @@ nav:
     - LLM Providers: api/llm-providers.md
     - Visualizers: api/visualizers.md
     - Exporters: api/exporters.md
+    - DSS Integration: api/integration.md
     - Plugin System: api/plugins.md
     - Configuration: api/configuration.md
     - Exceptions: api/exceptions.md
