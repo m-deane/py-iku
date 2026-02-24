@@ -481,7 +481,18 @@ class DataikuFlow:
         return json.dumps(self.to_dict(), indent=indent)
 
     def to_recipe_configs(self) -> List[Dict[str, Any]]:
-        """Get Dataiku API-compatible recipe configurations."""
+        """Get Dataiku API-compatible recipe configurations.
+
+        Returns recipe configs using the same DSS API format as
+        :class:`~py2dataiku.exporters.dss_exporter.DSSExporter`:
+
+        - Recipe type uses DSS names (e.g. ``"shaker"`` for PREPARE)
+        - Inputs/outputs use ``{"main": {"items": [{"ref": ..., "deps": []}]}}``
+        - Settings live under ``"params"``
+
+        For full project export (datasets, zones, project metadata), use
+        :class:`~py2dataiku.exporters.dss_exporter.DSSExporter` instead.
+        """
         return [r.to_json() for r in self.recipes]
 
     def get_summary(self) -> str:

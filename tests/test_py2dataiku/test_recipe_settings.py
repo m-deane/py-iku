@@ -60,8 +60,8 @@ class TestPrepareSettings:
             settings=PrepareSettings(steps=[step]),
         )
         api = recipe.to_api_dict()
-        assert api["settings"]["mode"] == "NORMAL"
-        assert len(api["settings"]["steps"]) == 1
+        assert api["params"]["mode"] == "NORMAL"
+        assert len(api["params"]["steps"]) == 1
 
 
 class TestGroupingSettings:
@@ -88,7 +88,7 @@ class TestGroupingSettings:
             ),
         )
         api = recipe.to_api_dict()
-        assert api["settings"]["keys"] == [{"column": "cat"}]
+        assert api["params"]["keys"] == [{"column": "cat"}]
 
 
 class TestJoinSettings:
@@ -190,9 +190,9 @@ class TestBackwardCompatibility:
             steps=[step],
         )
         api = legacy.to_api_dict()
-        assert "settings" in api
-        assert api["settings"]["mode"] == "NORMAL"
-        assert len(api["settings"]["steps"]) == 1
+        assert "params" in api
+        assert api["params"]["mode"] == "NORMAL"
+        assert len(api["params"]["steps"]) == 1
 
     def test_legacy_grouping(self):
         legacy = DataikuRecipe(
@@ -204,7 +204,7 @@ class TestBackwardCompatibility:
             aggregations=[Aggregation(column="val", function="SUM")],
         )
         api = legacy.to_api_dict()
-        assert api["settings"]["keys"] == [{"column": "cat"}]
+        assert api["params"]["keys"] == [{"column": "cat"}]
 
     def test_legacy_join(self):
         legacy = DataikuRecipe(
@@ -216,7 +216,7 @@ class TestBackwardCompatibility:
             join_keys=[JoinKey(left_column="id", right_column="id")],
         )
         api = legacy.to_api_dict()
-        assert api["settings"]["joinType"] == "LEFT"
+        assert api["params"]["joinType"] == "LEFT"
 
     def test_legacy_python(self):
         legacy = DataikuRecipe(
@@ -227,7 +227,7 @@ class TestBackwardCompatibility:
             code="df = dataiku.Dataset('in').get_dataframe()",
         )
         api = legacy.to_api_dict()
-        assert api["settings"]["code"] != ""
+        assert api["params"]["code"] != ""
 
     def test_settings_takes_precedence(self):
         """When both settings and flat fields are set, settings wins."""
@@ -243,7 +243,7 @@ class TestBackwardCompatibility:
         )
         api = recipe.to_api_dict()
         # settings has 1 step, flat has 0 - settings should win
-        assert len(api["settings"]["steps"]) == 1
+        assert len(api["params"]["steps"]) == 1
 
     def test_factory_methods_still_work(self):
         """Factory methods produce valid recipes."""

@@ -280,6 +280,36 @@ class CodeAnalyzer:
         if not chain:
             return
 
+        # C2: Detect groupby().agg() chain and extract aggregations
+        if len(chain) >= 2:
+            for i in range(len(chain) - 1):
+                if chain[i][0] == "groupby" and chain[i + 1][0] == "agg":
+                    groupby_call = chain[i][1]
+                    agg_call = chain[i + 1][1]
+
+                    # Extract groupby keys
+                    keys = []
+                    if groupby_call.args:
+                        keys = self._get_list_value(groupby_call.args[0])
+
+                    # Extract aggregations from .agg() dict argument
+                    aggregations = {}
+                    if agg_call.args and isinstance(agg_call.args[0], ast.Dict):
+                        aggregations = self._get_dict_value(agg_call.args[0])
+
+                    self.transformations.append(
+                        Transformation(
+                            transformation_type=TransformationType.GROUPBY,
+                            source_dataframe=base_df,
+                            target_dataframe=target,
+                            columns=keys,
+                            parameters={"keys": keys, "aggregations": aggregations},
+                            source_line=self.current_line,
+                            suggested_recipe="grouping",
+                        )
+                    )
+                    return
+
         # Process each method in the chain
         current_df = base_df
         for i, (method_name, call_node) in enumerate(chain):
@@ -528,11 +558,34 @@ class CodeAnalyzer:
             )
         )
 
+    def _extract_column_from_subscript(self, node: ast.expr) -> Optional[str]:
+        """Extract column name from a subscript like df['col'] or df['col'].str."""
+        current = node
+        # Walk through Attribute nodes (e.g., df['col'].str -> Attribute(.str, Subscript))
+        while isinstance(current, ast.Attribute):
+            current = current.value
+        if isinstance(current, ast.Subscript):
+            if isinstance(current.slice, ast.Constant) and isinstance(current.slice.value, str):
+                return current.slice.value
+        return None
+
     def _handle_dataframe_method(
         self, obj: ast.expr, method: str, node: ast.Call, target: str
     ) -> None:
         """Handle DataFrame method calls."""
         obj_name = self._get_name(obj)
+
+        # H1: Detect .str.method() accessor pattern
+        # AST for df['col'].str.upper(): Call(.upper) on Attribute(.str) on Subscript(df['col'])
+        if isinstance(obj, ast.Attribute) and obj.attr == "str":
+            column = self._extract_column_from_subscript(obj)
+            df_name = self._get_name(obj.value)
+            self._handle_str_method_call(df_name, column, method, node, target)
+            return
+
+        # H2: Extract column from subscript for column-specific methods
+        # AST for df['col'].fillna(0): Call(.fillna) on Subscript(df['col'])
+        column_from_subscript = self._extract_column_from_subscript(obj)
 
         # Check for method chains
         if isinstance(obj, ast.Attribute):
@@ -558,7 +611,11 @@ class CodeAnalyzer:
 
         handler = self._method_handlers.get(method)
         if handler:
-            handler(obj_name, node, target)
+            # H2: Pass column context for fillna/astype when called on subscript
+            if column_from_subscript and method in ("fillna", "astype"):
+                handler(obj_name, node, target, column=column_from_subscript)
+            else:
+                handler(obj_name, node, target)
         elif method in ("copy", "reset_index"):
             # Passthrough operations
             pass
@@ -575,7 +632,7 @@ class CodeAnalyzer:
                 )
             )
 
-    def _handle_fillna(self, df: str, node: ast.Call, target: str) -> None:
+    def _handle_fillna(self, df: str, node: ast.Call, target: str, column: Optional[str] = None) -> None:
         """Handle fillna() calls."""
         value = None
         if node.args:
@@ -583,13 +640,14 @@ class CodeAnalyzer:
             if isinstance(val_node, ast.Constant):
                 value = val_node.value
 
-        # Check for column-specific fillna in subscript context
+        columns = [column] if column else []
         self.transformations.append(
             Transformation(
                 transformation_type=TransformationType.FILL_NA,
                 source_dataframe=df,
                 target_dataframe=target,
-                parameters={"value": value},
+                columns=columns,
+                parameters={"value": value, "column": column or "unknown"},
                 source_line=self.current_line,
                 suggested_processor="FillEmptyWithValue",
             )
@@ -808,7 +866,7 @@ class CodeAnalyzer:
             )
         )
 
-    def _handle_astype(self, df: str, node: ast.Call, target: str) -> None:
+    def _handle_astype(self, df: str, node: ast.Call, target: str, column: Optional[str] = None) -> None:
         """Handle astype() calls."""
         dtype = None
         if node.args and isinstance(node.args[0], ast.Name):
@@ -816,12 +874,14 @@ class CodeAnalyzer:
         elif node.args and isinstance(node.args[0], ast.Constant):
             dtype = str(node.args[0].value)
 
+        columns = [column] if column else []
         self.transformations.append(
             Transformation(
                 transformation_type=TransformationType.TYPE_CAST,
                 source_dataframe=df,
                 target_dataframe=target,
-                parameters={"dtype": dtype},
+                columns=columns,
+                parameters={"dtype": dtype, "column": column or "unknown"},
                 source_line=self.current_line,
                 suggested_processor="TypeSetter",
             )
@@ -897,6 +957,96 @@ class CodeAnalyzer:
                 suggested_processor="StringTransformer",
             )
         )
+
+    def _handle_str_method_call(
+        self, df: str, column: Optional[str], method: str, node: ast.Call, target: str
+    ) -> None:
+        """Handle .str.method() calls with proper column and method detection (H1)."""
+        col = column or "unknown"
+
+        # Extract positional args as constants
+        args = []
+        for arg in node.args:
+            if isinstance(arg, ast.Constant):
+                args.append(arg.value)
+
+        # Map string methods to processor types and parameters
+        mode_enum = PandasMapper.STRING_MAPPINGS.get(method)
+        if mode_enum:
+            # Simple string transformations: upper, lower, strip, etc.
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.STRING_TRANSFORM,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col],
+                    parameters={"mode": mode_enum.value, "column": col},
+                    source_line=self.current_line,
+                    suggested_processor="StringTransformer",
+                )
+            )
+        elif method == "replace" and len(args) >= 2:
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.STRING_TRANSFORM,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col],
+                    parameters={"column": col, "find": str(args[0]), "replace": str(args[1])},
+                    source_line=self.current_line,
+                    suggested_processor="FindReplace",
+                )
+            )
+        elif method == "extract" and args:
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.STRING_TRANSFORM,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col],
+                    parameters={"column": col, "pattern": str(args[0])},
+                    source_line=self.current_line,
+                    suggested_processor="RegexpExtractor",
+                )
+            )
+        elif method == "split":
+            separator = str(args[0]) if args else ","
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.STRING_TRANSFORM,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col],
+                    parameters={"column": col, "separator": separator},
+                    source_line=self.current_line,
+                    suggested_processor="SplitColumn",
+                )
+            )
+        elif method == "contains" and args:
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.FILTER,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col],
+                    parameters={"column": col, "pattern": str(args[0]), "matchMode": "REGEX"},
+                    source_line=self.current_line,
+                    suggested_processor="FlagOnValue",
+                )
+            )
+        else:
+            # Fallback for unrecognized string methods
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.STRING_TRANSFORM,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col],
+                    parameters={"method": method, "column": col},
+                    source_line=self.current_line,
+                    suggested_processor="StringTransformer",
+                )
+            )
 
     def _handle_map(self, df: str, node: ast.Call, target: str) -> None:
         """Handle map() calls for value translation."""
@@ -1151,10 +1301,34 @@ class CodeAnalyzer:
         )
 
     def _handle_filter(self, node: ast.Subscript, target: str) -> None:
-        """Handle filtering operations like df[df['col'] > 0]."""
+        """Handle filtering/selection operations like df[condition] or df[['col1','col2']]."""
         df_name = self._get_name(node.value)
-        condition = ast.unparse(node.slice) if hasattr(ast, "unparse") else "condition"
+        slice_node = node.slice
 
+        # H3: Detect column selection df[['col1', 'col2']] vs row filtering df[condition]
+        if isinstance(slice_node, ast.List):
+            # Check if all elements are string constants -> column selection
+            all_string_constants = all(
+                isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                for elt in slice_node.elts
+            )
+            if all_string_constants:
+                columns = [elt.value for elt in slice_node.elts]
+                self.transformations.append(
+                    Transformation(
+                        transformation_type=TransformationType.COLUMN_SELECT,
+                        source_dataframe=df_name,
+                        target_dataframe=target,
+                        columns=columns,
+                        parameters={"columns": columns},
+                        source_line=self.current_line,
+                        suggested_processor="ColumnsSelector",
+                    )
+                )
+                return
+
+        # Row filtering (boolean condition)
+        condition = ast.unparse(node.slice) if hasattr(ast, "unparse") else "condition"
         self.transformations.append(
             Transformation.filter_rows(df_name, target, condition, self.current_line)
         )

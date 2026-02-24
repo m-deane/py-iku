@@ -379,18 +379,41 @@ class DataikuRecipe:
 
         return cls(**kwargs)
 
+    # Mapping from internal RecipeType values to DSS API type strings.
+    _DSS_TYPE_MAP = {
+        "prepare": "shaker",
+        "stack": "vstack",
+    }
+
     def to_api_dict(self) -> Dict[str, Any]:
-        """Convert to Dataiku API-compatible dictionary."""
-        base = {
-            "type": self.recipe_type.value,
+        """Convert to Dataiku DSS API-compatible dictionary.
+
+        Produces output consistent with the DSSExporter format:
+        - Recipe types use DSS names (e.g. ``"shaker"`` for PREPARE)
+        - Inputs/outputs use the nested ``{"main": {"items": [...]}}`` structure
+        - Settings are under a ``"params"`` key (not ``"settings"``)
+        """
+        dss_type = self._DSS_TYPE_MAP.get(
+            self.recipe_type.value, self.recipe_type.value
+        )
+        base: Dict[str, Any] = {
+            "type": dss_type,
             "name": self.name,
-            "inputs": [{"ref": inp} for inp in self.inputs],
-            "outputs": [{"ref": out} for out in self.outputs],
+            "inputs": {
+                "main": {
+                    "items": [{"ref": inp, "deps": []} for inp in self.inputs]
+                }
+            },
+            "outputs": {
+                "main": {
+                    "items": [{"ref": out, "deps": []} for out in self.outputs]
+                }
+            },
         }
 
         settings = self._build_settings()
         if settings:
-            base["settings"] = settings
+            base["params"] = settings
 
         return base
 

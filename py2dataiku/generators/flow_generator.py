@@ -11,9 +11,10 @@ from py2dataiku.models.dataiku_recipe import (
     JoinKey,
     JoinType,
     RecipeType,
+    SamplingMethod,
 )
 from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
-from py2dataiku.models.prepare_step import PrepareStep
+from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
 from py2dataiku.models.transformation import Transformation, TransformationType
 
 
@@ -156,6 +157,87 @@ class FlowGenerator(BaseFlowGenerator):
                 current_input = self._create_sort_recipe(trans, current_input)
                 self.current_dataset[var_name] = current_input
 
+            elif trans.transformation_type in (
+                TransformationType.ROLLING,
+                TransformationType.WINDOW,
+            ):
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_window_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type == TransformationType.TOP_N:
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_topn_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type in (
+                TransformationType.HEAD,
+                TransformationType.TAIL,
+            ):
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_sampling_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type == TransformationType.SAMPLE:
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_sampling_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type == TransformationType.PIVOT:
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_pivot_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type == TransformationType.MELT:
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_melt_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type == TransformationType.JOIN:
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                current_input = self._create_join_recipe(trans, current_input)
+                self.current_dataset[var_name] = current_input
+
+            elif trans.transformation_type == TransformationType.NUMERIC_TRANSFORM:
+                step = self._numeric_transform_to_prepare_step(trans)
+                if step:
+                    prepare_steps.append(step)
+
             elif trans.transformation_type == TransformationType.WRITE_DATA:
                 # Flush prepare steps
                 if prepare_steps and current_input:
@@ -209,6 +291,7 @@ class FlowGenerator(BaseFlowGenerator):
             TransformationType.DROP_DUPLICATES,
             TransformationType.COLUMN_RENAME,
             TransformationType.COLUMN_DROP,
+            TransformationType.COLUMN_SELECT,
             TransformationType.COLUMN_CREATE,
             TransformationType.STRING_TRANSFORM,
             TransformationType.TYPE_CAST,
@@ -240,6 +323,14 @@ class FlowGenerator(BaseFlowGenerator):
 
         elif ttype == TransformationType.COLUMN_DROP:
             return PrepareStep.delete_columns(trans.columns, trans.source_line)
+
+        elif ttype == TransformationType.COLUMN_SELECT:
+            columns = trans.columns or trans.parameters.get("columns", [])
+            return PrepareStep(
+                processor_type=ProcessorType.COLUMNS_SELECTOR,
+                params={"columns": columns, "keep": True},
+                source_line=trans.source_line,
+            )
 
         elif ttype == TransformationType.TYPE_CAST:
             column = trans.columns[0] if trans.columns else "unknown"
@@ -385,6 +476,11 @@ class FlowGenerator(BaseFlowGenerator):
         condition = trans.parameters.get("condition", "")
         output_name = f"{trans.target_dataframe or 'filtered'}"
 
+        # C3 fix: prevent DAG cycle when output would equal input
+        # (e.g. df = df[df['col'] > 0] where both resolve to the same dataset)
+        if output_name == input_dataset:
+            output_name = f"{output_name}_filtered"
+
         recipe = DataikuRecipe(
             name=f"split_{self.recipe_counter}",
             recipe_type=RecipeType.SPLIT,
@@ -423,6 +519,202 @@ class FlowGenerator(BaseFlowGenerator):
 
         self.flow.add_recipe(recipe)
         return output_name
+
+    def _create_window_recipe(
+        self, trans: Transformation, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Window recipe and return output dataset name."""
+        self.recipe_counter += 1
+
+        output_name = f"{input_dataset}_windowed"
+
+        partition_cols = trans.parameters.get("partition_columns", [])
+        order_cols = trans.parameters.get("order_columns", [])
+        method = trans.parameters.get("method", "")
+        column = trans.columns[0] if trans.columns else ""
+
+        # Map pandas method to Dataiku window function type
+        window_func = PandasMapper.WINDOW_MAPPINGS.get(method, method.upper())
+
+        window_aggs = []
+        if column:
+            agg_entry = {"column": column, "type": window_func}
+            window_size = trans.parameters.get("window", None)
+            if window_size is not None:
+                agg_entry["windowSize"] = window_size
+            window_aggs.append(agg_entry)
+
+        recipe = DataikuRecipe(
+            name=f"window_{self.recipe_counter}",
+            recipe_type=RecipeType.WINDOW,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            partition_columns=partition_cols,
+            order_columns=order_cols,
+            window_aggregations=window_aggs,
+        )
+        recipe.source_lines = [trans.source_line] if trans.source_line else []
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_topn_recipe(
+        self, trans: Transformation, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Top N recipe and return output dataset name."""
+        self.recipe_counter += 1
+
+        n = trans.parameters.get("n", 10)
+        ranking_col = trans.columns[0] if trans.columns else None
+        output_name = f"{input_dataset}_topn"
+
+        recipe = DataikuRecipe(
+            name=f"topn_{self.recipe_counter}",
+            recipe_type=RecipeType.TOP_N,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            top_n=n,
+            ranking_column=ranking_col,
+        )
+        recipe.source_lines = [trans.source_line] if trans.source_line else []
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_sampling_recipe(
+        self, trans: Transformation, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Sampling recipe and return output dataset name."""
+        self.recipe_counter += 1
+
+        output_name = f"{input_dataset}_sampled"
+        ttype = trans.transformation_type
+
+        if ttype == TransformationType.HEAD:
+            method = SamplingMethod.FIRST_ROWS
+            n = trans.parameters.get("n", 5)
+        elif ttype == TransformationType.TAIL:
+            method = SamplingMethod.LAST_ROWS
+            n = trans.parameters.get("n", 5)
+        else:
+            # SAMPLE
+            n = trans.parameters.get("n", None)
+            frac = trans.parameters.get("frac", None)
+            if n is not None:
+                method = SamplingMethod.RANDOM_FIXED
+            else:
+                method = SamplingMethod.RANDOM
+                n = None
+
+        recipe = DataikuRecipe(
+            name=f"sampling_{self.recipe_counter}",
+            recipe_type=RecipeType.SAMPLING,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            sampling_method=method,
+            sample_size=n,
+        )
+        recipe.source_lines = [trans.source_line] if trans.source_line else []
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_pivot_recipe(
+        self, trans: Transformation, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Pivot recipe and return output dataset name."""
+        self.recipe_counter += 1
+
+        output_name = f"{input_dataset}_pivoted"
+
+        index_cols = trans.parameters.get("index", [])
+        if isinstance(index_cols, str):
+            index_cols = [index_cols]
+        column_col = trans.parameters.get("columns", "")
+        if isinstance(column_col, list):
+            column_col = column_col[0] if column_col else ""
+        value_col = trans.parameters.get("values", "")
+        if isinstance(value_col, list):
+            value_col = value_col[0] if value_col else ""
+        aggfunc = trans.parameters.get("aggfunc", "SUM")
+        if isinstance(aggfunc, str):
+            aggfunc = PandasMapper.AGG_MAPPINGS.get(aggfunc.lower(), aggfunc.upper())
+
+        recipe = DataikuRecipe(
+            name=f"pivot_{self.recipe_counter}",
+            recipe_type=RecipeType.PIVOT,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+        )
+        recipe.source_lines = [trans.source_line] if trans.source_line else []
+
+        from py2dataiku.models.recipe_settings import PivotSettings
+        recipe.settings = PivotSettings(
+            row_columns=index_cols,
+            column_column=column_col,
+            value_column=value_col,
+            aggregation=aggfunc,
+        )
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_melt_recipe(
+        self, trans: Transformation, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Prepare recipe with FOLD_MULTIPLE_COLUMNS processor for melt."""
+        value_vars = trans.parameters.get("value_vars", trans.columns or [])
+        var_name = trans.parameters.get("var_name", "variable")
+        value_name = trans.parameters.get("value_name", "value")
+
+        step = PrepareStep.fold_multiple_columns(
+            columns=value_vars,
+            var_name=var_name,
+            value_name=value_name,
+            source_line=trans.source_line,
+        )
+
+        return self._create_prepare_recipe(input_dataset or "", [step])
+
+    def _numeric_transform_to_prepare_step(
+        self, trans: Transformation
+    ) -> Optional[PrepareStep]:
+        """Convert a numeric transformation to a PrepareStep."""
+        column = trans.columns[0] if trans.columns else "unknown"
+        method = trans.parameters.get("method", "")
+
+        # Map common numeric methods to processor types
+        numeric_method_map = {
+            "round": ProcessorType.ROUND_COLUMN,
+            "abs": ProcessorType.ABS_COLUMN,
+            "clip": ProcessorType.CLIP_COLUMN,
+        }
+
+        processor = numeric_method_map.get(method)
+        if processor:
+            params = {"column": column}
+            if method == "round":
+                decimals = trans.parameters.get("decimals", 0)
+                params["precision"] = decimals
+            elif method == "clip":
+                lower = trans.parameters.get("lower")
+                upper = trans.parameters.get("upper")
+                if lower is not None:
+                    params["min"] = lower
+                if upper is not None:
+                    params["max"] = upper
+            return PrepareStep(
+                processor_type=processor,
+                params=params,
+                source_line=trans.source_line,
+            )
+
+        # Fallback: use NumericalTransformer for other numeric operations
+        return PrepareStep(
+            processor_type=ProcessorType.NUMERICAL_TRANSFORMER,
+            params={"column": column, "mode": method.upper()},
+            source_line=trans.source_line,
+        )
 
     def _create_python_recipe(
         self, trans: Transformation, input_dataset: Optional[str]

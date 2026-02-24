@@ -146,9 +146,9 @@ class TestDataikuRecipe:
         recipe = DataikuRecipe.create_prepare("r", "in", "out")
         recipe.add_step(PrepareStep.fill_empty("col", 0))
         j = recipe.to_json()
-        assert j["type"] == "prepare"
+        assert j["type"] == "shaker"
         assert j["name"] == "r"
-        assert len(j["settings"]["steps"]) == 1
+        assert len(j["params"]["steps"]) == 1
 
 
 class TestDataikuFlow:
@@ -343,9 +343,12 @@ class TestRecipeApiDictStructure:
         recipe = DataikuRecipe.create_prepare("p", "in", "out")
         recipe.add_step(PrepareStep.fill_empty("col", 0))
         api = recipe.to_api_dict()
-        assert api["type"] == "prepare"
-        assert api["settings"]["mode"] == "NORMAL"
-        assert isinstance(api["settings"]["steps"], list)
+        assert api["type"] == "shaker"
+        assert api["params"]["mode"] == "NORMAL"
+        assert isinstance(api["params"]["steps"], list)
+        # Verify nested I/O format
+        assert api["inputs"]["main"]["items"][0]["ref"] == "in"
+        assert api["outputs"]["main"]["items"][0]["ref"] == "out"
 
     def test_grouping_api_dict(self):
         recipe = DataikuRecipe.create_grouping(
@@ -354,8 +357,8 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "grouping"
-        assert api["settings"]["keys"] == [{"column": "cat"}]
-        assert api["settings"]["globalCount"] is False
+        assert api["params"]["keys"] == [{"column": "cat"}]
+        assert api["params"]["globalCount"] is False
 
     def test_join_api_dict(self):
         recipe = DataikuRecipe.create_join(
@@ -365,8 +368,8 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "join"
-        assert api["settings"]["joinType"] == "INNER"
-        assert len(api["settings"]["joins"]) == 1
+        assert api["params"]["joinType"] == "INNER"
+        assert len(api["params"]["joins"]) == 1
 
     def test_python_api_dict(self):
         recipe = DataikuRecipe.create_python(
@@ -374,7 +377,7 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "python"
-        assert api["settings"]["code"] == "import dataiku"
+        assert api["params"]["code"] == "import dataiku"
 
     def test_split_api_dict(self):
         recipe = DataikuRecipe(
@@ -384,8 +387,8 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "split"
-        assert api["settings"]["splitMode"] == "FILTER"
-        assert api["settings"]["condition"] == "value > 100"
+        assert api["params"]["splitMode"] == "FILTER"
+        assert api["params"]["condition"] == "value > 100"
 
     def test_sort_api_dict(self):
         recipe = DataikuRecipe(
@@ -395,7 +398,7 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "sort"
-        assert len(api["settings"]["sortColumns"]) == 1
+        assert len(api["params"]["sortColumns"]) == 1
 
     def test_distinct_api_dict(self):
         recipe = DataikuRecipe(
@@ -404,7 +407,7 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "distinct"
-        assert api["settings"]["computeCount"] is False
+        assert api["params"]["computeCount"] is False
 
     def test_stack_api_dict(self):
         recipe = DataikuRecipe(
@@ -412,8 +415,8 @@ class TestRecipeApiDictStructure:
             inputs=["a", "b"], outputs=["out"],
         )
         api = recipe.to_api_dict()
-        assert api["type"] == "stack"
-        assert api["settings"]["mode"] == "UNION"
+        assert api["type"] == "vstack"
+        assert api["params"]["mode"] == "UNION"
 
     def test_top_n_api_dict(self):
         recipe = DataikuRecipe(
@@ -423,8 +426,8 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "topn"
-        assert api["settings"]["topN"] == 5
-        assert api["settings"]["rankingColumn"] == "score"
+        assert api["params"]["topN"] == 5
+        assert api["params"]["rankingColumn"] == "score"
 
     def test_window_api_dict(self):
         recipe = DataikuRecipe(
@@ -436,7 +439,7 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "window"
-        assert api["settings"]["partitionColumns"] == [{"column": "group"}]
+        assert api["params"]["partitionColumns"] == [{"column": "group"}]
 
     def test_sampling_api_dict(self):
         from py2dataiku.models.dataiku_recipe import SamplingMethod
@@ -448,8 +451,8 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "sampling"
-        assert api["settings"]["samplingMethod"] == "RANDOM_FIXED"
-        assert api["settings"]["sampleSize"] == 1000
+        assert api["params"]["samplingMethod"] == "RANDOM_FIXED"
+        assert api["params"]["sampleSize"] == 1000
 
 
 class TestRecipeAddMethods:

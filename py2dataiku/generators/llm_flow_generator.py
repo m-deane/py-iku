@@ -471,6 +471,10 @@ class LLMFlowGenerator(BaseFlowGenerator):
         output_name = step.output_dataset or f"filtered_{self.recipe_counter}"
         output_name = self._sanitize_name(output_name)
 
+        # C3 fix: prevent DAG cycle when output would equal input
+        if output_name == input_dataset:
+            output_name = f"{output_name}_filtered"
+
         # Build condition string
         conditions = []
         for fc in step.filter_conditions:

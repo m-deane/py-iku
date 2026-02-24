@@ -326,11 +326,11 @@ df = df.dropna(subset=['id'])
         prepare_recipes = flow.get_recipes_by_type(RecipeType.PREPARE)
         if prepare_recipes:
             config = prepare_recipes[0].to_json()
-            assert config['type'] == 'prepare'
+            assert config['type'] == 'shaker'
             assert 'inputs' in config
             assert 'outputs' in config
-            assert 'settings' in config
-            assert 'steps' in config['settings']
+            assert 'params' in config
+            assert 'steps' in config['params']
 
     def test_join_recipe_json_structure(self):
         """Test Join recipe JSON structure."""
@@ -350,5 +350,5 @@ merged = pd.merge(df1, df2, on='id')
         if join_recipes:
             config = join_recipes[0].to_json()
             assert config['type'] == 'join'
-            assert 'joinType' in config['settings']
-            assert 'joins' in config['settings']
+            assert 'joinType' in config['params']
+            assert 'joins' in config['params']
