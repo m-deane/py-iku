@@ -37,8 +37,8 @@ class TestGetRecipeType:
     def test_pivot_table_maps_to_pivot(self, mapper):
         assert mapper.get_recipe_type("pivot_table") == RecipeType.PIVOT
 
-    def test_melt_maps_to_pivot(self, mapper):
-        assert mapper.get_recipe_type("melt") == RecipeType.PIVOT
+    def test_melt_maps_to_prepare(self, mapper):
+        assert mapper.get_recipe_type("melt") == RecipeType.PREPARE
 
     def test_sort_values_maps_to_sort(self, mapper):
         assert mapper.get_recipe_type("sort_values") == RecipeType.SORT
@@ -119,8 +119,8 @@ class TestGetStringMode:
     def test_title_returns_titlecase(self, mapper):
         assert mapper.get_string_mode("title") == StringTransformerMode.TITLECASE
 
-    def test_capitalize_returns_titlecase(self, mapper):
-        assert mapper.get_string_mode("capitalize") == StringTransformerMode.TITLECASE
+    def test_capitalize_returns_capitalize(self, mapper):
+        assert mapper.get_string_mode("capitalize") == StringTransformerMode.CAPITALIZE
 
     def test_strip_returns_trim(self, mapper):
         assert mapper.get_string_mode("strip") == StringTransformerMode.TRIM

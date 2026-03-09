@@ -305,11 +305,12 @@ class DSSExporter:
 
     def _build_recipe_config(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build DSS-compatible recipe configuration."""
+        inputs = self._build_input_roles(recipe)
         base_config = {
             "name": recipe.name,
             "projectKey": self.config.project_key,
             "type": self._get_dss_recipe_type(recipe.recipe_type),
-            "inputs": {self._get_input_role(recipe.recipe_type): self._format_io_items(recipe.inputs)},
+            "inputs": inputs,
             "outputs": {self._get_output_role(recipe.recipe_type): self._format_io_items(recipe.outputs)},
             "versionTag": {
                 "versionNumber": 1,
@@ -336,30 +337,23 @@ class DSSExporter:
 
     def _get_dss_recipe_type(self, recipe_type: RecipeType) -> str:
         """Map RecipeType to DSS recipe type string."""
-        type_map = {
-            RecipeType.PREPARE: "shaker",
-            RecipeType.JOIN: "join",
-            RecipeType.STACK: "vstack",
-            RecipeType.SPLIT: "split",
-            RecipeType.GROUPING: "grouping",
-            RecipeType.WINDOW: "window",
-            RecipeType.PIVOT: "pivot",
-            RecipeType.SORT: "sort",
-            RecipeType.DISTINCT: "distinct",
-            RecipeType.TOP_N: "topn",
-            RecipeType.SAMPLING: "sampling",
-            RecipeType.PYTHON: "python",
-            RecipeType.SQL: "sql_query",
-            RecipeType.SYNC: "sync",
-            RecipeType.DOWNLOAD: "download",
-        }
-        return type_map.get(recipe_type, "python")
+        # Use the canonical type map from DataikuRecipe
+        dss_type = DataikuRecipe._DSS_TYPE_MAP.get(recipe_type.value)
+        if dss_type:
+            return dss_type
+        # Fallback to the raw enum value
+        return recipe_type.value
 
-    def _get_input_role(self, recipe_type: RecipeType) -> str:
-        """Get the input role name for a recipe type."""
-        if recipe_type == RecipeType.JOIN:
-            return "main"
-        return "main"
+    def _build_input_roles(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build input roles for a recipe, handling JOIN's separate left/right roles."""
+        if recipe.recipe_type in (RecipeType.JOIN, RecipeType.FUZZY_JOIN, RecipeType.GEO_JOIN):
+            roles: Dict[str, Any] = {}
+            if recipe.inputs:
+                roles["main"] = self._format_io_items([recipe.inputs[0]])
+            if len(recipe.inputs) > 1:
+                roles["join"] = self._format_io_items(recipe.inputs[1:])
+            return roles
+        return {"main": self._format_io_items(recipe.inputs)}
 
     def _get_output_role(self, recipe_type: RecipeType) -> str:
         """Get the output role name for a recipe type."""
@@ -385,6 +379,20 @@ class DSSExporter:
             return self._build_distinct_payload(recipe)
         elif recipe.recipe_type == RecipeType.PYTHON:
             return self._build_python_payload(recipe)
+        elif recipe.recipe_type == RecipeType.WINDOW:
+            return self._build_window_payload(recipe)
+        elif recipe.recipe_type == RecipeType.SAMPLING:
+            return self._build_sampling_payload(recipe)
+        elif recipe.recipe_type == RecipeType.SPLIT:
+            return self._build_split_payload(recipe)
+        elif recipe.recipe_type == RecipeType.TOP_N:
+            return self._build_topn_payload(recipe)
+        elif recipe.recipe_type == RecipeType.STACK:
+            return self._build_stack_payload(recipe)
+        elif recipe.recipe_type == RecipeType.PIVOT:
+            return self._build_pivot_payload(recipe)
+        elif recipe.recipe_type == RecipeType.SYNC:
+            return {}  # Sync has no params beyond inputs/outputs
         return {}
 
     def _build_prepare_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
@@ -539,16 +547,115 @@ class DSSExporter:
             },
         }
 
+    def _build_window_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build Window recipe payload."""
+        from py2dataiku.models.dataiku_recipe import WindowFunctionType
+
+        aggregations = []
+        for agg in recipe.window_aggregations:
+            entry = dict(agg)
+            if "type" in entry and isinstance(entry["type"], WindowFunctionType):
+                entry["type"] = entry["type"].value
+            aggregations.append(entry)
+
+        return {
+            "engineParams": self._default_engine_params(),
+            "windowDefinition": {
+                "partitionColumns": [{"column": c} for c in recipe.partition_columns],
+                "orderColumns": [{"column": c} for c in recipe.order_columns],
+            },
+            "aggregations": aggregations,
+            "preFilter": {},
+            "computedColumns": [],
+        }
+
+    def _build_sampling_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build Sampling recipe payload."""
+        params: Dict[str, Any] = {
+            "engineParams": self._default_engine_params(),
+            "samplingMethod": recipe.sampling_method.value
+                if hasattr(recipe.sampling_method, 'value')
+                else str(recipe.sampling_method),
+        }
+        if recipe.sample_size is not None:
+            params["maxRecords"] = recipe.sample_size
+        return params
+
+    def _build_split_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build Split recipe payload."""
+        return {
+            "engineParams": self._default_engine_params(),
+            "splitMode": "FILTER",
+            "filters": [
+                {"filter": {"expression": recipe.split_condition or ""}}
+            ],
+            "preFilter": {},
+        }
+
+    def _build_topn_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build Top N recipe payload."""
+        return {
+            "engineParams": self._default_engine_params(),
+            "topN": recipe.top_n or 10,
+            "rankingColumn": recipe.ranking_column or "",
+            "ascending": False,
+            "preFilter": {},
+            "computedColumns": [],
+        }
+
+    def _build_stack_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build Stack recipe payload."""
+        return {
+            "engineParams": self._default_engine_params(),
+            "mode": "UNION",
+            "selectedColumns": [],
+            "preFilter": {},
+        }
+
+    def _build_pivot_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+        """Build Pivot recipe payload."""
+        params: Dict[str, Any] = {
+            "engineParams": self._default_engine_params(),
+            "preFilter": {},
+            "computedColumns": [],
+        }
+        if recipe.settings:
+            settings_dict = recipe.settings.to_dict()
+            params.update(settings_dict)
+        return params
+
+    def _default_engine_params(self) -> Dict[str, Any]:
+        """Return default engine parameters shared by multiple recipe types."""
+        return {
+            "hive": {"skipPrerunValidate": False, "hiveconf": [], "inheritConf": "default"},
+            "sqlPipelineParams": {"pipelineAllowMerge": True, "pipelineAllowStart": True},
+            "impala": {"forceStreamMode": True},
+            "spark": {"inheritConf": "default", "sparkConf": []},
+        }
+
     def _export_flow_zones(self, project_dir: str) -> None:
         """Export flow zone configuration."""
-        zones = {
-            "zones": [{
+        if self.flow.zones:
+            zone_list = [z.to_dss_dict() for z in self.flow.zones]
+            zone_ids = [z.to_dss_dict()["id"] for z in self.flow.zones]
+        else:
+            # Default zone containing all items
+            items = []
+            for ds in self.flow.datasets:
+                items.append({"ref": ds.name, "type": "DATASET"})
+            for r in self.flow.recipes:
+                items.append({"ref": r.name, "type": "RECIPE"})
+            zone_list = [{
                 "id": "default",
                 "name": "Default",
                 "color": "#2980b9",
-                "items": [],
-            }],
-            "zonesOrder": ["default"],
+                "items": items,
+            }]
+            zone_ids = ["default"]
+
+        zones = {
+            "zones": zone_list,
+            "zonesOrder": zone_ids,
         }
 
         path = os.path.join(project_dir, "flow", "zones.json")

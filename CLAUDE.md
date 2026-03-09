@@ -15,7 +15,7 @@ Targets Dataiku DSS 14 with 37 recipe types, 122 processor types, and 122 proces
 
 ### Running Tests
 ```bash
-# All tests (1807 tests)
+# All tests (~1329 tests)
 python -m pytest tests/ -v
 
 # Single test file
@@ -54,7 +54,7 @@ flow2 = DataikuFlow.from_dict(d)
 ```
 py2dataiku/
 ├── __init__.py              # Public API: convert(), convert_with_llm(), convert_file(), Py2Dataiku
-├── exceptions.py            # Py2DataikuError hierarchy (7 exception types)
+├── exceptions.py            # Py2DataikuError hierarchy (8 exception types)
 ├── config.py                # Py2DataikuConfig, supports toml/yaml/rc config files + env vars
 ├── cli.py                   # CLI entry point (py2dataiku command)
 ├── parser/                  # Rule-based code analysis
@@ -126,7 +126,7 @@ Py2DataikuError
 ```
 
 ### Generator Inheritance
-`BaseFlowGenerator` (ABC) provides shared `_sanitize_name()`, `_optimize_flow()`, `_merge_prepare_recipes()`. Both `FlowGenerator` and `LLMFlowGenerator` extend it, eliminating code duplication.
+`BaseFlowGenerator` (ABC) provides shared `_sanitize_name()`, `_optimize_flow()`, `_optimize_prepare_steps()`. Both `FlowGenerator` and `LLMFlowGenerator` extend it, eliminating code duplication.
 
 ### DataikuFlow Features
 - **DAG graph**: `flow.graph` returns a `FlowGraph` with topological sort, cycle detection, disconnected subgraph discovery

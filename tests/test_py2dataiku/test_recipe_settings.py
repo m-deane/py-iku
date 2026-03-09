@@ -204,7 +204,9 @@ class TestBackwardCompatibility:
             aggregations=[Aggregation(column="val", function="SUM")],
         )
         api = legacy.to_api_dict()
-        assert api["params"]["keys"] == [{"column": "cat"}]
+        assert api["params"]["keys"] == [{"column": "cat", "type": "string"}]
+        assert api["params"]["values"][0]["column"] == "val"
+        assert api["params"]["values"][0]["function"] == "SUM"
 
     def test_legacy_join(self):
         legacy = DataikuRecipe(

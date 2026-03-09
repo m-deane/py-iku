@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional
 class TriggerType(Enum):
     """Types of scenario triggers in Dataiku DSS."""
 
-    TIME_BASED = "time_based"
-    DATASET_CHANGE = "dataset_change"
+    TIME_BASED = "temporal"
+    DATASET_CHANGE = "dataset_modified"
     SQL_QUERY = "sql_query"
     PYTHON = "python"
 
@@ -17,11 +17,11 @@ class TriggerType(Enum):
 class StepType(Enum):
     """Types of scenario steps in Dataiku DSS."""
 
-    BUILD = "build_dataset"
+    BUILD = "build_flowitem"
     TRAIN = "train_model"
     CHECK = "run_checks"
-    SQL_EXECUTE = "execute_sql"
-    PYTHON_EXECUTE = "execute_python"
+    SQL_EXECUTE = "exec_sql"
+    PYTHON_EXECUTE = "custom_python"
     SEND_MESSAGE = "send_message"
 
 

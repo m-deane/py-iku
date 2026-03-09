@@ -357,8 +357,11 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "grouping"
-        assert api["params"]["keys"] == [{"column": "cat"}]
+        assert api["params"]["keys"] == [{"column": "cat", "type": "string"}]
         assert api["params"]["globalCount"] is False
+        # Check values (DSS API format)
+        assert api["params"]["values"][0]["column"] == "val"
+        assert api["params"]["values"][0]["function"] == "SUM"
 
     def test_join_api_dict(self):
         recipe = DataikuRecipe.create_join(

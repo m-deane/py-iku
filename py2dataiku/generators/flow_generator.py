@@ -470,22 +470,28 @@ class FlowGenerator(BaseFlowGenerator):
     def _create_split_recipe(
         self, trans: Transformation, input_dataset: Optional[str]
     ) -> str:
-        """Create a Split recipe and return output dataset name."""
+        """Create a Split recipe and return the matched output dataset name.
+
+        DSS Split recipes require at least 2 output datasets:
+        one for matching rows and one for non-matching rows.
+        """
         self.recipe_counter += 1
 
         condition = trans.parameters.get("condition", "")
         output_name = f"{trans.target_dataframe or 'filtered'}"
 
-        # C3 fix: prevent DAG cycle when output would equal input
-        # (e.g. df = df[df['col'] > 0] where both resolve to the same dataset)
+        # Prevent DAG cycle when output would equal input
         if output_name == input_dataset:
             output_name = f"{output_name}_filtered"
+
+        # DSS requires a second output for unmatched rows
+        unmatched_name = f"{output_name}_remainder"
 
         recipe = DataikuRecipe(
             name=f"split_{self.recipe_counter}",
             recipe_type=RecipeType.SPLIT,
             inputs=[input_dataset or ""],
-            outputs=[output_name],
+            outputs=[output_name, unmatched_name],
             split_condition=condition,
         )
         recipe.source_lines = [trans.source_line] if trans.source_line else []

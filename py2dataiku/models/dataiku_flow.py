@@ -73,13 +73,36 @@ class FlowZone:
             "recipes": self.recipes,
         }
 
+    def to_dss_dict(self) -> Dict[str, Any]:
+        """Convert to DSS zones.json format with unified items list."""
+        items = []
+        for ds in self.datasets:
+            items.append({"ref": ds, "type": "DATASET"})
+        for r in self.recipes:
+            items.append({"ref": r, "type": "RECIPE"})
+        zone_id = self.name.lower().replace(" ", "_")
+        return {
+            "id": zone_id,
+            "name": self.name,
+            "color": self.color,
+            "items": items,
+        }
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "FlowZone":
+        datasets = data.get("datasets", [])
+        recipes = data.get("recipes", [])
+        # Support DSS format with unified items list
+        for item in data.get("items", []):
+            if item.get("type") == "DATASET" and item["ref"] not in datasets:
+                datasets.append(item["ref"])
+            elif item.get("type") == "RECIPE" and item["ref"] not in recipes:
+                recipes.append(item["ref"])
         return cls(
             name=data["name"],
             color=data.get("color", "#4b96e6"),
-            datasets=data.get("datasets", []),
-            recipes=data.get("recipes", []),
+            datasets=datasets,
+            recipes=recipes,
         )
 
     def add_dataset(self, dataset_name: str) -> None:

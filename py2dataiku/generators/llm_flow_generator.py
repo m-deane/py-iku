@@ -171,7 +171,34 @@ class LLMFlowGenerator(BaseFlowGenerator):
 
                 current_input = self._create_window_recipe(step, current_input)
 
-            elif suggested in ("python", "topn", "sampling", "pivot"):
+            elif suggested == "topn":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                current_input = self._create_topn_recipe(step, current_input)
+
+            elif suggested == "sampling":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                current_input = self._create_sampling_recipe(step, current_input)
+
+            elif suggested == "pivot":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                current_input = self._create_pivot_recipe(step, current_input)
+
+            elif suggested == "python":
                 if prepare_steps_buffer:
                     current_input = self._create_prepare_recipe(
                         current_input, prepare_steps_buffer
@@ -466,14 +493,17 @@ class LLMFlowGenerator(BaseFlowGenerator):
     def _create_split_recipe(
         self, step: DataStep, input_dataset: Optional[str]
     ) -> str:
-        """Create a Split recipe."""
+        """Create a Split recipe with two outputs (matched and unmatched)."""
         self.recipe_counter += 1
         output_name = step.output_dataset or f"filtered_{self.recipe_counter}"
         output_name = self._sanitize_name(output_name)
 
-        # C3 fix: prevent DAG cycle when output would equal input
+        # Prevent DAG cycle when output would equal input
         if output_name == input_dataset:
             output_name = f"{output_name}_filtered"
+
+        # DSS requires a second output for unmatched rows
+        unmatched_name = f"{output_name}_remainder"
 
         # Build condition string
         conditions = []
@@ -485,7 +515,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
             name=f"split_{self.recipe_counter}",
             recipe_type=RecipeType.SPLIT,
             inputs=[input_dataset or ""],
-            outputs=[output_name],
+            outputs=[output_name, unmatched_name],
             split_condition=condition_str,
         )
 
@@ -547,6 +577,77 @@ class LLMFlowGenerator(BaseFlowGenerator):
             outputs=[output_name],
             partition_columns=step.group_by_columns,
         )
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_topn_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Top N recipe."""
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"topn_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        n = step.parameters.get("n", 10) if hasattr(step, "parameters") else 10
+        ranking_col = step.columns[0] if step.columns else None
+
+        recipe = DataikuRecipe(
+            name=f"topn_{self.recipe_counter}",
+            recipe_type=RecipeType.TOP_N,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            top_n=n,
+            ranking_column=ranking_col,
+        )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_sampling_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Sampling recipe."""
+        from py2dataiku.models.dataiku_recipe import SamplingMethod
+
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"sampled_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        recipe = DataikuRecipe(
+            name=f"sampling_{self.recipe_counter}",
+            recipe_type=RecipeType.SAMPLING,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            sampling_method=SamplingMethod.RANDOM,
+        )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_pivot_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Pivot recipe."""
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"pivoted_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        recipe = DataikuRecipe(
+            name=f"pivot_{self.recipe_counter}",
+            recipe_type=RecipeType.PIVOT,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+        )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
 
         self.flow.add_recipe(recipe)
         return output_name

@@ -228,6 +228,8 @@ __all__ = [
     "DataikuTheme",
     "DATAIKU_LIGHT",
     "DATAIKU_DARK",
+    # Main class
+    "Py2Dataiku",
     # Convenience functions
     "convert",
     "convert_with_llm",

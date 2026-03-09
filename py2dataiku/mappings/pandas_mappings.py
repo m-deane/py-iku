@@ -22,7 +22,7 @@ class PandasMapper:
         "groupby": RecipeType.GROUPING,
         "pivot": RecipeType.PIVOT,
         "pivot_table": RecipeType.PIVOT,
-        "melt": RecipeType.PIVOT,  # Unpivot
+        "melt": RecipeType.PREPARE,  # Unpivot via FOLD_MULTIPLE_COLUMNS processor
         "sort_values": RecipeType.SORT,
         "drop_duplicates": RecipeType.DISTINCT,
         "head": RecipeType.TOP_N,
@@ -64,7 +64,7 @@ class PandasMapper:
         "upper": StringTransformerMode.UPPERCASE,
         "lower": StringTransformerMode.LOWERCASE,
         "title": StringTransformerMode.TITLECASE,
-        "capitalize": StringTransformerMode.TITLECASE,
+        "capitalize": StringTransformerMode.CAPITALIZE,
         "strip": StringTransformerMode.TRIM,
         "lstrip": StringTransformerMode.TRIM_LEFT,
         "rstrip": StringTransformerMode.TRIM_RIGHT,

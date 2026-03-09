@@ -244,7 +244,10 @@ class TestDualOutputConsistency:
         assert api_config["type"] == exporter_config["type"]
 
     def test_io_structure_consistent(self):
-        """Both paths should use the nested items structure for inputs/outputs."""
+        """Both paths should use the nested items structure for inputs/outputs.
+
+        JOIN recipes use separate 'main' and 'join' input roles per DSS API.
+        """
         flow = DataikuFlow(name="test")
         recipe = DataikuRecipe(
             name="join_1", recipe_type=RecipeType.JOIN,
@@ -256,14 +259,14 @@ class TestDualOutputConsistency:
         exporter = DSSExporter(flow, project_key="TEST")
         exporter_config = exporter._build_recipe_config(recipe)
 
-        # Both should have nested "main" -> "items" structure
-        api_inputs = api_config["inputs"]["main"]["items"]
-        exp_inputs = exporter_config["inputs"]["main"]["items"]
+        # JOIN uses 'main' for left input and 'join' for right input(s)
+        api_main_refs = {item["ref"] for item in api_config["inputs"]["main"]["items"]}
+        exp_main_refs = {item["ref"] for item in exporter_config["inputs"]["main"]["items"]}
+        assert api_main_refs == exp_main_refs == {"left"}
 
-        # Same refs (order may differ)
-        api_refs = {item["ref"] for item in api_inputs}
-        exp_refs = {item["ref"] for item in exp_inputs}
-        assert api_refs == exp_refs
+        api_join_refs = {item["ref"] for item in api_config["inputs"]["join"]["items"]}
+        exp_join_refs = {item["ref"] for item in exporter_config["inputs"]["join"]["items"]}
+        assert api_join_refs == exp_join_refs == {"right"}
 
     def test_params_key_consistent(self):
         """Both paths should use 'params' for recipe settings."""

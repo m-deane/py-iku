@@ -51,7 +51,7 @@ class RecipeType(Enum):
     SQL = "sql_query"
     HIVE = "hive"
     IMPALA = "impala"
-    SPARKSQL = "sparksql"
+    SPARKSQL = "spark_sql_query"
 
     # Code recipes - Spark variants
     PYSPARK = "pyspark"
@@ -245,9 +245,9 @@ class JoinKey:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "left": {"column": self.left_column},
-            "right": {"column": self.right_column},
-            "matchType": self.match_type,
+            "column1": {"name": self.left_column, "table": 0},
+            "column2": {"name": self.right_column, "table": 1},
+            "type": self.match_type,
         }
 
 
@@ -353,25 +353,41 @@ class DataikuRecipe:
                 PrepareStep.from_dict(s) for s in data.get("steps", [])
             ]
         elif recipe_type == RecipeType.GROUPING:
-            kwargs["group_keys"] = data.get("keys", [])
+            keys_data = data.get("keys", [])
+            # Support both list of strings and list of dicts
+            kwargs["group_keys"] = [
+                k["column"] if isinstance(k, dict) else k
+                for k in keys_data
+            ]
+            # Support both "aggregations" (display) and "values" (DSS API) keys
+            agg_data = data.get("aggregations", data.get("values", []))
             kwargs["aggregations"] = [
                 Aggregation(
                     column=a["column"],
                     function=a.get("type", a.get("function", "")),
                     output_column=a.get("outputColumn"),
                 )
-                for a in data.get("aggregations", [])
+                for a in agg_data
             ]
         elif recipe_type == RecipeType.JOIN:
             kwargs["join_type"] = JoinType(data["join_type"])
-            kwargs["join_keys"] = [
-                JoinKey(
-                    left_column=k["left"]["column"],
-                    right_column=k["right"]["column"],
-                    match_type=k.get("matchType", "EXACT"),
-                )
-                for k in data.get("join_keys", [])
-            ]
+            join_keys = []
+            for k in data.get("join_keys", []):
+                if "column1" in k:
+                    # DSS API format
+                    join_keys.append(JoinKey(
+                        left_column=k["column1"]["name"],
+                        right_column=k["column2"]["name"],
+                        match_type=k.get("type", "EXACT"),
+                    ))
+                else:
+                    # Legacy format
+                    join_keys.append(JoinKey(
+                        left_column=k["left"]["column"],
+                        right_column=k["right"]["column"],
+                        match_type=k.get("matchType", "EXACT"),
+                    ))
+            kwargs["join_keys"] = join_keys
             if data.get("selected_columns"):
                 kwargs["selected_columns"] = data["selected_columns"]
         elif recipe_type == RecipeType.PYTHON:
@@ -383,6 +399,41 @@ class DataikuRecipe:
     _DSS_TYPE_MAP = {
         "prepare": "shaker",
         "stack": "vstack",
+        "grouping": "grouping",
+        "window": "window",
+        "join": "join",
+        "fuzzy_join": "fuzzyjoin",
+        "geo_join": "geojoin",
+        "split": "split",
+        "sort": "sort",
+        "distinct": "distinct",
+        "topn": "topn",
+        "pivot": "pivot",
+        "sampling": "sampling",
+        "sync": "sync",
+        "download": "download",
+        "python": "python",
+        "r": "r",
+        "sql_query": "sql_query",
+        "hive": "hive",
+        "impala": "impala",
+        "spark_sql_query": "spark_sql_query",
+        "pyspark": "pyspark",
+        "spark_scala": "spark_scala",
+        "sparkr": "sparkr",
+        "shell": "shell",
+        "prediction_scoring": "prediction_scoring",
+        "clustering_scoring": "clustering_scoring",
+        "evaluation": "evaluation",
+        "generate_features": "generate_features",
+        "generate_statistics": "generate_statistics",
+        "push_to_editable": "push_to_editable",
+        "list_folder_contents": "list_folder_contents",
+        "dynamic_repeat": "dynamic_repeat",
+        "extract_failed_rows": "extract_failed_rows",
+        "upsert": "upsert",
+        "list_access": "list_access",
+        "ai_assistant_generate": "ai_assistant_generate",
     }
 
     def to_api_dict(self) -> Dict[str, Any]:
@@ -396,14 +447,28 @@ class DataikuRecipe:
         dss_type = self._DSS_TYPE_MAP.get(
             self.recipe_type.value, self.recipe_type.value
         )
-        base: Dict[str, Any] = {
-            "type": dss_type,
-            "name": self.name,
-            "inputs": {
+        # Build input roles - JOIN uses separate main/join roles
+        if self.recipe_type in (RecipeType.JOIN, RecipeType.FUZZY_JOIN, RecipeType.GEO_JOIN):
+            inputs_dict: Dict[str, Any] = {}
+            if self.inputs:
+                inputs_dict["main"] = {
+                    "items": [{"ref": self.inputs[0], "deps": []}]
+                }
+            if len(self.inputs) > 1:
+                inputs_dict["join"] = {
+                    "items": [{"ref": inp, "deps": []} for inp in self.inputs[1:]]
+                }
+        else:
+            inputs_dict = {
                 "main": {
                     "items": [{"ref": inp, "deps": []} for inp in self.inputs]
                 }
-            },
+            }
+
+        base: Dict[str, Any] = {
+            "type": dss_type,
+            "name": self.name,
+            "inputs": inputs_dict,
             "outputs": {
                 "main": {
                     "items": [{"ref": out, "deps": []} for out in self.outputs]
@@ -441,8 +506,11 @@ class DataikuRecipe:
             }
         elif self.recipe_type == RecipeType.GROUPING:
             return {
-                "keys": [{"column": k} for k in self.group_keys],
-                "aggregations": [a.to_dict() for a in self.aggregations],
+                "keys": [{"column": k, "type": "string"} for k in self.group_keys],
+                "values": [
+                    {"column": a.column, "type": "string", "$idx": i, "function": a.function.upper()}
+                    for i, a in enumerate(self.aggregations)
+                ],
                 "globalCount": False,
             }
         elif self.recipe_type == RecipeType.JOIN:

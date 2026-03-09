@@ -72,8 +72,8 @@ class TestScenarioTrigger:
         assert restored.params == trigger.params
 
     def test_trigger_types(self):
-        assert TriggerType.TIME_BASED.value == "time_based"
-        assert TriggerType.DATASET_CHANGE.value == "dataset_change"
+        assert TriggerType.TIME_BASED.value == "temporal"
+        assert TriggerType.DATASET_CHANGE.value == "dataset_modified"
         assert TriggerType.SQL_QUERY.value == "sql_query"
         assert TriggerType.PYTHON.value == "python"
 
@@ -112,11 +112,11 @@ class TestScenarioStep:
         assert restored.step_type == step.step_type
 
     def test_step_types(self):
-        assert StepType.BUILD.value == "build_dataset"
+        assert StepType.BUILD.value == "build_flowitem"
         assert StepType.TRAIN.value == "train_model"
         assert StepType.CHECK.value == "run_checks"
-        assert StepType.SQL_EXECUTE.value == "execute_sql"
-        assert StepType.PYTHON_EXECUTE.value == "execute_python"
+        assert StepType.SQL_EXECUTE.value == "exec_sql"
+        assert StepType.PYTHON_EXECUTE.value == "custom_python"
         assert StepType.SEND_MESSAGE.value == "send_message"
 
 

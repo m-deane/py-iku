@@ -39,7 +39,7 @@
 
 - Use pytest framework
 - All tests in `tests/test_py2dataiku/`
-- Current test count: 1807 tests (all should pass)
+- Current test count: ~1329 tests (all should pass)
 - Run with: `python -m pytest tests/ -v`
 
 ## Development Guidelines
