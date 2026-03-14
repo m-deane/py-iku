@@ -104,6 +104,21 @@ def _get_dss_recipe_type(recipe_type: RecipeType) -> str:
     return _DSS_RECIPE_TYPE_MAP.get(recipe_type, "python")
 
 
+def _deep_merge(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+    """Recursively merge *updates* into *base*, returning a new dict.
+
+    - Dict values are merged recursively.
+    - All other types in *updates* overwrite the corresponding key in *base*.
+    """
+    result = dict(base)
+    for key, value in updates.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
 class DSSFlowDeployer:
     """Deploy a DataikuFlow to a Dataiku DSS instance.
 
@@ -125,11 +140,13 @@ class DSSFlowDeployer:
         api_key: str,
         project_key: str,
         dry_run: bool = False,
+        connection_name: str = "filesystem_managed",
     ):
         self.host = host.rstrip("/") if host else ""
         self.api_key = api_key
         self.project_key = project_key
         self.dry_run = dry_run
+        self.connection_name = connection_name
         self._client = None
         self._project = None
 
@@ -219,15 +236,22 @@ class DSSFlowDeployer:
 
         return result
 
-    def deploy_dataset(self, dataset: DataikuDataset) -> Dict[str, Any]:
+    def deploy_dataset(
+        self,
+        dataset: DataikuDataset,
+        connection_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Create a single dataset in DSS.
 
         Args:
             dataset: The DataikuDataset to create.
+            connection_name: Override the connection name for this dataset.
+                Falls back to the deployer-level ``connection_name``.
 
         Returns:
             A summary dict with ``name`` and ``type`` keys.
         """
+        conn_name = connection_name or self.connection_name
         info = {
             "name": dataset.name,
             "type": dataset.dataset_type.value,
@@ -239,13 +263,19 @@ class DSSFlowDeployer:
             return info
 
         self._ensure_connected()
-        builder = self._project.new_managed_dataset(dataset.name)
 
-        # Set connection type
-        connection_type = dataset.connection_type.value
-        builder.with_store_into(connection_type)
-
-        ds_handle = builder.create()
+        if dataset.dataset_type == DatasetType.INPUT:
+            # INPUT datasets use create_dataset (not managed)
+            ds_handle = self._project.create_dataset(
+                dataset.name,
+                type=dataset.connection_type.value,
+                connection=conn_name,
+            )
+        else:
+            # INTERMEDIATE/OUTPUT datasets use new_managed_dataset
+            builder = self._project.new_managed_dataset(dataset.name)
+            builder.with_store_into(conn_name)
+            ds_handle = builder.create()
 
         # Apply schema if available
         if dataset.schema:
@@ -305,7 +335,14 @@ class DSSFlowDeployer:
         builder_args = self._get_recipe_builder_args(recipe)
         if builder_args:
             recipe_def = recipe_handle.get_definition()
-            recipe_def.get_json_payload().update(builder_args)
+            existing_payload = recipe_def.get_json_payload()
+            if isinstance(existing_payload, str):
+                # Code recipes (python, r, sql, etc.) have string payloads
+                recipe_def.set_json_payload(builder_args.get("code", existing_payload))
+            else:
+                merged = _deep_merge(existing_payload, builder_args)
+                for k, v in merged.items():
+                    existing_payload[k] = v
             recipe_handle.set_definition(recipe_def)
 
         return info

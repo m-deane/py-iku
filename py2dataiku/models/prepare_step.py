@@ -16,29 +16,29 @@ class ProcessorType(Enum):
     # Column manipulation
     COLUMN_RENAMER = "ColumnRenamer"
     COLUMN_COPIER = "ColumnCopier"
-    COLUMN_DELETER = "ColumnDeleter"
+    COLUMN_DELETER = "ColumnsSelector"  # DSS uses ColumnsSelector for column deletion
     COLUMNS_SELECTOR = "ColumnsSelector"
     COLUMN_REORDER = "ColumnReorder"
-    COLUMNS_CONCATENATOR = "ColumnsConcatenator"
+    COLUMNS_CONCATENATOR = "ColumnsConcat"
 
     # Missing value handling
     FILL_EMPTY_WITH_VALUE = "FillEmptyWithValue"
     REMOVE_ROWS_ON_EMPTY = "RemoveRowsOnEmpty"
-    FILL_EMPTY_WITH_PREVIOUS_NEXT = "FillEmptyWithPreviousNext"
+    FILL_EMPTY_WITH_PREVIOUS_NEXT = "UpDownFill"
     FILL_EMPTY_WITH_COMPUTED_VALUE = "FillEmptyWithComputedValue"
     IMPUTE_WITH_ML = "ImputeWithML"
 
     # String transformations
     STRING_TRANSFORMER = "StringTransformer"
     TOKENIZER = "Tokenizer"
-    REGEXP_EXTRACTOR = "RegexpExtractor"
+    REGEXP_EXTRACTOR = "PatternExtract"
     FIND_REPLACE = "FindReplace"
-    SPLIT_COLUMN = "SplitColumn"
-    CONCAT_COLUMNS = "ConcatColumns"
+    SPLIT_COLUMN = "ColumnsSplitter"
+    CONCAT_COLUMNS = "ColumnsConcat"
     HTML_STRIPPER = "HtmlStripper"
     MULTI_COLUMN_FIND_REPLACE = "MultiColumnFindReplace"
     NGRAMMER = "Ngrammer"
-    TEXT_SIMPLIFIER = "TextSimplifier"
+    TEXT_SIMPLIFIER = "SimplifyText"
     STEM_TEXT = "StemText"
     LEMMATIZE_TEXT = "LemmatizeText"
     LANGUAGE_DETECTOR = "LanguageDetector"
@@ -54,35 +54,35 @@ class ProcessorType(Enum):
 
     # Numeric transformations
     NUMERICAL_TRANSFORMER = "NumericalTransformer"
-    ROUND_COLUMN = "RoundColumn"
-    ABS_COLUMN = "AbsColumn"
-    CLIP_COLUMN = "ClipColumn"
+    ROUND_COLUMN = "Round"
+    ABS_COLUMN = "AbsColumn"  # No DSS equivalent: use CREATE_COLUMN_WITH_GREL with abs() expression
+    CLIP_COLUMN = "NumberClipping"
     BINNER = "Binner"
-    NORMALIZER = "Normalizer"
-    DISCRETIZER = "Discretizer"
-    QUANTILE_TRANSFORMER = "QuantileTransformer"
-    ROBUST_SCALER = "RobustScaler"
-    MIN_MAX_SCALER = "MinMaxScaler"
-    STANDARD_SCALER = "StandardScaler"
-    LOG_TRANSFORMER = "LogTransformer"
-    POWER_TRANSFORMER = "PowerTransformer"
-    BOX_COX_TRANSFORMER = "BoxCoxTransformer"
+    NORMALIZER = "MeasureNormalize"
+    DISCRETIZER = "Discretizer"  # No DSS equivalent: use BINNER processor instead
+    QUANTILE_TRANSFORMER = "QuantileTransformer"  # No DSS Prepare equivalent: ML preprocessing only
+    ROBUST_SCALER = "RobustScaler"  # No DSS Prepare equivalent: ML preprocessing only
+    MIN_MAX_SCALER = "MinMaxScaler"  # No DSS Prepare equivalent: use NORMALIZER (MeasureNormalize) with MIN_MAX mode
+    STANDARD_SCALER = "StandardScaler"  # No DSS Prepare equivalent: use NORMALIZER (MeasureNormalize) with ZSCORE mode
+    LOG_TRANSFORMER = "LogTransformer"  # No DSS Prepare equivalent: use NumericalTransformer with LOG mode
+    POWER_TRANSFORMER = "PowerTransformer"  # No DSS Prepare equivalent: ML preprocessing only
+    BOX_COX_TRANSFORMER = "BoxCoxTransformer"  # No DSS Prepare equivalent: ML preprocessing only
 
     # Type conversion
     TYPE_SETTER = "TypeSetter"
     DATE_PARSER = "DateParser"
     DATE_FORMATTER = "DateFormatter"
-    BOOLEAN_CONVERTER = "BooleanConverter"
-    NUMBER_TO_STRING = "NumberToString"
-    STRING_TO_NUMBER = "StringToNumber"
+    BOOLEAN_CONVERTER = "BooleanConverter"  # No DSS equivalent: use TYPE_SETTER instead
+    NUMBER_TO_STRING = "NumberToString"  # No DSS equivalent: use TYPE_SETTER instead
+    STRING_TO_NUMBER = "StringToNumber"  # No DSS equivalent: use TYPE_SETTER instead
 
     # Date/Time operations
-    DATE_COMPONENTS_EXTRACTOR = "DateComponentsExtractor"
-    DATE_DIFF_CALCULATOR = "DateDiffCalculator"
+    DATE_COMPONENTS_EXTRACTOR = "DateComponentExtractor"
+    DATE_DIFF_CALCULATOR = "DateDifference"
     HOLIDAYS_COMPUTER = "HolidaysComputer"
     TIMEZONE_CONVERTER = "TimezoneConverter"
     DATE_RANGE_CLASSIFIER = "DateRangeClassifier"
-    DATETIME_FORMATTER = "DatetimeFormatter"
+    DATETIME_FORMATTER = "DateFormatter"
     TIMESTAMP_EXTRACTOR = "TimestampExtractor"
 
     # Filtering
@@ -118,15 +118,15 @@ class ProcessorType(Enum):
     UUID_GENERATOR = "UUIDGenerator"
 
     # Categorical
-    MERGE_LONG_TAIL_VALUES = "MergeLongTailValues"
+    MERGE_LONG_TAIL_VALUES = "LongTailGrouper"
     CATEGORICAL_ENCODER = "CategoricalEncoder"
-    ONE_HOT_ENCODER = "OneHotEncoder"
-    LABEL_ENCODER = "LabelEncoder"
-    ORDINAL_ENCODER = "OrdinalEncoder"
-    TARGET_ENCODER = "TargetEncoder"
-    LEAVE_ONE_OUT_ENCODER = "LeaveOneOutEncoder"
-    WOE_ENCODER = "WOEEncoder"
-    FEATURE_HASHER = "FeatureHasher"
+    ONE_HOT_ENCODER = "OneHotEncoder"  # No DSS Prepare equivalent: ML preprocessing only, use CATEGORICAL_ENCODER
+    LABEL_ENCODER = "LabelEncoder"  # No DSS Prepare equivalent: ML preprocessing only, use CATEGORICAL_ENCODER
+    ORDINAL_ENCODER = "OrdinalEncoder"  # No DSS Prepare equivalent: ML preprocessing only, use CATEGORICAL_ENCODER
+    TARGET_ENCODER = "TargetEncoder"  # No DSS Prepare equivalent: ML preprocessing only
+    LEAVE_ONE_OUT_ENCODER = "LeaveOneOutEncoder"  # No DSS Prepare equivalent: ML preprocessing only
+    WOE_ENCODER = "WOEEncoder"  # No DSS Prepare equivalent: ML preprocessing only
+    FEATURE_HASHER = "FeatureHasher"  # No DSS Prepare equivalent: ML preprocessing only
 
     # Geographic
     GEO_POINT_CREATOR = "GeoPointCreator"

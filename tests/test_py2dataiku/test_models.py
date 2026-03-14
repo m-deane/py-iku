@@ -451,7 +451,7 @@ class TestRecipeApiDictStructure:
         )
         api = recipe.to_api_dict()
         assert api["type"] == "sampling"
-        assert api["params"]["samplingMethod"] == "RANDOM_FIXED"
+        assert api["params"]["samplingMethod"] == "RANDOM_FIXED_RATIO"
         assert api["params"]["sampleSize"] == 1000
 
 

@@ -87,6 +87,9 @@ class PrepareSettings(RecipeSettings):
                 "type": step.processor_type.value if hasattr(step.processor_type, 'value') else str(step.processor_type),
                 "disabled": step.disabled,
                 "params": step.params,
+                "preview": False,
+                "alwaysShowComment": False,
+                "comment": "",
             }
             steps.append(step_config)
 
@@ -97,7 +100,6 @@ class PrepareSettings(RecipeSettings):
         engine_params["dkuHadoop"] = {"inheritConf": "default"}
 
         return {
-            "mode": "BATCH",
             "steps": steps,
             "maxJobsPerCategory": {
                 "PREPARE_FILTERING": 1,
@@ -108,7 +110,7 @@ class PrepareSettings(RecipeSettings):
                 "PREPARE_EXPLODE": 1,
             },
             "engineParams": engine_params,
-            "columnsSelection": {"mode": "ALL"},
+            "colSelection": {"mode": "ALL"},
             "virtualInputs": [],
             "filterExpression": {},
         }
@@ -136,19 +138,20 @@ class GroupingSettings(RecipeSettings):
         }
 
     def to_dss_builder_args(self) -> Dict[str, Any]:
+        agg_flags = ("sum", "avg", "count", "min", "max", "stddev", "countDistinct")
+        values = []
+        for a in self.aggregations:
+            entry: Dict[str, Any] = {"column": a.column, "type": "COLUMN"}
+            func = a.function.upper()
+            for flag in agg_flags:
+                entry[flag] = (func == flag.upper())
+            values.append(entry)
         return {
             "engineParams": _default_engine_params(),
-            "keys": [{"column": k, "type": "string"} for k in self.keys],
-            "values": [
-                {
-                    "column": a.column,
-                    "type": "string",
-                    "$idx": i,
-                    "function": a.function.upper(),
-                }
-                for i, a in enumerate(self.aggregations)
-            ],
+            "keys": [{"column": k} for k in self.keys],
+            "values": values,
             "globalCount": self.global_count,
+            "computeMode": "GLOBAL",
             "preFilter": {},
             "postFilter": {},
             "computedColumns": [],
@@ -185,28 +188,33 @@ class JoinSettings(RecipeSettings):
         num_inputs = max(len(self.join_keys) + 1, 2) if self.join_keys else 2
         joins = []
         if self.join_keys:
+            conditions = []
+            for k in self.join_keys:
+                conditions.append({
+                    "type": "EQ",
+                    "column1": {"name": k.left_column, "table": 0},
+                    "column2": {"name": k.right_column, "table": 1},
+                })
             joins.append({
                 "table1": 0,
                 "table2": 1,
                 "conditionsMode": "AND",
-                "type": self.join_type,
-                "on": [k.to_dict() for k in self.join_keys],
+                "joinType": self.join_type,
+                "conditions": conditions,
                 "outerJoinOnTheLeft": True,
             })
         result: Dict[str, Any] = {
-            "mode": self.join_type,
             "engineParams": _default_engine_params(),
             "virtualInputs": [
-                {"index": i, "computedColumns": [], "originLabel": f"input_{i}"}
+                {"index": i, "computedColumns": [], "preFilter": {}}
                 for i in range(num_inputs)
             ],
             "joins": joins,
-            "preFilter": {},
             "postFilter": {},
             "enableAutoCastInJoinConditions": False,
             "computedColumns": [],
             "selectedColumns": self.selected_columns if self.selected_columns else [],
-            "outputColumnsSelectionMode": "MANUAL",
+            "limitOutputColumns": False,
         }
         return result
 
@@ -236,16 +244,28 @@ class WindowSettings(RecipeSettings):
         return self.to_dict()
 
     def to_dss_builder_args(self) -> Dict[str, Any]:
-        processed_aggs = []
-        for agg in self.aggregations:
+        values = []
+        for i, agg in enumerate(self.aggregations):
             entry = dict(agg)
-            if "type" in entry and hasattr(entry["type"], "value"):
-                entry["type"] = entry["type"].value
-            processed_aggs.append(entry)
+            agg_type = entry.pop("type", "")
+            if hasattr(agg_type, "value"):
+                agg_type = agg_type.value
+            values.append({
+                "column": entry.get("column", ""),
+                "windowAggregation": agg_type,
+                "outputColumn": entry.get("outputColumn", f"{entry.get('column', '')}_{agg_type}"),
+                "windowDefinitionIndex": 0,
+            })
+        window_def: Dict[str, Any] = {
+            "partitionBy": self.partition_columns,
+            "orderBy": self.order_columns,
+            "frameType": "ROWS",
+            "frameStart": {"mode": "UNBOUNDED_PRECEDING"},
+            "frameEnd": {"mode": "CURRENT_ROW"},
+        }
         return {
-            "partitionColumns": [{"column": c} for c in self.partition_columns],
-            "orderColumns": [{"column": c} for c in self.order_columns],
-            "aggregations": processed_aggs,
+            "windowDefinitions": [window_def],
+            "values": values,
         }
 
 
@@ -253,7 +273,7 @@ class WindowSettings(RecipeSettings):
 class SamplingSettings(RecipeSettings):
     """Settings for a Sampling recipe."""
 
-    sampling_method: str = "RANDOM"
+    sampling_method: str = "RANDOM_FIXED_NB"
     sample_size: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -270,9 +290,12 @@ class SamplingSettings(RecipeSettings):
     def to_dss_builder_args(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {
             "samplingMethod": self.sampling_method,
+            "targetRatio": 0.02,
+            "seed": 1337,
+            "ascendingOrder": True,
         }
         if self.sample_size is not None:
-            result["sampleSize"] = self.sample_size
+            result["maxRecords"] = self.sample_size
         return result
 
 
@@ -294,8 +317,15 @@ class SplitSettings(RecipeSettings):
 
     def to_dss_builder_args(self) -> Dict[str, Any]:
         return {
-            "splitMode": self.split_mode,
-            "condition": self.condition,
+            "mode": "VALUES",
+            "splits": [
+                {
+                    "filter": {"conditions": [], "enabled": True},
+                    "output": {},
+                }
+            ],
+            "column": "",
+            "defaultOutputIndex": -1,
         }
 
 
@@ -319,7 +349,7 @@ class SortSettings(RecipeSettings):
             "orders": [
                 {
                     "column": sc.get("column", ""),
-                    "desc": sc.get("order", "asc").lower() == "desc",
+                    "ascending": sc.get("order", "asc").lower() != "desc",
                 }
                 for sc in self.sort_columns
             ],
@@ -345,9 +375,13 @@ class TopNSettings(RecipeSettings):
         return self.to_dict()
 
     def to_dss_builder_args(self) -> Dict[str, Any]:
+        order_by = []
+        if self.ranking_column:
+            order_by.append({"column": self.ranking_column, "ascending": False})
         return {
-            "topN": self.top_n,
-            "rankingColumn": self.ranking_column,
+            "limit": self.top_n,
+            "orderBy": order_by,
+            "groupBy": [],
         }
 
 
@@ -369,6 +403,7 @@ class DistinctSettings(RecipeSettings):
         return {
             "engineParams": _default_engine_params(),
             "columns": [],
+            "keepAllColumns": True,
             "preFilter": {},
             "computedColumns": [],
             "postFilter": {},
@@ -390,8 +425,12 @@ class StackSettings(RecipeSettings):
         return self.to_dict()
 
     def to_dss_builder_args(self) -> Dict[str, Any]:
+        dss_mode = "UNION_ALL" if self.mode == "UNION" else self.mode
         return {
-            "mode": self.mode,
+            "mode": dss_mode,
+            "virtualInputs": [{"index": 0}, {"index": 1}],
+            "selectedColumns": [],
+            "originColumn": {"name": "__dku_input_origin", "enabled": False},
         }
 
 
@@ -441,9 +480,16 @@ class PivotSettings(RecipeSettings):
         return self.to_dict()
 
     def to_dss_builder_args(self) -> Dict[str, Any]:
+        aggregations = []
+        if self.value_column:
+            aggregations.append({
+                "column": self.value_column,
+                "type": self.aggregation.lower(),
+            })
         return {
-            "rowColumns": self.row_columns,
-            "columnColumn": self.column_column,
-            "valueColumn": self.value_column,
-            "aggregation": self.aggregation,
+            "keyColumns": self.row_columns,
+            "pivotColumn": self.column_column,
+            "aggregations": aggregations,
+            "pivotColumnMaxValues": 100,
+            "explicitValues": [],
         }

@@ -47,10 +47,10 @@ class ProcessorCatalog:
                 "outputColumn": "target_col",
             },
         ),
-        "ColumnDeleter": ProcessorInfo(
-            name="ColumnDeleter",
+        "ColumnsSelector_delete": ProcessorInfo(
+            name="ColumnsSelector",
             category="Column Manipulation",
-            description="Delete one or more columns",
+            description="Delete one or more columns (uses ColumnsSelector processor)",
             required_params=["columns"],
             optional_params=[],
             example_params={"columns": ["col1", "col2"]},
@@ -71,8 +71,8 @@ class ProcessorCatalog:
             optional_params=[],
             example_params={"columns": ["id", "name", "date", "value"]},
         ),
-        "ColumnsConcatenator": ProcessorInfo(
-            name="ColumnsConcatenator",
+        "ColumnsConcat": ProcessorInfo(
+            name="ColumnsConcat",
             category="Column Manipulation",
             description="Concatenate multiple columns into one",
             required_params=["columns", "outputColumn"],
@@ -100,8 +100,8 @@ class ProcessorCatalog:
             optional_params=["keep"],
             example_params={"columns": ["col1"], "keep": False},
         ),
-        "FillEmptyWithPreviousNext": ProcessorInfo(
-            name="FillEmptyWithPreviousNext",
+        "UpDownFill": ProcessorInfo(
+            name="UpDownFill",
             category="Missing Values",
             description="Fill empty cells with previous or next value",
             required_params=["column", "direction"],
@@ -146,8 +146,8 @@ class ProcessorCatalog:
                 "matchMode": "LITERAL",
             },
         ),
-        "RegexpExtractor": ProcessorInfo(
-            name="RegexpExtractor",
+        "PatternExtract": ProcessorInfo(
+            name="PatternExtract",
             category="String Operations",
             description="Extract values using regular expression",
             required_params=["column", "pattern"],
@@ -158,25 +158,13 @@ class ProcessorCatalog:
                 "outputColumns": ["extracted"],
             },
         ),
-        "SplitColumn": ProcessorInfo(
-            name="SplitColumn",
+        "ColumnsSplitter": ProcessorInfo(
+            name="ColumnsSplitter",
             category="String Operations",
             description="Split column values by separator",
             required_params=["column", "separator"],
             optional_params=["limit", "outputColumns"],
             example_params={"column": "full_name", "separator": " "},
-        ),
-        "ConcatColumns": ProcessorInfo(
-            name="ConcatColumns",
-            category="String Operations",
-            description="Concatenate multiple columns into one",
-            required_params=["columns", "outputColumn"],
-            optional_params=["separator"],
-            example_params={
-                "columns": ["first", "last"],
-                "outputColumn": "full_name",
-                "separator": " ",
-            },
         ),
         "Tokenizer": ProcessorInfo(
             name="Tokenizer",
@@ -214,8 +202,8 @@ class ProcessorCatalog:
             optional_params=["outputColumn"],
             example_params={"column": "text", "n": 2},
         ),
-        "TextSimplifier": ProcessorInfo(
-            name="TextSimplifier",
+        "SimplifyText": ProcessorInfo(
+            name="SimplifyText",
             category="String Operations",
             description="Simplify text by removing special characters and normalizing",
             required_params=["column"],
@@ -327,8 +315,8 @@ class ProcessorCatalog:
             optional_params=["value"],
             example_params={"column": "amount", "mode": "MULTIPLY", "value": 100},
         ),
-        "RoundColumn": ProcessorInfo(
-            name="RoundColumn",
+        "Round": ProcessorInfo(
+            name="Round",
             category="Numeric Operations",
             description="Round numeric values",
             required_params=["column"],
@@ -347,8 +335,8 @@ class ProcessorCatalog:
                 "bins": [0, 18, 35, 50, 100],
             },
         ),
-        "Normalizer": ProcessorInfo(
-            name="Normalizer",
+        "MeasureNormalize": ProcessorInfo(
+            name="MeasureNormalize",
             category="Numeric Operations",
             description="Normalize numeric values",
             required_params=["column", "mode"],
@@ -363,8 +351,8 @@ class ProcessorCatalog:
             optional_params=[],
             example_params={"column": "balance"},
         ),
-        "ClipColumn": ProcessorInfo(
-            name="ClipColumn",
+        "NumberClipping": ProcessorInfo(
+            name="NumberClipping",
             category="Numeric Operations",
             description="Clip numeric values to a range",
             required_params=["column"],
@@ -485,8 +473,8 @@ class ProcessorCatalog:
             example_params={"column": "amount"},
         ),
         # Date/Time operations
-        "DateComponentsExtractor": ProcessorInfo(
-            name="DateComponentsExtractor",
+        "DateComponentExtractor": ProcessorInfo(
+            name="DateComponentExtractor",
             category="Date/Time",
             description="Extract date components (year, month, day, etc.)",
             required_params=["column", "components"],
@@ -496,8 +484,8 @@ class ProcessorCatalog:
                 "components": ["YEAR", "MONTH", "DAY"],
             },
         ),
-        "DateDiffCalculator": ProcessorInfo(
-            name="DateDiffCalculator",
+        "DateDifference": ProcessorInfo(
+            name="DateDifference",
             category="Date/Time",
             description="Calculate difference between two dates",
             required_params=["column1", "column2"],
@@ -536,14 +524,6 @@ class ProcessorCatalog:
             required_params=["column"],
             optional_params=["ranges", "outputColumn"],
             example_params={"column": "date", "outputColumn": "date_bucket"},
-        ),
-        "DatetimeFormatter": ProcessorInfo(
-            name="DatetimeFormatter",
-            category="Date/Time",
-            description="Format datetime values to a specific pattern",
-            required_params=["column", "format"],
-            optional_params=[],
-            example_params={"column": "timestamp", "format": "yyyy-MM-dd HH:mm:ss"},
         ),
         "TimestampExtractor": ProcessorInfo(
             name="TimestampExtractor",
@@ -790,8 +770,8 @@ class ProcessorCatalog:
             },
         ),
         # Categorical
-        "MergeLongTailValues": ProcessorInfo(
-            name="MergeLongTailValues",
+        "LongTailGrouper": ProcessorInfo(
+            name="LongTailGrouper",
             category="Categorical",
             description="Merge infrequent categorical values",
             required_params=["column"],

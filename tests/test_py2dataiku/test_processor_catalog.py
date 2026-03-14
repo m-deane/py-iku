@@ -36,14 +36,14 @@ class TestGetProcessor:
         assert info is not None
 
     @pytest.mark.parametrize("name", [
-        "ColumnRenamer", "ColumnCopier", "ColumnDeleter", "ColumnsSelector",
-        "FillEmptyWithValue", "RemoveRowsOnEmpty", "FillEmptyWithPreviousNext",
-        "StringTransformer", "FindReplace", "RegexpExtractor", "SplitColumn",
-        "ConcatColumns", "Tokenizer", "NumericalTransformer", "RoundColumn",
-        "Binner", "Normalizer", "TypeSetter", "DateParser", "DateFormatter",
+        "ColumnRenamer", "ColumnCopier", "ColumnsSelector_delete", "ColumnsSelector",
+        "FillEmptyWithValue", "RemoveRowsOnEmpty", "UpDownFill",
+        "StringTransformer", "FindReplace", "PatternExtract", "ColumnsSplitter",
+        "Tokenizer", "NumericalTransformer", "Round",
+        "Binner", "MeasureNormalize", "TypeSetter", "DateParser", "DateFormatter",
         "FilterOnValue", "FilterOnFormula", "FilterOnNumericRange",
         "RemoveDuplicates", "SortRows", "CreateColumnWithGREL", "Formula",
-        "FlagOnValue", "MergeLongTailValues", "PythonUDF",
+        "FlagOnValue", "LongTailGrouper", "PythonUDF",
     ])
     def test_all_catalog_processors_are_retrievable(self, name):
         info = ProcessorCatalog.get_processor(name)

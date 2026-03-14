@@ -207,7 +207,7 @@ class DSSExporter:
         is_input = dataset.dataset_type == DatasetType.INPUT
 
         dataset_json = {
-            "type": "Filesystem" if is_input else "Managed",
+            "type": "Filesystem" if is_input else dataset.connection_type.value,
             "managed": not is_input,
             "name": dataset.name,
             "projectKey": self.config.project_key,
@@ -349,7 +349,15 @@ class DSSExporter:
             RecipeType.TOP_N: "topn",
             RecipeType.SAMPLING: "sampling",
             RecipeType.PYTHON: "python",
-            RecipeType.SQL: "sql_query",
+            RecipeType.SQL: "sql_script",
+            RecipeType.R: "r",
+            RecipeType.HIVE: "hive",
+            RecipeType.IMPALA: "impala",
+            RecipeType.SPARKSQL: "spark_sql_query",
+            RecipeType.PYSPARK: "pyspark",
+            RecipeType.SPARK_SCALA: "spark_scala",
+            RecipeType.SPARKR: "sparkr",
+            RecipeType.SHELL: "shell",
             RecipeType.SYNC: "sync",
             RecipeType.DOWNLOAD: "download",
         }
@@ -368,7 +376,7 @@ class DSSExporter:
     def _format_io_items(self, names: List[str]) -> Dict[str, Any]:
         """Format input/output items for DSS recipe."""
         return {
-            "items": [{"ref": name, "deps": []} for name in names]
+            "items": [{"ref": name, "appendMode": False} for name in names]
         }
 
     def _build_recipe_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
@@ -396,11 +404,13 @@ class DSSExporter:
                 "type": step.processor_type.value if hasattr(step.processor_type, 'value') else str(step.processor_type),
                 "disabled": step.disabled,
                 "params": step.params,
+                "preview": False,
+                "alwaysShowComment": False,
+                "comment": "",
             }
             steps.append(step_config)
 
         return {
-            "mode": "BATCH",
             "steps": steps,
             "maxJobsPerCategory": {
                 "PREPARE_FILTERING": 1,
@@ -428,7 +438,7 @@ class DSSExporter:
                     "inheritConf": "default",
                 },
             },
-            "columnsSelection": {
+            "colSelection": {
                 "mode": "ALL",
             },
             "virtualInputs": [],
@@ -437,8 +447,15 @@ class DSSExporter:
 
     def _build_join_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build Join recipe payload."""
+        join_type = recipe.join_type.value if hasattr(recipe.join_type, 'value') else "LEFT"
+        conditions = []
+        for k in recipe.join_keys:
+            conditions.append({
+                "type": "EQ",
+                "column1": {"name": k.left_column, "table": 0},
+                "column2": {"name": k.right_column, "table": 1},
+            })
         return {
-            "mode": "LEFT",
             "engineParams": {
                 "hive": {"skipPrerunValidate": False, "hiveconf": [], "inheritConf": "default"},
                 "sqlPipelineParams": {"pipelineAllowMerge": True, "pipelineAllowStart": True},
@@ -446,27 +463,34 @@ class DSSExporter:
                 "spark": {"inheritConf": "default", "sparkConf": []},
             },
             "virtualInputs": [
-                {"index": i, "computedColumns": [], "originLabel": f"input_{i}"}
+                {"index": i, "computedColumns": [], "preFilter": {}}
                 for i in range(len(recipe.inputs))
             ],
             "joins": [{
                 "table1": 0,
                 "table2": 1,
                 "conditionsMode": "AND",
-                "type": recipe.join_type.value if hasattr(recipe.join_type, 'value') else "LEFT",
-                "on": [k.to_dict() for k in recipe.join_keys],
+                "joinType": join_type,
+                "conditions": conditions,
                 "outerJoinOnTheLeft": True,
             }] if len(recipe.inputs) > 1 else [],
-            "preFilter": {},
             "postFilter": {},
             "enableAutoCastInJoinConditions": False,
             "computedColumns": [],
             "selectedColumns": [],
-            "outputColumnsSelectionMode": "MANUAL",
+            "limitOutputColumns": False,
         }
 
     def _build_grouping_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
         """Build Grouping recipe payload."""
+        agg_flags = ("sum", "avg", "count", "min", "max", "stddev", "countDistinct")
+        values = []
+        for a in recipe.aggregations:
+            entry: Dict[str, Any] = {"column": a.column, "type": "COLUMN"}
+            func = a.function.upper()
+            for flag in agg_flags:
+                entry[flag] = (func == flag.upper())
+            values.append(entry)
         return {
             "engineParams": {
                 "hive": {"skipPrerunValidate": False, "hiveconf": [], "inheritConf": "default"},
@@ -474,12 +498,10 @@ class DSSExporter:
                 "impala": {"forceStreamMode": True},
                 "spark": {"inheritConf": "default", "sparkConf": []},
             },
-            "keys": [{"column": k, "type": "string"} for k in recipe.group_keys],
-            "values": [
-                {"column": a.column, "type": "string", "$idx": i, "function": a.function.upper()}
-                for i, a in enumerate(recipe.aggregations)
-            ],
+            "keys": [{"column": k} for k in recipe.group_keys],
+            "values": values,
             "globalCount": False,
+            "computeMode": "GLOBAL",
             "preFilter": {},
             "postFilter": {},
             "computedColumns": [],
@@ -497,7 +519,7 @@ class DSSExporter:
             "orders": [
                 {
                     "column": sc.get("column", ""),
-                    "desc": sc.get("order", "asc").lower() == "desc",
+                    "ascending": sc.get("order", "asc").lower() != "desc",
                 }
                 for sc in recipe.sort_columns
             ],
@@ -515,6 +537,7 @@ class DSSExporter:
                 "spark": {"inheritConf": "default", "sparkConf": []},
             },
             "columns": [],
+            "keepAllColumns": True,
             "preFilter": {},
             "computedColumns": [],
             "postFilter": {},
@@ -541,12 +564,29 @@ class DSSExporter:
 
     def _export_flow_zones(self, project_dir: str) -> None:
         """Export flow zone configuration."""
+        project_key = self.config.project_key
+
+        # Populate items from flow datasets and recipes
+        items = []
+        for dataset in self.flow.datasets:
+            items.append({
+                "objectId": dataset.name,
+                "objectType": "DATASET",
+                "projectKey": project_key,
+            })
+        for recipe in self.flow.recipes:
+            items.append({
+                "objectId": recipe.name,
+                "objectType": "RECIPE",
+                "projectKey": project_key,
+            })
+
         zones = {
             "zones": [{
                 "id": "default",
                 "name": "Default",
                 "color": "#2980b9",
-                "items": [],
+                "items": items,
             }],
             "zonesOrder": ["default"],
         }

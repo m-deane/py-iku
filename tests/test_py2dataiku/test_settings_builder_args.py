@@ -77,17 +77,17 @@ class TestPrepareSettingsBuilderArgs:
     def test_empty_steps(self):
         settings = PrepareSettings()
         result = settings.to_dss_builder_args()
-        assert result["mode"] == "BATCH"
+        assert "mode" not in result
         assert result["steps"] == []
         assert "engineParams" in result
-        assert result["columnsSelection"] == {"mode": "ALL"}
+        assert result["colSelection"] == {"mode": "ALL"}
         assert result["virtualInputs"] == []
         assert result["filterExpression"] == {}
 
-    def test_mode_is_batch_not_normal(self):
+    def test_mode_not_in_builder_args(self):
         settings = PrepareSettings(mode="NORMAL")
         result = settings.to_dss_builder_args()
-        assert result["mode"] == "BATCH"
+        assert "mode" not in result
 
     def test_with_steps(self):
         step = PrepareStep(
@@ -100,6 +100,9 @@ class TestPrepareSettingsBuilderArgs:
         assert result["steps"][0]["type"] == "ColumnRenamer"
         assert result["steps"][0]["params"]["inputColumn"] == "old_name"
         assert result["steps"][0]["disabled"] is False
+        assert result["steps"][0]["preview"] is False
+        assert result["steps"][0]["alwaysShowComment"] is False
+        assert result["steps"][0]["comment"] == ""
 
     def test_engine_params_structure(self):
         settings = PrepareSettings()
@@ -153,15 +156,15 @@ class TestGroupingSettingsBuilderArgs:
         assert result["postFilter"] == {}
         assert result["computedColumns"] == []
 
-    def test_keys_have_type_field(self):
+    def test_keys_no_type_field(self):
         settings = GroupingSettings(keys=["category", "region"])
         result = settings.to_dss_builder_args()
         assert result["keys"] == [
-            {"column": "category", "type": "string"},
-            {"column": "region", "type": "string"},
+            {"column": "category"},
+            {"column": "region"},
         ]
 
-    def test_values_have_idx(self):
+    def test_values_have_boolean_flags(self):
         aggs = [
             Aggregation(column="amount", function="SUM"),
             Aggregation(column="count", function="AVG"),
@@ -169,23 +172,30 @@ class TestGroupingSettingsBuilderArgs:
         settings = GroupingSettings(keys=["category"], aggregations=aggs)
         result = settings.to_dss_builder_args()
         assert len(result["values"]) == 2
-        assert result["values"][0]["$idx"] == 0
         assert result["values"][0]["column"] == "amount"
-        assert result["values"][0]["function"] == "SUM"
-        assert result["values"][1]["$idx"] == 1
+        assert result["values"][0]["type"] == "COLUMN"
+        assert result["values"][0]["sum"] is True
+        assert result["values"][0]["avg"] is False
         assert result["values"][1]["column"] == "count"
-        assert result["values"][1]["function"] == "AVG"
+        assert result["values"][1]["avg"] is True
+        assert result["values"][1]["sum"] is False
+
+    def test_compute_mode_global(self):
+        settings = GroupingSettings()
+        result = settings.to_dss_builder_args()
+        assert result["computeMode"] == "GLOBAL"
 
     def test_global_count_true(self):
         settings = GroupingSettings(global_count=True)
         result = settings.to_dss_builder_args()
         assert result["globalCount"] is True
 
-    def test_function_uppercased(self):
+    def test_function_sets_correct_flag(self):
         aggs = [Aggregation(column="val", function="sum")]
         settings = GroupingSettings(aggregations=aggs)
         result = settings.to_dss_builder_args()
-        assert result["values"][0]["function"] == "SUM"
+        assert result["values"][0]["sum"] is True
+        assert result["values"][0]["avg"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -197,34 +207,39 @@ class TestJoinSettingsBuilderArgs:
     def test_empty(self):
         settings = JoinSettings()
         result = settings.to_dss_builder_args()
-        assert result["mode"] == "LEFT"
+        assert "mode" not in result
         assert "engineParams" in result
-        assert result["preFilter"] == {}
         assert result["postFilter"] == {}
         assert result["enableAutoCastInJoinConditions"] is False
         assert result["computedColumns"] == []
-        assert result["outputColumnsSelectionMode"] == "MANUAL"
+        assert result["limitOutputColumns"] is False
 
-    def test_virtual_inputs(self):
+    def test_virtual_inputs_have_prefilter(self):
         keys = [JoinKey(left_column="id", right_column="id")]
         settings = JoinSettings(join_keys=keys)
         result = settings.to_dss_builder_args()
         assert len(result["virtualInputs"]) == 2
         assert result["virtualInputs"][0]["index"] == 0
+        assert result["virtualInputs"][0]["preFilter"] == {}
         assert result["virtualInputs"][1]["index"] == 1
 
     def test_join_condition(self):
         keys = [JoinKey(left_column="id", right_column="user_id")]
         settings = JoinSettings(join_type="INNER", join_keys=keys)
         result = settings.to_dss_builder_args()
-        assert result["mode"] == "INNER"
         assert len(result["joins"]) == 1
         join = result["joins"][0]
         assert join["table1"] == 0
         assert join["table2"] == 1
         assert join["conditionsMode"] == "AND"
-        assert join["type"] == "INNER"
+        assert join["joinType"] == "INNER"
         assert join["outerJoinOnTheLeft"] is True
+        # Verify DSS condition structure
+        assert len(join["conditions"]) == 1
+        cond = join["conditions"][0]
+        assert cond["type"] == "EQ"
+        assert cond["column1"] == {"name": "id", "table": 0}
+        assert cond["column2"] == {"name": "user_id", "table": 1}
 
     def test_selected_columns(self):
         settings = JoinSettings(
@@ -251,9 +266,10 @@ class TestWindowSettingsBuilderArgs:
     def test_empty(self):
         settings = WindowSettings()
         result = settings.to_dss_builder_args()
-        assert result["partitionColumns"] == []
-        assert result["orderColumns"] == []
-        assert result["aggregations"] == []
+        assert len(result["windowDefinitions"]) == 1
+        assert result["windowDefinitions"][0]["partitionBy"] == []
+        assert result["windowDefinitions"][0]["orderBy"] == []
+        assert result["values"] == []
 
     def test_partition_and_order(self):
         settings = WindowSettings(
@@ -261,8 +277,17 @@ class TestWindowSettingsBuilderArgs:
             order_columns=["date"],
         )
         result = settings.to_dss_builder_args()
-        assert result["partitionColumns"] == [{"column": "category"}]
-        assert result["orderColumns"] == [{"column": "date"}]
+        wd = result["windowDefinitions"][0]
+        assert wd["partitionBy"] == ["category"]
+        assert wd["orderBy"] == ["date"]
+
+    def test_frame_spec(self):
+        settings = WindowSettings()
+        result = settings.to_dss_builder_args()
+        wd = result["windowDefinitions"][0]
+        assert wd["frameType"] == "ROWS"
+        assert wd["frameStart"] == {"mode": "UNBOUNDED_PRECEDING"}
+        assert wd["frameEnd"] == {"mode": "CURRENT_ROW"}
 
     def test_aggregations_with_enum_type(self):
         from py2dataiku.models.dataiku_recipe import WindowFunctionType
@@ -270,21 +295,22 @@ class TestWindowSettingsBuilderArgs:
         aggs = [{"type": WindowFunctionType.RUNNING_SUM, "column": "amount"}]
         settings = WindowSettings(aggregations=aggs)
         result = settings.to_dss_builder_args()
-        assert result["aggregations"][0]["type"] == "RUNNING_SUM"
-        assert result["aggregations"][0]["column"] == "amount"
+        assert result["values"][0]["windowAggregation"] == "RUNNING_SUM"
+        assert result["values"][0]["column"] == "amount"
+        assert result["values"][0]["windowDefinitionIndex"] == 0
 
     def test_aggregations_with_string_type(self):
         aggs = [{"type": "RANK", "column": "score"}]
         settings = WindowSettings(aggregations=aggs)
         result = settings.to_dss_builder_args()
-        assert result["aggregations"][0]["type"] == "RANK"
+        assert result["values"][0]["windowAggregation"] == "RANK"
 
     def test_multiple_partition_columns(self):
         settings = WindowSettings(
             partition_columns=["region", "category", "year"],
         )
         result = settings.to_dss_builder_args()
-        assert len(result["partitionColumns"]) == 3
+        assert len(result["windowDefinitions"][0]["partitionBy"]) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -296,25 +322,28 @@ class TestSamplingSettingsBuilderArgs:
     def test_default(self):
         settings = SamplingSettings()
         result = settings.to_dss_builder_args()
-        assert result["samplingMethod"] == "RANDOM"
-        assert "sampleSize" not in result
+        assert result["samplingMethod"] == "RANDOM_FIXED_NB"
+        assert "maxRecords" not in result
+        assert result["targetRatio"] == 0.02
+        assert result["seed"] == 1337
+        assert result["ascendingOrder"] is True
 
     def test_with_sample_size(self):
         settings = SamplingSettings(sample_size=1000)
         result = settings.to_dss_builder_args()
-        assert result["samplingMethod"] == "RANDOM"
-        assert result["sampleSize"] == 1000
+        assert result["samplingMethod"] == "RANDOM_FIXED_NB"
+        assert result["maxRecords"] == 1000
 
     def test_first_rows(self):
-        settings = SamplingSettings(sampling_method="FIRST_ROWS", sample_size=500)
+        settings = SamplingSettings(sampling_method="HEAD_SEQUENTIAL", sample_size=500)
         result = settings.to_dss_builder_args()
-        assert result["samplingMethod"] == "FIRST_ROWS"
-        assert result["sampleSize"] == 500
+        assert result["samplingMethod"] == "HEAD_SEQUENTIAL"
+        assert result["maxRecords"] == 500
 
     def test_sample_size_zero(self):
         settings = SamplingSettings(sample_size=0)
         result = settings.to_dss_builder_args()
-        assert result["sampleSize"] == 0
+        assert result["maxRecords"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -326,18 +355,23 @@ class TestSplitSettingsBuilderArgs:
     def test_default(self):
         settings = SplitSettings()
         result = settings.to_dss_builder_args()
-        assert result["splitMode"] == "FILTER"
-        assert result["condition"] == ""
+        assert result["mode"] == "VALUES"
+        assert "splits" in result
+        assert len(result["splits"]) == 1
+        assert result["splits"][0]["filter"]["enabled"] is True
+        assert result["column"] == ""
+        assert result["defaultOutputIndex"] == -1
 
-    def test_with_condition(self):
+    def test_splits_structure(self):
         settings = SplitSettings(condition="val(age) > 18")
         result = settings.to_dss_builder_args()
-        assert result["condition"] == "val(age) > 18"
+        assert result["splits"][0]["filter"]["conditions"] == []
+        assert "output" in result["splits"][0]
 
-    def test_column_value_mode(self):
+    def test_always_values_mode(self):
         settings = SplitSettings(split_mode="COLUMN_VALUE", condition="status == 'active'")
         result = settings.to_dss_builder_args()
-        assert result["splitMode"] == "COLUMN_VALUE"
+        assert result["mode"] == "VALUES"
 
 
 # ---------------------------------------------------------------------------
@@ -359,13 +393,13 @@ class TestSortSettingsBuilderArgs:
         result = settings.to_dss_builder_args()
         assert len(result["orders"]) == 1
         assert result["orders"][0]["column"] == "name"
-        assert result["orders"][0]["desc"] is False
+        assert result["orders"][0]["ascending"] is True
 
     def test_single_descending(self):
         settings = SortSettings(sort_columns=[{"column": "price", "order": "desc"}])
         result = settings.to_dss_builder_args()
         assert result["orders"][0]["column"] == "price"
-        assert result["orders"][0]["desc"] is True
+        assert result["orders"][0]["ascending"] is False
 
     def test_multiple_columns(self):
         settings = SortSettings(
@@ -376,13 +410,13 @@ class TestSortSettingsBuilderArgs:
         )
         result = settings.to_dss_builder_args()
         assert len(result["orders"]) == 2
-        assert result["orders"][0]["desc"] is False
-        assert result["orders"][1]["desc"] is True
+        assert result["orders"][0]["ascending"] is True
+        assert result["orders"][1]["ascending"] is False
 
     def test_default_order_is_asc(self):
         settings = SortSettings(sort_columns=[{"column": "x"}])
         result = settings.to_dss_builder_args()
-        assert result["orders"][0]["desc"] is False
+        assert result["orders"][0]["ascending"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -394,19 +428,20 @@ class TestTopNSettingsBuilderArgs:
     def test_default(self):
         settings = TopNSettings()
         result = settings.to_dss_builder_args()
-        assert result["topN"] == 10
-        assert result["rankingColumn"] is None
+        assert result["limit"] == 10
+        assert result["orderBy"] == []
+        assert result["groupBy"] == []
 
     def test_custom(self):
         settings = TopNSettings(top_n=5, ranking_column="score")
         result = settings.to_dss_builder_args()
-        assert result["topN"] == 5
-        assert result["rankingColumn"] == "score"
+        assert result["limit"] == 5
+        assert result["orderBy"] == [{"column": "score", "ascending": False}]
 
     def test_top_n_one(self):
         settings = TopNSettings(top_n=1, ranking_column="revenue")
         result = settings.to_dss_builder_args()
-        assert result["topN"] == 1
+        assert result["limit"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -420,6 +455,7 @@ class TestDistinctSettingsBuilderArgs:
         result = settings.to_dss_builder_args()
         assert "engineParams" in result
         assert result["columns"] == []
+        assert result["keepAllColumns"] is True
         assert result["preFilter"] == {}
         assert result["computedColumns"] == []
         assert result["postFilter"] == {}
@@ -439,7 +475,10 @@ class TestStackSettingsBuilderArgs:
     def test_default(self):
         settings = StackSettings()
         result = settings.to_dss_builder_args()
-        assert result["mode"] == "UNION"
+        assert result["mode"] == "UNION_ALL"
+        assert result["virtualInputs"] == [{"index": 0}, {"index": 1}]
+        assert result["selectedColumns"] == []
+        assert result["originColumn"] == {"name": "__dku_input_origin", "enabled": False}
 
     def test_custom_mode(self):
         settings = StackSettings(mode="INTERSECT")
@@ -483,10 +522,11 @@ class TestPivotSettingsBuilderArgs:
     def test_default(self):
         settings = PivotSettings()
         result = settings.to_dss_builder_args()
-        assert result["rowColumns"] == []
-        assert result["columnColumn"] == ""
-        assert result["valueColumn"] == ""
-        assert result["aggregation"] == "SUM"
+        assert result["keyColumns"] == []
+        assert result["pivotColumn"] == ""
+        assert result["aggregations"] == []
+        assert result["pivotColumnMaxValues"] == 100
+        assert result["explicitValues"] == []
 
     def test_custom(self):
         settings = PivotSettings(
@@ -496,10 +536,9 @@ class TestPivotSettingsBuilderArgs:
             aggregation="AVG",
         )
         result = settings.to_dss_builder_args()
-        assert result["rowColumns"] == ["region", "year"]
-        assert result["columnColumn"] == "product"
-        assert result["valueColumn"] == "revenue"
-        assert result["aggregation"] == "AVG"
+        assert result["keyColumns"] == ["region", "year"]
+        assert result["pivotColumn"] == "product"
+        assert result["aggregations"] == [{"column": "revenue", "type": "avg"}]
 
 
 # ---------------------------------------------------------------------------

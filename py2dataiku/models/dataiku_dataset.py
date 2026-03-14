@@ -24,7 +24,7 @@ class DatasetConnectionType(Enum):
     SQL_REDSHIFT = "Redshift"
     S3 = "S3"
     GCS = "GCS"
-    AZURE_BLOB = "AzureBlob"
+    AZURE_BLOB = "Azure"
     HDFS = "HDFS"
     MANAGED_FOLDER = "ManagedFolder"
     MONGODB = "MongoDB"
@@ -84,13 +84,19 @@ class DataikuDataset:
             "notes": self.notes,
         }
 
-    def to_json(self) -> Dict[str, Any]:
-        """Convert to Dataiku API-compatible JSON."""
-        result = {
+    def to_json(self, project_key: str = "") -> Dict[str, Any]:
+        """Convert to Dataiku API-compatible JSON.
+
+        Args:
+            project_key: The DSS project key. If empty, the field is omitted.
+        """
+        result: Dict[str, Any] = {
             "name": self.name,
-            "projectKey": "${PROJECT_KEY}",  # Placeholder
             "type": self.connection_type.value,
+            "versionTag": {"versionNumber": 0},
         }
+        if project_key:
+            result["projectKey"] = project_key
         if self.schema:
             result["schema"] = {
                 "columns": [col.to_dict() for col in self.schema],

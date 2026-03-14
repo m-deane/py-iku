@@ -22,8 +22,8 @@ class RecipeType(Enum):
     GROUPING = "grouping"
     WINDOW = "window"
     JOIN = "join"
-    FUZZY_JOIN = "fuzzy_join"
-    GEO_JOIN = "geo_join"
+    FUZZY_JOIN = "fuzzyjoin"
+    GEO_JOIN = "geojoin"
     STACK = "stack"
     SPLIT = "split"
     SORT = "sort"
@@ -48,10 +48,10 @@ class RecipeType(Enum):
     R = "r"
 
     # Code recipes - SQL variants
-    SQL = "sql_query"
+    SQL = "sql_script"
     HIVE = "hive"
     IMPALA = "impala"
-    SPARKSQL = "sparksql"
+    SPARKSQL = "spark_sql_query"
 
     # Code recipes - Spark variants
     PYSPARK = "pyspark"
@@ -64,7 +64,7 @@ class RecipeType(Enum):
     # ML recipes (purple)
     PREDICTION_SCORING = "prediction_scoring"
     CLUSTERING_SCORING = "clustering_scoring"
-    EVALUATION = "evaluation"
+    EVALUATION = "standalone_evaluation"
 
     # AI-assisted
     AI_ASSISTANT_GENERATE = "ai_assistant_generate"
@@ -208,10 +208,10 @@ class SplitMode(Enum):
 class SamplingMethod(Enum):
     """Sampling methods for Sampling recipe."""
 
-    RANDOM = "RANDOM"
-    RANDOM_FIXED = "RANDOM_FIXED"
-    FIRST_ROWS = "FIRST_ROWS"
-    LAST_ROWS = "LAST_ROWS"
+    RANDOM = "RANDOM_FIXED_NB"
+    RANDOM_FIXED = "RANDOM_FIXED_RATIO"
+    FIRST_ROWS = "HEAD_SEQUENTIAL"
+    LAST_ROWS = "TAIL_SEQUENTIAL"
     STRATIFIED = "STRATIFIED"
     CLASS_REBALANCE = "CLASS_REBALANCE"
     RESERVOIR = "RESERVOIR"
@@ -385,13 +385,16 @@ class DataikuRecipe:
         "stack": "vstack",
     }
 
-    def to_api_dict(self) -> Dict[str, Any]:
+    def to_api_dict(self, project_key: str = "") -> Dict[str, Any]:
         """Convert to Dataiku DSS API-compatible dictionary.
 
         Produces output consistent with the DSSExporter format:
         - Recipe types use DSS names (e.g. ``"shaker"`` for PREPARE)
         - Inputs/outputs use the nested ``{"main": {"items": [...]}}`` structure
         - Settings are under a ``"params"`` key (not ``"settings"``)
+
+        Args:
+            project_key: Optional DSS project key. Included when provided.
         """
         dss_type = self._DSS_TYPE_MAP.get(
             self.recipe_type.value, self.recipe_type.value
@@ -401,15 +404,19 @@ class DataikuRecipe:
             "name": self.name,
             "inputs": {
                 "main": {
-                    "items": [{"ref": inp, "deps": []} for inp in self.inputs]
+                    "items": [{"ref": inp, "appendMode": False} for inp in self.inputs]
                 }
             },
             "outputs": {
                 "main": {
-                    "items": [{"ref": out, "deps": []} for out in self.outputs]
+                    "items": [{"ref": out, "appendMode": False} for out in self.outputs]
                 }
             },
+            "versionTag": {"versionNumber": 0},
         }
+
+        if project_key:
+            base["projectKey"] = project_key
 
         settings = self._build_settings()
         if settings:
@@ -417,13 +424,13 @@ class DataikuRecipe:
 
         return base
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self, project_key: str = "") -> Dict[str, Any]:
         """Convert to Dataiku API-compatible dictionary.
 
         Note: This method returns a dict, not a JSON string. It is an alias
         for ``to_api_dict()`` kept for backward compatibility.
         """
-        return self.to_api_dict()
+        return self.to_api_dict(project_key=project_key)
 
     def _build_settings(self) -> Dict[str, Any]:
         """Build recipe-specific settings.

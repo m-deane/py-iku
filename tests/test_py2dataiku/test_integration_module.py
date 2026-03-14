@@ -473,7 +473,6 @@ class TestDeployRecipeDryRun:
         info = self.deployer.deploy_recipe(recipe)
         builder_args = info["builder_args"]
         assert "steps" in builder_args
-        assert builder_args["mode"] == "BATCH"
         assert len(builder_args["steps"]) == 1
 
     def test_recipe_builder_args_grouping_settings(self):
@@ -490,7 +489,8 @@ class TestDeployRecipeDryRun:
         info = self.deployer.deploy_recipe(recipe)
         ba = info["builder_args"]
         assert ba["keys"][0]["column"] == "region"
-        assert ba["values"][0]["function"] == "SUM"
+        assert ba["values"][0]["column"] == "sales"
+        assert ba["values"][0]["sum"] is True
 
 
 # ===========================================================================

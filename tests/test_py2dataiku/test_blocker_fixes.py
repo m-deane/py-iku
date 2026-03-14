@@ -100,7 +100,7 @@ class TestApiDictFormat:
         assert api["type"] == "vstack"
 
     def test_inputs_nested_format(self):
-        """Inputs must use nested {"main": {"items": [{"ref": ..., "deps": []}]}} format."""
+        """Inputs must use nested {"main": {"items": [{"ref": ..., "appendMode": false}]}} format."""
         recipe = DataikuRecipe.create_prepare("p", "input_ds", "output_ds")
         api = recipe.to_api_dict()
 
@@ -110,7 +110,7 @@ class TestApiDictFormat:
         items = api["inputs"]["main"]["items"]
         assert len(items) == 1
         assert items[0]["ref"] == "input_ds"
-        assert items[0]["deps"] == []
+        assert items[0]["appendMode"] is False
 
     def test_outputs_nested_format(self):
         """Outputs must use the same nested format as inputs."""
@@ -122,7 +122,7 @@ class TestApiDictFormat:
         items = api["outputs"]["main"]["items"]
         assert len(items) == 1
         assert items[0]["ref"] == "output_ds"
-        assert items[0]["deps"] == []
+        assert items[0]["appendMode"] is False
 
     def test_settings_key_is_params(self):
         """Settings should be under 'params' key, not 'settings'."""
