@@ -19,6 +19,7 @@ from py2dataiku.visualizers.plantuml_visualizer import PlantUMLVisualizer
 from py2dataiku.visualizers.html_visualizer import HTMLVisualizer
 from py2dataiku.visualizers.interactive_visualizer import InteractiveVisualizer
 from py2dataiku.visualizers.mermaid_visualizer import MermaidVisualizer
+from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
 
 __all__ = [
     "FlowVisualizer",
@@ -34,6 +35,7 @@ __all__ = [
     "HTMLVisualizer",
     "InteractiveVisualizer",
     "MermaidVisualizer",
+    "MatplotlibVisualizer",
     "visualize_flow",
 ]
 

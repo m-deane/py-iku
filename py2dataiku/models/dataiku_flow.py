@@ -551,21 +551,29 @@ class DataikuFlow:
 
     # Visualization methods
 
-    def visualize(self, format: str = "svg", **kwargs) -> str:
+    def visualize(self, format: str = "svg", **kwargs):
         """
         Generate a visual representation of the flow.
 
         Args:
-            format: Output format - "svg", "ascii", "plantuml", "html", "mermaid"
+            format: Output format - "svg", "ascii", "plantuml", "html", "mermaid",
+                    "png", "matplotlib"
             **kwargs: Additional arguments passed to the visualizer
 
         Returns:
-            String containing the visualization in the requested format
+            String containing the visualization in the requested format,
+            or bytes for "png"/"matplotlib" format (PNG image data).
         """
         if format == "mermaid":
             # Use existing diagram generator for backwards compatibility
             from py2dataiku.generators.diagram_generator import DiagramGenerator
             return DiagramGenerator().to_mermaid(self)
+
+        if format in ("png", "matplotlib"):
+            from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+            theme = kwargs.pop("theme", None)
+            dpi = kwargs.pop("dpi", 150)
+            return MatplotlibVisualizer(theme=theme, dpi=dpi).render(self)
 
         from py2dataiku.visualizers import visualize_flow
         return visualize_flow(self, format=format, **kwargs)

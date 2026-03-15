@@ -595,7 +595,7 @@ class TestMermaidVisualizer:
         visualizer = MermaidVisualizer()
         mermaid = visualizer.render(simple_flow)
 
-        assert "flowchart" in mermaid
+        assert "graph LR" in mermaid
 
     def test_mermaid_contains_nodes(self, simple_flow):
         """Test that Mermaid contains node declarations."""
@@ -623,7 +623,7 @@ class TestMermaidVisualizer:
     def test_mermaid_via_visualize_flow(self, simple_flow):
         """Test Mermaid via visualize_flow convenience function."""
         mermaid = visualize_flow(simple_flow, format="mermaid")
-        assert "flowchart" in mermaid
+        assert "graph LR" in mermaid
 
 
 # visualize_flow Additional Format Tests
@@ -640,7 +640,7 @@ class TestVisualizeFlowFormats:
     def test_mermaid_format(self, simple_flow):
         """Test mermaid format via visualize_flow."""
         mermaid = visualize_flow(simple_flow, format="mermaid")
-        assert "flowchart" in mermaid
+        assert "graph LR" in mermaid
 
     def test_all_formats_produce_output(self, simple_flow):
         """Test that all formats produce non-empty output."""
@@ -836,3 +836,242 @@ class TestThemeDetailed:
         assert hasattr(theme, 'dataset_font_size')
         assert hasattr(theme, 'recipe_font_size')
         assert hasattr(theme, 'icon_font_size')
+
+
+# Matplotlib Visualizer Tests
+
+class TestMatplotlibVisualizer:
+    """Test matplotlib-based PNG visualization."""
+
+    def test_basic_render_returns_png_bytes(self, simple_flow):
+        """render() returns valid PNG bytes."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        viz = MatplotlibVisualizer()
+        result = viz.render(simple_flow)
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_render_with_zones(self, simple_flow):
+        """render() handles flow with zones without errors."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="Zone A", color="#E3F2FD", datasets=["input_data"], recipes=["prepare_1"])]
+        viz = MatplotlibVisualizer()
+        result = viz.render(simple_flow)
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_render_to_file(self, simple_flow, tmp_path):
+        """render_to_file() creates a valid PNG file."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        path = str(tmp_path / "test_flow.png")
+        MatplotlibVisualizer().render_to_file(simple_flow, path)
+        import os
+        assert os.path.exists(path)
+        assert os.path.getsize(path) > 1000
+
+    def test_theme_zone_colors(self):
+        """DataikuTheme has zone_colors list of length >= 8."""
+        assert hasattr(DATAIKU_LIGHT, 'zone_colors')
+        assert len(DATAIKU_LIGHT.zone_colors) >= 8
+        assert hasattr(DATAIKU_LIGHT, 'zone_border_colors')
+        assert len(DATAIKU_LIGHT.zone_border_colors) >= 8
+
+    def test_dark_theme_zone_colors(self):
+        """DATAIKU_DARK has zone_colors list of length >= 8."""
+        assert hasattr(DATAIKU_DARK, 'zone_colors')
+        assert len(DATAIKU_DARK.zone_colors) >= 8
+        assert hasattr(DATAIKU_DARK, 'zone_border_colors')
+        assert len(DATAIKU_DARK.zone_border_colors) >= 8
+
+    def test_flow_visualize_png_format(self, simple_flow):
+        """DataikuFlow.visualize(format='png') returns bytes."""
+        pytest.importorskip("matplotlib")
+        result = simple_flow.visualize(format="png")
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_flow_visualize_matplotlib_format(self, simple_flow):
+        """DataikuFlow.visualize(format='matplotlib') returns bytes."""
+        pytest.importorskip("matplotlib")
+        result = simple_flow.visualize(format="matplotlib")
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_render_complex_flow(self, complex_flow):
+        """render() works with complex multi-input flows."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        viz = MatplotlibVisualizer()
+        result = viz.render(complex_flow)
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_render_empty_flow(self):
+        """render() works with an empty flow."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        flow = DataikuFlow(name="empty_flow")
+        viz = MatplotlibVisualizer()
+        result = viz.render(flow)
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_render_with_dark_theme(self, simple_flow):
+        """render() works with dark theme."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        viz = MatplotlibVisualizer(theme=DATAIKU_DARK)
+        result = viz.render(simple_flow)
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_render_with_custom_dpi(self, simple_flow):
+        """render() accepts custom DPI."""
+        pytest.importorskip("matplotlib")
+        from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+        viz = MatplotlibVisualizer(dpi=72)
+        result = viz.render(simple_flow)
+        assert isinstance(result, bytes)
+        assert result[:4] == b'\x89PNG'
+
+    def test_matplotlib_visualizer_in_init_exports(self):
+        """MatplotlibVisualizer is exported from visualizers __init__."""
+        from py2dataiku.visualizers import MatplotlibVisualizer
+        assert MatplotlibVisualizer is not None
+
+
+# SVG Zone Rendering Tests
+
+class TestSVGZoneRendering:
+    """Test SVG zone rendering."""
+
+    def test_zones_appear_in_svg(self, simple_flow):
+        """SVG output contains zone label when flow has zones."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="Ingestion", color="#E3F2FD", datasets=["input_data"], recipes=["prepare_1"])]
+        svg = SVGVisualizer().render(simple_flow)
+        assert "Ingestion" in svg
+
+    def test_zone_with_no_matching_nodes(self, simple_flow):
+        """SVG renders gracefully when zone references nonexistent nodes."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="EmptyZone", color="#E3F2FD", datasets=["nonexistent"], recipes=[])]
+        svg = SVGVisualizer().render(simple_flow)
+        assert "EmptyZone" in svg
+        assert "<svg" in svg
+
+    def test_zone_empty_datasets_and_recipes(self, simple_flow):
+        """SVG renders zone with empty datasets and recipes lists."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="StubZone", color="#E3F2FD", datasets=[], recipes=[])]
+        svg = SVGVisualizer().render(simple_flow)
+        assert "StubZone" in svg
+
+    def test_no_zones(self, simple_flow):
+        """SVG renders without error when no zones exist."""
+        simple_flow.zones = []
+        svg = SVGVisualizer().render(simple_flow)
+        assert "<svg" in svg
+        assert "</svg>" in svg
+
+    def test_zone_rect_attributes(self, simple_flow):
+        """SVG zone rect has expected styling attributes."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="DataPrep", color="#E3F2FD", datasets=["input_data"], recipes=[])]
+        svg = SVGVisualizer().render(simple_flow)
+        assert "stroke-dasharray" in svg
+        assert "fill-opacity" in svg
+
+    def test_svg_connections_use_path(self, simple_flow):
+        """SVG connections use path elements (for bezier curves)."""
+        svg = SVGVisualizer().render(simple_flow)
+        assert "<path" in svg
+
+    def test_svg_has_gradient_defs(self, simple_flow):
+        """SVG defs include gradient definitions for recipe types."""
+        svg = SVGVisualizer().render(simple_flow)
+        assert "linearGradient" in svg
+        assert "grad-prepare" in svg
+
+    def test_svg_recipe_uses_gradient_fill(self, simple_flow):
+        """SVG recipe nodes use gradient fills."""
+        svg = SVGVisualizer().render(simple_flow)
+        assert "url(#grad-" in svg
+
+    def test_svg_recipe_font_weight(self, simple_flow):
+        """SVG recipe labels use font-weight 600."""
+        svg = SVGVisualizer().render(simple_flow)
+        assert 'font-weight="600"' in svg
+
+    def test_svg_text_shadow_filter(self, simple_flow):
+        """SVG defs contain text shadow filter."""
+        svg = SVGVisualizer().render(simple_flow)
+        assert "text-shadow" in svg
+        assert 'filter="url(#text-shadow)"' in svg
+
+    def test_svg_dataset_inner_border(self, simple_flow):
+        """SVG dataset nodes have inner border rect for depth effect."""
+        svg = SVGVisualizer().render(simple_flow)
+        # There should be two rects per dataset group (outer + inner)
+        assert 'stroke-opacity="0.2"' in svg
+
+    def test_multiple_zones(self, simple_flow):
+        """SVG renders multiple zones correctly."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [
+            FlowZone(name="Zone A", color="#E3F2FD", datasets=["input_data"], recipes=[]),
+            FlowZone(name="Zone B", color="#F3E5F5", datasets=["output_data"], recipes=[]),
+        ]
+        svg = SVGVisualizer().render(simple_flow)
+        assert "Zone A" in svg
+        assert "Zone B" in svg
+
+
+# Mermaid Subgraph Tests
+
+class TestMermaidSubgraphs:
+    """Test Mermaid zone subgraph rendering."""
+
+    def test_subgraph_in_mermaid_with_zones(self, simple_flow):
+        """Mermaid output contains subgraph block when flow has zones."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="Zone A", color="#E3F2FD", datasets=["input_data"], recipes=[])]
+        mermaid = MermaidVisualizer().render(simple_flow)
+        assert "subgraph" in mermaid
+        assert "Zone_A" in mermaid or "Zone A" in mermaid
+
+    def test_mermaid_no_zones_still_works(self, simple_flow):
+        """Mermaid output works fine when there are no zones."""
+        simple_flow.zones = []
+        mermaid = MermaidVisualizer().render(simple_flow)
+        assert "graph LR" in mermaid
+        assert len(mermaid) > 10
+
+    def test_mermaid_zone_contains_nodes(self, simple_flow):
+        """Mermaid subgraph contains the assigned nodes."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="Ingest", color="#E3F2FD", datasets=["input_data"], recipes=["prepare_1"])]
+        mermaid = MermaidVisualizer().render(simple_flow)
+        assert "subgraph Ingest[Ingest]" in mermaid
+        assert "input_data" in mermaid
+        assert "prepare_1" in mermaid
+
+    def test_mermaid_unzoned_nodes_at_top_level(self, simple_flow):
+        """Nodes not in any zone appear at top level."""
+        from py2dataiku.models.dataiku_flow import FlowZone
+        simple_flow.zones = [FlowZone(name="OnlyInput", color="#E3F2FD", datasets=["input_data"], recipes=[])]
+        mermaid = MermaidVisualizer().render(simple_flow)
+        # output_data is not in any zone, should appear outside subgraph
+        lines = mermaid.split("\n")
+        subgraph_lines = [l for l in lines if "subgraph" in l or "end" in l]
+        assert len(subgraph_lines) == 2  # one subgraph + one end
+
+    def test_mermaid_recipe_node_format(self, simple_flow):
+        """Mermaid recipe nodes use diamond shape with type label."""
+        mermaid = MermaidVisualizer().render(simple_flow)
+        # Recipe nodes should contain recipe type
+        assert "prepare" in mermaid

@@ -3,7 +3,7 @@ Visual themes for Dataiku flow visualization.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 
 @dataclass
@@ -77,6 +77,18 @@ class DataikuTheme:
     grid_color: str = "#E0E0E0"
     show_grid: bool = False
 
+    # Zone styling
+    zone_colors: List[str] = field(default_factory=lambda: [
+        "#E3F2FD", "#F3E5F5", "#E8F5E9", "#FFF3E0",
+        "#FCE4EC", "#E0F7FA", "#FFF8E1", "#EFEBE9",
+    ])
+    zone_border_colors: List[str] = field(default_factory=lambda: [
+        "#90CAF9", "#CE93D8", "#A5D6A7", "#FFCC80",
+        "#F48FB1", "#80DEEA", "#FFD54F", "#BCAAA4",
+    ])
+    zone_label_size: int = 11
+    zone_padding: int = 20
+
     def get_recipe_colors(self, recipe_type: str) -> Tuple[str, str, str]:
         """Get colors for a recipe type (bg, border, text)."""
         recipe_type = recipe_type.lower().replace(" ", "_")
@@ -117,4 +129,12 @@ DATAIKU_DARK = DataikuTheme(
         "top_n": ("#E65100", "#FFB300", "#FFD54F"),
         "default": ("#424242", "#9E9E9E", "#BDBDBD"),
     },
+    zone_colors=[
+        "#1A2744", "#2D1B3D", "#1B3D1B", "#3D2800",
+        "#3D0E20", "#003D40", "#3D3000", "#2A1F1A",
+    ],
+    zone_border_colors=[
+        "#3F51B5", "#7B1FA2", "#388E3C", "#E65100",
+        "#AD1457", "#00838F", "#F9A825", "#6D4C41",
+    ],
 )
