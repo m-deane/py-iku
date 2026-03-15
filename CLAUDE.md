@@ -41,7 +41,7 @@ flow = convert_with_llm(code, provider="anthropic")
 # File-based conversion
 flow = convert_file("pipeline.py")
 
-# Visualization (svg, html, ascii, plantuml, mermaid)
+# Visualization (svg, html, ascii, plantuml, mermaid, png)
 print(flow.visualize(format="ascii"))
 
 # Serialization round-trip

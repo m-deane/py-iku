@@ -52,6 +52,23 @@ flow.to_svg("flow.svg")
 flow.to_html("flow.html")
 ```
 
+### PNG Export
+
+The `"png"` format produces a publication-quality diagram using the DDODS visual design language (requires `pip install matplotlib`):
+
+```python
+# Returns PNG bytes
+png_bytes = flow.visualize(format="png")
+
+# Display in Jupyter
+from IPython.display import Image, display
+display(Image(png_bytes))
+
+# Save to file
+from py2dataiku.visualizers import MatplotlibVisualizer
+MatplotlibVisualizer().render_to_file(flow, "flow_diagram.png")
+```
+
 ## Inspect the Flow
 
 ```python
