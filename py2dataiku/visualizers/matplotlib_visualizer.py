@@ -37,16 +37,24 @@ class MatplotlibVisualizer(FlowVisualizer):
             padding=self.theme.padding,
         )
 
-    def _setup_style(self):
+    def _setup_style(self, bg='white'):
         """Configure matplotlib rcParams for DDODS style."""
         plt.rcParams.update({
             'font.family': 'sans-serif',
             'font.size': 10,
             'axes.spines.top': False,
             'axes.spines.right': False,
-            'figure.facecolor': 'white',
-            'axes.facecolor': 'white',
+            'figure.facecolor': bg,
+            'axes.facecolor': bg,
         })
+
+    @staticmethod
+    def _truncate_label(label: str, max_chars: int = 16) -> str:
+        """Truncate label keeping start and end: 'very_long_name' -> 'very_\u2026name'"""
+        if len(label) <= max_chars:
+            return label
+        keep = (max_chars - 1) // 2
+        return label[:keep] + "\u2026" + label[-(max_chars - keep - 1):]
 
     def render(self, flow) -> bytes:
         """
@@ -64,17 +72,22 @@ class MatplotlibVisualizer(FlowVisualizer):
                 "Install with: pip install matplotlib"
             )
 
-        self._setup_style()
+        bg = self.theme.background_color
+
+        self._setup_style(bg)
 
         # Calculate layout
         positions = self.layout_engine.calculate_layout(flow)
         edges = self.layout_engine.get_edges()
         canvas_width, canvas_height = self.layout_engine.get_canvas_size()
 
-        # Determine figure size based on node count
-        n_nodes = len(flow.datasets) + len(flow.recipes)
-        fig_width = max(10, min(20, n_nodes * 1.5))
-        fig_height = max(5, min(12, n_nodes * 0.8))
+        # Fix 1: Figure size based on layout dimensions, not node count
+        n_layers = self.layout_engine.get_layer_count()
+        max_per_layer = self.layout_engine.get_max_nodes_per_layer()
+
+        # Width scales with number of layers; height scales with tallest column
+        fig_width = max(10, min(22, n_layers * 2.8))
+        fig_height = max(5, min(14, max_per_layer * 1.8))
 
         # Scale factors: map pixel positions to logical coordinates
         logical_width = fig_width
@@ -86,8 +99,8 @@ class MatplotlibVisualizer(FlowVisualizer):
         ax.set_xlim(0, logical_width)
         ax.set_ylim(0, logical_height)
         ax.axis('off')
-        fig.patch.set_facecolor('white')
-        ax.set_facecolor('white')
+        fig.patch.set_facecolor(bg)
+        ax.set_facecolor(bg)
 
         # Title
         ax.set_title(
@@ -121,7 +134,7 @@ class MatplotlibVisualizer(FlowVisualizer):
             dpi=self.dpi,
             bbox_inches='tight',
             pad_inches=0.3,
-            facecolor='white',
+            facecolor=bg,
         )
         plt.close(fig)
         buf.seek(0)
@@ -180,10 +193,8 @@ class MatplotlibVisualizer(FlowVisualizer):
         )
         ax.add_patch(box)
 
-        # Label
-        label = pos.label
-        if len(label) > 18:
-            label = label[:16] + "..."
+        # Label — mid-truncation for datasets
+        label = self._truncate_label(pos.label, max_chars=16)
 
         cx = lx + lw / 2
         cy = fy + lh / 2
@@ -246,10 +257,8 @@ class MatplotlibVisualizer(FlowVisualizer):
         )
         ax.add_patch(box)
 
-        # Recipe name (truncated)
-        label = pos.label
-        if len(label) > 12:
-            label = label[:10] + ".."
+        # Recipe name — mid-truncation for recipes
+        label = self._truncate_label(pos.label, max_chars=12)
 
         cx = lx + lw / 2
         cy = fy + lh / 2
@@ -277,16 +286,45 @@ class MatplotlibVisualizer(FlowVisualizer):
         )
 
     def _draw_arrow(self, ax, source, target, scale_x, scale_y):
-        """Draw an arrow between two nodes."""
+        """Draw an arrow between two nodes with smart connection points."""
         fig_height = ax.get_ylim()[1]
 
-        # Source: right edge center
-        sx = (source.x + source.width) * scale_x
-        sy = fig_height - (source.y + source.height / 2) * scale_y
+        # Source center (pixel space)
+        s_cx = source.x + source.width / 2
+        s_cy = source.y + source.height / 2
+        # Target center (pixel space)
+        t_cx = target.x + target.width / 2
+        t_cy = target.y + target.height / 2
 
-        # Target: left edge center
-        tx = target.x * scale_x
-        ty = fig_height - (target.y + target.height / 2) * scale_y
+        dx = t_cx - s_cx
+        dy = t_cy - s_cy  # positive = target is lower in pixel space
+
+        # Choose connection side based on dominant direction
+        if abs(dx) >= abs(dy):
+            # Horizontal flow: right edge to left edge (or vice versa)
+            if dx >= 0:
+                sx = (source.x + source.width) * scale_x
+                sy = fig_height - s_cy * scale_y
+                tx = target.x * scale_x
+                ty = fig_height - t_cy * scale_y
+            else:
+                sx = source.x * scale_x
+                sy = fig_height - s_cy * scale_y
+                tx = (target.x + target.width) * scale_x
+                ty = fig_height - t_cy * scale_y
+        else:
+            # Vertical flow: bottom edge to top edge (or vice versa)
+            if dy >= 0:
+                # Target is lower (larger pixel y) -> source bottom to target top
+                sx = s_cx * scale_x
+                sy = fig_height - (source.y + source.height) * scale_y
+                tx = t_cx * scale_x
+                ty = fig_height - target.y * scale_y
+            else:
+                sx = s_cx * scale_x
+                sy = fig_height - source.y * scale_y
+                tx = t_cx * scale_x
+                ty = fig_height - (target.y + target.height) * scale_y
 
         arrow = FancyArrowPatch(
             (sx, sy), (tx, ty),
@@ -295,6 +333,7 @@ class MatplotlibVisualizer(FlowVisualizer):
             color='#95A5A6',
             lw=1.5,
             zorder=1,
+            connectionstyle='arc3,rad=0.05',  # slight curve for all arrows
         )
         ax.add_patch(arrow)
 
@@ -304,6 +343,8 @@ class MatplotlibVisualizer(FlowVisualizer):
             return
 
         fig_height = ax.get_ylim()[1]
+        logical_width = ax.get_xlim()[1]
+        logical_height = fig_height
 
         for i, zone in enumerate(flow.zones):
             # Find bounding box of all nodes in this zone
@@ -341,6 +382,14 @@ class MatplotlibVisualizer(FlowVisualizer):
             # Flip y
             fy = fig_height - ly - lh
 
+            # Fix 5: Clamp zone background to figure bounds
+            lx = max(0.05, lx)
+            fy = max(0.05, fy)
+            lw = min(lw, logical_width - lx - 0.05)
+            lh = min(lh, logical_height - fy - 0.05)
+            if lw <= 0 or lh <= 0:
+                continue
+
             zone_color = self.theme.zone_colors[i % len(self.theme.zone_colors)]
             zone_border = self.theme.zone_border_colors[i % len(self.theme.zone_border_colors)]
 
@@ -356,9 +405,13 @@ class MatplotlibVisualizer(FlowVisualizer):
             )
             ax.add_patch(zone_box)
 
-            # Zone label in top-left
+            # Fix 3: Zone label clamping — don't let labels go off-canvas
+            label_y = min(fy + lh - 0.15, fig_height - 0.25)  # don't exceed top
+            label_x = max(lx + 0.1, 0.05)  # don't go off left edge
+            label_y = max(label_y, fy + 0.05)  # don't go below zone bottom
+
             ax.text(
-                lx + 0.1, fy + lh - 0.1,
+                label_x, label_y,
                 zone.name,
                 fontsize=self.theme.zone_label_size,
                 fontweight='bold',

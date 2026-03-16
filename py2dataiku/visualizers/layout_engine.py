@@ -274,50 +274,105 @@ class LayoutEngine:
 
         self.layers[layer_idx].sort(key=barycenter)
 
+    def get_layer_count(self) -> int:
+        """Return number of layers in the layout."""
+        return len(self.layers)
+
+    def get_max_nodes_per_layer(self) -> int:
+        """Return the maximum number of nodes in any single layer."""
+        if not self.layers:
+            return 0
+        return max(len(layer) for layer in self.layers)
+
+    def _node_width(self, node_id: str) -> int:
+        """Return the width of a node based on its type."""
+        if self.nodes[node_id]["type"] == "dataset":
+            return self.dataset_width
+        return self.recipe_size
+
+    def _node_height(self, node_id: str) -> int:
+        """Return the height of a node based on its type."""
+        if self.nodes[node_id]["type"] == "dataset":
+            return self.dataset_height
+        return self.recipe_size
+
     def _assign_coordinates(self):
         """Assign x, y coordinates to all nodes."""
         self.positions = {}
+        if not self.layers:
+            return
+
+        MAX_PER_COL = 5
+        GAP = max(30, self.layer_spacing // 3)
+        SUB_GAP = 10
+
+        # --- Compute x_starts for each layer, accounting for sub-columns ---
+        # For each layer, figure out how many sub-columns it needs and
+        # how wide those sub-columns are, so the next layer starts after them.
+        x_starts: List[float] = [float(self.padding)]
+        layer_sub_counts: List[int] = []  # number of sub-columns per layer
 
         for layer_idx, layer_nodes in enumerate(self.layers):
-            x = self.padding + layer_idx * self.layer_spacing
+            n_sub = max(1, (len(layer_nodes) + MAX_PER_COL - 1) // MAX_PER_COL)
+            layer_sub_counts.append(n_sub)
 
-            # Calculate total height of this layer
-            layer_height = 0
-            for node_id in layer_nodes:
-                node = self.nodes[node_id]
-                if node["type"] == "dataset":
-                    layer_height += self.dataset_height
-                else:
-                    layer_height += self.recipe_size
-                layer_height += self.node_spacing
+            if layer_idx < len(self.layers) - 1:
+                # Max node width in this layer (used for sub-column slot width)
+                max_w = max(self._node_width(n) for n in layer_nodes) if layer_nodes else 0
+                rightmost_x = x_starts[layer_idx] + n_sub * (max_w + SUB_GAP) - SUB_GAP
+                x_starts.append(rightmost_x + GAP)
 
-            layer_height -= self.node_spacing  # Remove last spacing
+        # --- Compute per-sub-column heights for vertical centering ---
+        # We need the global max height across all sub-columns of all layers.
+        def _sub_column_height(nodes: List[str]) -> float:
+            if not nodes:
+                return 0
+            h = sum(self._node_height(n) for n in nodes)
+            h += max(0, len(nodes) - 1) * self.node_spacing
+            return h
 
-            # Start y position (centered)
-            y = self.padding
+        all_sub_heights: List[List[float]] = []
+        for layer_idx, layer_nodes in enumerate(self.layers):
+            n_sub = layer_sub_counts[layer_idx]
+            sub_heights = []
+            for si in range(n_sub):
+                chunk = layer_nodes[si * MAX_PER_COL : (si + 1) * MAX_PER_COL]
+                sub_heights.append(_sub_column_height(chunk))
+            all_sub_heights.append(sub_heights)
 
-            for node_id in layer_nodes:
-                node = self.nodes[node_id]
+        global_max_height = 0.0
+        for sub_heights in all_sub_heights:
+            for h in sub_heights:
+                if h > global_max_height:
+                    global_max_height = h
 
-                if node["type"] == "dataset":
-                    width = self.dataset_width
-                    height = self.dataset_height
-                    node_type = "dataset"
-                else:
-                    width = self.recipe_size
-                    height = self.recipe_size
-                    node_type = "recipe"
+        # --- Assign positions ---
+        for layer_idx, layer_nodes in enumerate(self.layers):
+            n_sub = layer_sub_counts[layer_idx]
+            max_w = max(self._node_width(n) for n in layer_nodes) if layer_nodes else 0
 
-                self.positions[node_id] = NodePosition(
-                    x=x,
-                    y=y,
-                    width=width,
-                    height=height,
-                    layer=layer_idx,
-                    node_type=node_type,
-                    node_id=node_id,
-                    label=node["label"],
-                    extra=node,
-                )
+            for si in range(n_sub):
+                chunk = layer_nodes[si * MAX_PER_COL : (si + 1) * MAX_PER_COL]
+                sub_h = all_sub_heights[layer_idx][si]
+                x = x_starts[layer_idx] + si * (max_w + SUB_GAP)
+                y_offset = self.padding + (global_max_height - sub_h) / 2
+                y = y_offset
 
-                y += height + self.node_spacing
+                for node_id in chunk:
+                    width = self._node_width(node_id)
+                    height = self._node_height(node_id)
+                    node_type = "dataset" if self.nodes[node_id]["type"] == "dataset" else "recipe"
+
+                    self.positions[node_id] = NodePosition(
+                        x=x,
+                        y=y,
+                        width=width,
+                        height=height,
+                        layer=layer_idx,
+                        node_type=node_type,
+                        node_id=node_id,
+                        label=self.nodes[node_id]["label"],
+                        extra=self.nodes[node_id],
+                    )
+
+                    y += height + self.node_spacing
