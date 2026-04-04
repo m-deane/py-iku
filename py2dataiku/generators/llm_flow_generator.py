@@ -1,6 +1,6 @@
 """Generate Dataiku flows from LLM-analyzed steps."""
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from py2dataiku.generators.base_generator import BaseFlowGenerator
 from py2dataiku.llm.schemas import (
@@ -9,6 +9,7 @@ from py2dataiku.llm.schemas import (
     OperationType,
 )
 from py2dataiku.mappings.pandas_mappings import PandasMapper
+from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import (
     Aggregation,
@@ -17,8 +18,11 @@ from py2dataiku.models.dataiku_recipe import (
     JoinType,
     RecipeType,
 )
-from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
-from py2dataiku.models.prepare_step import PrepareStep, ProcessorType, StringTransformerMode
+from py2dataiku.models.prepare_step import (
+    PrepareStep,
+    ProcessorType,
+    StringTransformerMode,
+)
 
 
 class LLMFlowGenerator(BaseFlowGenerator):
@@ -29,9 +33,35 @@ class LLMFlowGenerator(BaseFlowGenerator):
     and converts it to a complete DataikuFlow with datasets and recipes.
     """
 
+    # Fallback mapping from OperationType to suggested recipe string.
+    # Used when the LLM doesn't provide a suggested_recipe.
+    OPERATION_TO_RECIPE: dict[OperationType, str] = {
+        OperationType.GROUP_AGGREGATE: "grouping",
+        OperationType.JOIN: "join",
+        OperationType.UNION: "stack",
+        OperationType.SORT: "sort",
+        OperationType.DROP_DUPLICATES: "distinct",
+        OperationType.WINDOW_FUNCTION: "window",
+        OperationType.TOP_N: "topn",
+        OperationType.SAMPLE: "sampling",
+        OperationType.PIVOT: "pivot",
+        OperationType.UNPIVOT: "prepare",
+        OperationType.FILTER: "prepare",
+        OperationType.FILL_MISSING: "prepare",
+        OperationType.DROP_MISSING: "prepare",
+        OperationType.RENAME_COLUMNS: "prepare",
+        OperationType.DROP_COLUMNS: "prepare",
+        OperationType.SELECT_COLUMNS: "prepare",
+        OperationType.ADD_COLUMN: "prepare",
+        OperationType.TRANSFORM_COLUMN: "prepare",
+        OperationType.CAST_TYPE: "prepare",
+        OperationType.PARSE_DATE: "prepare",
+        OperationType.SPLIT_COLUMN: "prepare",
+    }
+
     def __init__(self):
         super().__init__()
-        self.dataset_map: Dict[str, str] = {}  # variable name -> dataset name
+        self.dataset_map: dict[str, str] = {}  # variable name -> dataset name
 
     def generate(
         self,
@@ -72,7 +102,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
             self.dataset_map[ds_info.name] = dataset.name
 
         # Group steps by output dataset and recipe type for merging
-        prepare_steps_buffer: List[DataStep] = []
+        prepare_steps_buffer: list[DataStep] = []
         current_input: Optional[str] = None
 
         for step in analysis.steps:
@@ -100,8 +130,10 @@ class LLMFlowGenerator(BaseFlowGenerator):
                     step.input_datasets[0], DatasetType.INTERMEDIATE
                 )
 
-            # Route based on suggested recipe type
-            suggested = (step.suggested_recipe or "python").lower().strip()
+            # Route based on suggested recipe type, falling back to operation type
+            suggested = (step.suggested_recipe or "").lower().strip()
+            if not suggested:
+                suggested = self.OPERATION_TO_RECIPE.get(step.operation, "python")
 
             if suggested == "prepare":
                 # Buffer prepare steps to merge them
@@ -224,7 +256,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         return sanitized
 
     def _create_prepare_recipe(
-        self, input_dataset: Optional[str], steps: List[DataStep]
+        self, input_dataset: Optional[str], steps: list[DataStep]
     ) -> str:
         """Create a Prepare recipe from multiple steps."""
         self.recipe_counter += 1
@@ -249,7 +281,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         self.flow.add_recipe(recipe)
         return output_name
 
-    def _convert_to_prepare_steps(self, step: DataStep) -> List[PrepareStep]:
+    def _convert_to_prepare_steps(self, step: DataStep) -> list[PrepareStep]:
         """Convert a DataStep to PrepareStep objects."""
         result = []
 
@@ -301,6 +333,53 @@ class LLMFlowGenerator(BaseFlowGenerator):
         elif op == OperationType.DROP_DUPLICATES:
             result.append(PrepareStep.remove_duplicates(step.columns or None))
 
+        elif op == OperationType.SELECT_COLUMNS:
+            if step.columns:
+                result.append(
+                    PrepareStep(
+                        processor_type=ProcessorType.COLUMNS_SELECTOR,
+                        params={"columns": step.columns, "keep": True},
+                    )
+                )
+
+        elif op == OperationType.ADD_COLUMN:
+            if step.column_transforms:
+                for transform in step.column_transforms:
+                    expression = transform.operation if transform.operation else ""
+                    result.append(
+                        PrepareStep.create_column_grel(
+                            column=transform.output_column or transform.column,
+                            expression=expression,
+                        )
+                    )
+            else:
+                # No transform details: create a placeholder column
+                col_name = step.columns[0] if step.columns else "new_column"
+                result.append(
+                    PrepareStep.create_column_grel(column=col_name, expression="")
+                )
+
+        elif op == OperationType.SPLIT_COLUMN:
+            if step.columns:
+                source_col = step.columns[0]
+                # Try to find separator from column_transforms parameters
+                separator = " "
+                for transform in step.column_transforms:
+                    sep = transform.parameters.get("separator") or transform.parameters.get("sep")
+                    if sep:
+                        separator = sep
+                        break
+                result.append(
+                    PrepareStep(
+                        processor_type=ProcessorType.SPLIT_COLUMN,
+                        params={"column": source_col, "separator": separator},
+                    )
+                )
+
+        elif op == OperationType.UNPIVOT:
+            if step.columns:
+                result.append(PrepareStep.fold_multiple_columns(columns=step.columns))
+
         # Use suggested processors from LLM if available
         if not result and step.suggested_processors:
             for proc_name in step.suggested_processors:
@@ -338,9 +417,9 @@ class LLMFlowGenerator(BaseFlowGenerator):
             )
 
         if op in ("abs", "absolute"):
-            return PrepareStep(
-                processor_type=ProcessorType.ABS_COLUMN,
-                params={"column": transform.column},
+            return PrepareStep.create_column_grel(
+                column=transform.column,
+                expression=f"abs(val(\"{transform.column}\"))",
             )
 
         # Default: create GREL expression

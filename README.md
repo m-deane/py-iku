@@ -10,8 +10,8 @@ Convert Python data processing code to Dataiku DSS recipes and flows.
 - **Rule-based (fallback)**: Uses AST pattern matching for offline conversion
 
 Generates Dataiku DSS 14 compatible configurations with support for:
-- 34+ recipe types (visual, code, ML, plugin)
-- 76+ processor types (prepare recipe steps)
+- 37 recipe types (visual, code, ML, plugin)
+- 122 processor types (prepare recipe steps)
 
 ## Installation
 

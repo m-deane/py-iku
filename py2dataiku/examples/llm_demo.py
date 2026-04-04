@@ -18,11 +18,11 @@ Usage:
 
 import json
 import sys
+
+from py2dataiku.generators.diagram_generator import DiagramGenerator
+from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
 from py2dataiku.llm.analyzer import LLMCodeAnalyzer
 from py2dataiku.llm.providers import MockProvider, get_provider
-from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
-from py2dataiku.generators.diagram_generator import DiagramGenerator
-
 
 # Realistic mock response for demo
 MOCK_RESPONSE = json.dumps({

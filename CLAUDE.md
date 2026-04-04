@@ -11,153 +11,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Targets Dataiku DSS 14 with 37 recipe types, 122 processor types, and 122 processor catalog entries.
 
-## Quick Reference
+## Commands
 
-### Running Tests
 ```bash
-# All tests (1807 tests)
+# Install
+pip install -e ".[dev]"         # dev dependencies (pytest, black, ruff, mypy)
+pip install -e ".[llm]"         # LLM providers (anthropic, openai)
+pip install -e ".[all]"         # everything
+
+# Tests (1807 tests)
 python -m pytest tests/ -v
+python -m pytest tests/test_py2dataiku/test_recipe_examples.py -v      # single file
+python -m pytest tests/test_py2dataiku/test_api.py::test_convert_basic -v  # single test
+python -m pytest tests/ --cov=py2dataiku --cov-report=html             # with coverage
 
-# Single test file
-python -m pytest tests/test_py2dataiku/test_recipe_examples.py -v
+# Linting & formatting
+ruff check py2dataiku/                   # lint
+black py2dataiku/ tests/                 # format
+isort py2dataiku/ tests/                 # sort imports
+mypy py2dataiku/                         # type check
 
-# Single test function
-python -m pytest tests/test_py2dataiku/test_api.py::test_convert_basic -v
-
-# With coverage
-python -m pytest tests/ --cov=py2dataiku --cov-report=html
-```
-
-### Basic Usage
-```python
-from py2dataiku import convert, convert_with_llm, convert_file
-
-# Rule-based conversion
-flow = convert("import pandas as pd\ndf = pd.read_csv('data.csv')\ndf = df.dropna()")
-
-# LLM-based conversion (requires API key)
-flow = convert_with_llm(code, provider="anthropic")
-
-# File-based conversion
-flow = convert_file("pipeline.py")
-
-# Visualization (svg, html, ascii, plantuml, mermaid, png)
-print(flow.visualize(format="ascii"))
-
-# Serialization round-trip
-d = flow.to_dict()
-flow2 = DataikuFlow.from_dict(d)
+# CLI
+py2dataiku <file.py>                     # convert a file (rule-based)
+py2dataiku <file.py> --llm anthropic     # convert with LLM
 ```
 
 ## Architecture
 
+### Conversion Pipeline
+
+The two analysis modes share a common output model but use different parsing and generation paths:
+
 ```
-py2dataiku/
-├── __init__.py              # Public API: convert(), convert_with_llm(), convert_file(), Py2Dataiku
-├── exceptions.py            # Py2DataikuError hierarchy (7 exception types)
-├── config.py                # Py2DataikuConfig, supports toml/yaml/rc config files + env vars
-├── cli.py                   # CLI entry point (py2dataiku command)
-├── parser/                  # Rule-based code analysis
-│   ├── ast_analyzer.py      # CodeAnalyzer - AST pattern matching
-│   ├── pattern_matcher.py   # PatternMatcher
-│   └── dataflow_tracker.py  # DataflowTracker - variable lineage
-├── llm/                     # LLM-based analysis
-│   ├── analyzer.py          # LLMCodeAnalyzer
-│   ├── providers.py         # AnthropicProvider, OpenAIProvider, MockProvider
-│   └── schemas.py           # AnalysisResult, DataStep, OperationType
-├── generators/              # Flow generation
-│   ├── base_generator.py    # BaseFlowGenerator ABC (shared logic)
-│   ├── flow_generator.py    # FlowGenerator (rule-based, extends BaseFlowGenerator)
-│   ├── llm_flow_generator.py # LLMFlowGenerator (LLM-based, extends BaseFlowGenerator)
-│   ├── recipe_generator.py
-│   └── diagram_generator.py # Mermaid/Graphviz diagrams
-├── models/                  # Core data models
-│   ├── dataiku_flow.py      # DataikuFlow (main output), FlowZone, DAG graph property
-│   ├── dataiku_recipe.py    # DataikuRecipe, RecipeType (37 types)
-│   ├── dataiku_dataset.py   # DataikuDataset, DatasetType, DatasetConnectionType (13 types)
-│   ├── prepare_step.py      # PrepareStep, ProcessorType (122 types)
-│   ├── recipe_settings.py   # RecipeSettings ABC with 12 subclasses (composition pattern)
-│   ├── flow_graph.py        # FlowGraph DAG: topological_sort, detect_cycles, subgraphs
-│   ├── dataiku_scenario.py  # DataikuScenario, triggers, steps, reporters
-│   ├── dataiku_metrics.py   # DataikuMetric, DataikuCheck, DataQualityRule
-│   ├── dataiku_mlops.py     # APIEndpoint, ModelVersion, DriftConfig
-│   └── transformation.py
-├── visualizers/             # Visualization engines
-│   ├── svg_visualizer.py    # Pixel-accurate Dataiku styling
-│   ├── html_visualizer.py   # Interactive canvas
-│   ├── ascii_visualizer.py  # Terminal-friendly
-│   ├── mermaid_visualizer.py # GitHub/Notion compatible
-│   ├── plantuml_visualizer.py
-│   ├── themes.py            # DATAIKU_LIGHT, DATAIKU_DARK
-│   ├── icons.py             # Recipe/dataset icons
-│   └── layout_engine.py     # DAG layout algorithm
-├── mappings/                # pandas/numpy → Dataiku mappings
-│   ├── pandas_mappings.py   # Method-level mapping rules
-│   └── processor_catalog.py # ProcessorCatalog class (122 entries)
-├── optimizer/               # Flow optimization
-│   ├── flow_optimizer.py    # Merges consecutive Prepare recipes, removes orphan datasets
-│   └── recipe_merger.py
-├── exporters/               # DSS project export
-│   └── dss_exporter.py      # DSSExporter, DSSProjectConfig
-├── plugins/                 # Extension system
-│   └── registry.py          # PluginRegistry (instance-based with global default)
-├── utils/
-│   └── validation.py
-└── examples/                # Comprehensive examples library
-    ├── recipe_examples.py       # 35+ recipe examples
-    ├── processor_examples.py    # 60+ processor examples
-    ├── settings_examples.py     # 50+ settings examples
-    ├── combination_examples.py  # 22+ combination examples
-    └── *_pipelines.py           # basic, intermediate, advanced, complex
+Rule-based:  Python code → CodeAnalyzer (AST) → FlowGenerator → DataikuFlow
+LLM-based:   Python code → LLMCodeAnalyzer → LLMFlowGenerator → DataikuFlow
 ```
 
-## Key Design Patterns
+Both `FlowGenerator` and `LLMFlowGenerator` extend `BaseFlowGenerator` (ABC), which provides shared `_sanitize_name()`, `_optimize_flow()`, `_merge_prepare_recipes()`.
+
+### Key Distinction: Recipes vs Processors
+
+- **Recipes** are top-level flow nodes (GROUPING, JOIN, SORT, etc.) — each becomes a node in the DAG
+- **Processors** are steps *within* a PREPARE recipe (COLUMN_RENAMER, FILL_EMPTY_WITH_VALUE, etc.)
+- Most simple pandas transforms become processors inside a PREPARE recipe; only structural operations (groupby, merge, concat, etc.) become their own recipe types
+
+### Core Models
+
+- `DataikuFlow` — main output container. Has a `graph` property returning a `FlowGraph` DAG (topological sort, cycle detection, subgraph discovery). Supports round-trip serialization (`to_dict`/`from_dict`, `to_json`/`from_json`, `to_yaml`/`from_yaml`), iteration protocol, and Jupyter `_repr_svg_()`.
+- `DataikuRecipe` — a single recipe node. `RecipeType` enum has 37 types. Settings use composition: `RecipeSettings` ABC with 12 typed subclasses (`PrepareSettings`, `GroupingSettings`, `JoinSettings`, etc.) composed into `recipe.settings`.
+- `DataikuDataset` — input/output datasets. `DatasetType` and `DatasetConnectionType` enums.
+- `PrepareStep` — a step within a PREPARE recipe. `ProcessorType` enum has 122 types.
+- `FlowGraph` — DAG representation. Access via `flow.graph`. Don't manipulate the adjacency list directly.
+
+### ProcessorCatalog
+
+Instance-based class (not a flat dict):
+```python
+from py2dataiku.mappings.processor_catalog import ProcessorCatalog
+catalog = ProcessorCatalog()
+catalog.list_processors()       # all 122 entries
+catalog.get_processor("COLUMN_RENAMER")
+```
+
+### PluginRegistry
+
+Instance-based with backward-compatible global convenience functions:
+```python
+from py2dataiku.plugins import PluginRegistry, register_recipe_handler
+register_recipe_handler("custom", handler_fn)  # global shorthand
+```
 
 ### Exception Hierarchy
 ```
 Py2DataikuError
-├── ConversionError
-│   └── InvalidPythonCodeError
-├── ProviderError
-│   └── LLMResponseParseError
+├── ConversionError → InvalidPythonCodeError
+├── ProviderError → LLMResponseParseError
 ├── ValidationError
 ├── ExportError
 └── ConfigurationError
 ```
 
-### Generator Inheritance
-`BaseFlowGenerator` (ABC) provides shared `_sanitize_name()`, `_optimize_flow()`, `_merge_prepare_recipes()`. Both `FlowGenerator` and `LLMFlowGenerator` extend it, eliminating code duplication.
+### Visualizers
 
-### DataikuFlow Features
-- **DAG graph**: `flow.graph` returns a `FlowGraph` with topological sort, cycle detection, disconnected subgraph discovery
-- **Round-trip serialization**: `to_dict()`/`from_dict()`, `to_json()`/`from_json()`, `to_yaml()`/`from_yaml()`
-- **Iteration protocol**: `len(flow)`, `for recipe in flow`
-- **Jupyter integration**: `_repr_svg_()` for inline display
-- **Column lineage**: `get_column_lineage()` traces columns through recipes
-- **Flow zones**: Logical grouping via `FlowZone` dataclass
-
-### Recipe Settings (Composition)
-`RecipeSettings` ABC with typed subclasses: `PrepareSettings`, `GroupingSettings`, `JoinSettings`, `WindowSettings`, `PivotSettings`, `SplitSettings`, `SortSettings`, `StackSettings`, `SamplingSettings`, `TopNSettings`, `DistinctSettings`, `PythonSettings`. Composed into `DataikuRecipe.settings`.
-
-### ProcessorCatalog
-Instance-based `ProcessorCatalog` class (not a flat dict). Access via:
-```python
-from py2dataiku.mappings.processor_catalog import ProcessorCatalog
-catalog = ProcessorCatalog()
-catalog.list_processors()  # all 122 entries
-catalog.get_processor("COLUMN_RENAMER")
-```
-
-### PluginRegistry
-Instance-based with backward-compatible global default:
-```python
-from py2dataiku.plugins import PluginRegistry, register_recipe_handler
-# Global convenience functions still work
-register_recipe_handler("custom", handler_fn)
-# Or use instance
-registry = PluginRegistry()
-registry.register_recipe_handler("custom", handler_fn)
-```
+`flow.visualize(format=...)` dispatches to format-specific visualizer classes in `visualizers/`. The `layout_engine.py` handles DAG positioning; `themes.py` defines DATAIKU_LIGHT/DATAIKU_DARK; `icons.py` provides recipe/dataset SVG icons.
 
 ## Development Guidelines
 
@@ -174,62 +110,31 @@ registry.register_recipe_handler("custom", handler_fn)
 3. Add example in `examples/processor_examples.py`
 4. Add test in `tests/test_py2dataiku/test_processor_examples.py`
 
-### pandas → Dataiku Mapping Quick Reference
+### pandas → Dataiku Mapping (Non-Obvious Cases)
 
-**Recipes:**
-- `df.groupby().agg()` → GROUPING
-- `pd.merge()` / `df.merge()` / `df.join()` → JOIN
-- `pd.concat()` → STACK
-- `df.drop_duplicates()` → DISTINCT
-- `df.sort_values()` → SORT
-- `df.pivot()` / `df.pivot_table()` → PIVOT
-- `df.rolling()` / `df.cumsum()` / `df.expanding()` → WINDOW
-- `df.nlargest()` / `df.nsmallest()` → TOP_N
-- `df.head()` / `df.tail()` / `df.sample()` → SAMPLING
-- `pd.melt()` / `df.melt()` → PREPARE with FOLD_MULTIPLE_COLUMNS
-- `df[condition]` → SPLIT or FILTER processor
-- `df.round()` / `df.abs()` / `df.clip()` → PREPARE with NUMERIC_TRANSFORM processors
-- Other transformations → PREPARE recipe with processors
+These mappings are less intuitive and worth knowing upfront:
+- `pd.melt()` / `df.melt()` → PREPARE recipe with FOLD_MULTIPLE_COLUMNS processor (not its own recipe type)
+- `df[condition]` → SPLIT recipe *or* FILTER processor depending on context
+- `df.rolling()` / `df.cumsum()` / `df.expanding()` → WINDOW recipe
+- `df.nlargest()` / `df.nsmallest()` → TOP_N recipe
+- `df.round()` / `df.abs()` / `df.clip()` → PREPARE recipe with NUMERIC_TRANSFORM processors
+- Other simple transforms → PREPARE recipe with corresponding processors
 
-**Processors (selected):**
-- `df.rename()` → COLUMN_RENAMER
-- `df.fillna()` → FILL_EMPTY_WITH_VALUE
-- `df.dropna()` → REMOVE_ROWS_ON_EMPTY
-- `df['col'].str.upper()` → STRING_TRANSFORMER (TO_UPPER)
-- `df['col'].astype()` → TYPE_SETTER
-- `pd.to_datetime()` → DATE_PARSER
-- `pd.cut()` / `pd.qcut()` → BINNER
-- `pd.get_dummies()` → CATEGORICAL_ENCODER
+Full mapping tables are in `mappings/pandas_mappings.py`.
 
-## Examples Registry
+## File Organization
 
-```python
-from py2dataiku.examples.recipe_examples import RECIPE_EXAMPLES, get_recipe_example
-from py2dataiku.examples.processor_examples import PROCESSOR_EXAMPLES, get_processor_example
-from py2dataiku.examples.settings_examples import SETTINGS_EXAMPLES
-from py2dataiku.examples.combination_examples import COMBINATION_EXAMPLES
-```
+- Source code: `py2dataiku/`
+- Tests: `tests/test_py2dataiku/`
+- Examples library: `py2dataiku/examples/` (recipe, processor, settings, combination, pipeline examples)
+- Plans and analysis: `.claude_plans/`
+- Do not leave files in the root directory — organize into appropriate locations
 
-## File Organization Rules
-
-- All source code in `py2dataiku/`
-- All tests in `tests/test_py2dataiku/`
-- Examples in `py2dataiku/examples/`
-- Plans and analysis documents in `.claude_plans/`
-
-## Dependencies
-
-- **pyyaml**: YAML export (required)
-- **anthropic** (optional): LLM analysis with Claude
-- **openai** (optional): LLM analysis with GPT
-- **cairosvg** (optional): PNG/PDF export from SVG
-
-## Common Gotchas
+## Gotchas
 
 1. **Version**: Resolved via `importlib.metadata` at runtime; fallback `0.3.0` in `__init__.py`. Canonical version is in `pyproject.toml`.
-2. **LLM vs Rule-based**: LLM mode requires API key but handles complex/ambiguous code better. Rule-based is fast, offline, deterministic.
-3. **Recipe vs Processor**: Recipes are top-level flow nodes; processors are steps within PREPARE recipes.
-4. **Enums**: Always use enum values from models, not raw strings.
-5. **BaseFlowGenerator**: Both generators inherit from this ABC. Shared logic lives here, not duplicated.
-6. **ProcessorCatalog**: Class-based (not dict). Use `ProcessorCatalog()` instance methods.
-7. **FlowGraph**: Access via `flow.graph`. Supports topological sort, cycle detection. Don't manipulate the adjacency list directly.
+2. **Enums**: Always use enum values from models (`RecipeType.GROUPING`), not raw strings.
+3. **BaseFlowGenerator**: Shared logic lives in this ABC. Don't duplicate it into subclasses.
+4. **ProcessorCatalog**: Class-based, not a dict. Use `ProcessorCatalog()` instance methods.
+5. **FlowGraph**: Access via `flow.graph`. Supports topological sort, cycle detection. Don't touch the adjacency list directly.
+6. **Config**: `Py2DataikuConfig` supports toml/yaml/rc config files and environment variables.

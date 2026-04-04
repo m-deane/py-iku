@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class TransformationType(Enum):
@@ -78,8 +78,8 @@ class Transformation:
     transformation_type: TransformationType
     source_dataframe: Optional[str] = None  # Input variable name
     target_dataframe: Optional[str] = None  # Output variable name
-    columns: List[str] = field(default_factory=list)  # Affected columns
-    parameters: Dict[str, Any] = field(default_factory=dict)  # Operation parameters
+    columns: list[str] = field(default_factory=list)  # Affected columns
+    parameters: dict[str, Any] = field(default_factory=dict)  # Operation parameters
 
     # Source code information
     source_line: Optional[int] = None
@@ -94,9 +94,9 @@ class Transformation:
     suggested_recipe: Optional[str] = None
     suggested_processor: Optional[str] = None
     requires_python_recipe: bool = False
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "type": self.transformation_type.value,
@@ -152,7 +152,7 @@ class Transformation:
         dataframe: str,
         column: str,
         method: str,
-        args: Optional[List[Any]] = None,
+        args: Optional[list[Any]] = None,
         line: Optional[int] = None,
     ) -> "Transformation":
         """Create a string transformation."""
@@ -170,7 +170,7 @@ class Transformation:
     def rename_columns(
         cls,
         dataframe: str,
-        mapping: Dict[str, str],
+        mapping: dict[str, str],
         line: Optional[int] = None,
     ) -> "Transformation":
         """Create a column rename transformation."""
@@ -188,7 +188,7 @@ class Transformation:
     def drop_columns(
         cls,
         dataframe: str,
-        columns: List[str],
+        columns: list[str],
         line: Optional[int] = None,
     ) -> "Transformation":
         """Create a column drop transformation."""
@@ -206,7 +206,7 @@ class Transformation:
     def dropna(
         cls,
         dataframe: str,
-        columns: Optional[List[str]] = None,
+        columns: Optional[list[str]] = None,
         line: Optional[int] = None,
     ) -> "Transformation":
         """Create a drop NA transformation."""
@@ -224,7 +224,7 @@ class Transformation:
     def drop_duplicates(
         cls,
         dataframe: str,
-        columns: Optional[List[str]] = None,
+        columns: Optional[list[str]] = None,
         line: Optional[int] = None,
     ) -> "Transformation":
         """Create a drop duplicates transformation."""
@@ -262,9 +262,9 @@ class Transformation:
         left: str,
         right: str,
         target: str,
-        on: Optional[List[str]] = None,
-        left_on: Optional[List[str]] = None,
-        right_on: Optional[List[str]] = None,
+        on: Optional[list[str]] = None,
+        left_on: Optional[list[str]] = None,
+        right_on: Optional[list[str]] = None,
         how: str = "inner",
         line: Optional[int] = None,
     ) -> "Transformation":
@@ -289,8 +289,8 @@ class Transformation:
         cls,
         dataframe: str,
         target: str,
-        keys: List[str],
-        aggregations: Dict[str, str],
+        keys: list[str],
+        aggregations: dict[str, str],
         line: Optional[int] = None,
     ) -> "Transformation":
         """Create a groupby aggregation transformation."""
@@ -308,7 +308,7 @@ class Transformation:
     def sort_values(
         cls,
         dataframe: str,
-        columns: List[str],
+        columns: list[str],
         ascending: bool = True,
         line: Optional[int] = None,
     ) -> "Transformation":

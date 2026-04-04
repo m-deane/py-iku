@@ -1,9 +1,13 @@
 """Mappings from pandas operations to Dataiku recipes and processors."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
-from py2dataiku.models.prepare_step import PrepareStep, ProcessorType, StringTransformerMode
 from py2dataiku.models.dataiku_recipe import RecipeType
+from py2dataiku.models.prepare_step import (
+    PrepareStep,
+    ProcessorType,
+    StringTransformerMode,
+)
 
 
 class PandasMapper:
@@ -15,14 +19,14 @@ class PandasMapper:
     """
 
     # Method to recipe type mapping
-    RECIPE_MAPPINGS: Dict[str, RecipeType] = {
+    RECIPE_MAPPINGS: dict[str, RecipeType] = {
         "merge": RecipeType.JOIN,
         "join": RecipeType.JOIN,
         "concat": RecipeType.STACK,
         "groupby": RecipeType.GROUPING,
         "pivot": RecipeType.PIVOT,
         "pivot_table": RecipeType.PIVOT,
-        "melt": RecipeType.PIVOT,  # Unpivot
+        "melt": RecipeType.PREPARE,  # Unpivot: uses FOLD_MULTIPLE_COLUMNS processor
         "sort_values": RecipeType.SORT,
         "drop_duplicates": RecipeType.DISTINCT,
         "head": RecipeType.TOP_N,
@@ -40,7 +44,7 @@ class PandasMapper:
     }
 
     # Method to processor type mapping
-    PROCESSOR_MAPPINGS: Dict[str, ProcessorType] = {
+    PROCESSOR_MAPPINGS: dict[str, ProcessorType] = {
         "fillna": ProcessorType.FILL_EMPTY_WITH_VALUE,
         "dropna": ProcessorType.REMOVE_ROWS_ON_EMPTY,
         "rename": ProcessorType.COLUMN_RENAMER,
@@ -60,7 +64,7 @@ class PandasMapper:
     }
 
     # String accessor method mappings
-    STRING_MAPPINGS: Dict[str, StringTransformerMode] = {
+    STRING_MAPPINGS: dict[str, StringTransformerMode] = {
         "upper": StringTransformerMode.UPPERCASE,
         "lower": StringTransformerMode.LOWERCASE,
         "title": StringTransformerMode.TITLECASE,
@@ -71,7 +75,7 @@ class PandasMapper:
     }
 
     # Aggregation function mappings
-    AGG_MAPPINGS: Dict[str, str] = {
+    AGG_MAPPINGS: dict[str, str] = {
         "sum": "SUM",
         "mean": "AVG",
         "average": "AVG",
@@ -85,11 +89,11 @@ class PandasMapper:
         "std": "STDDEV",
         "var": "VAR",
         "median": "MEDIAN",
-        "nunique": "COUNTDISTINCT",
+        "nunique": "COUNTD",
     }
 
     # Join type mappings
-    JOIN_MAPPINGS: Dict[str, str] = {
+    JOIN_MAPPINGS: dict[str, str] = {
         "inner": "INNER",
         "left": "LEFT",
         "right": "RIGHT",
@@ -136,7 +140,7 @@ class PandasMapper:
 
     def map_dropna(
         self,
-        subset: Optional[List[str]] = None,
+        subset: Optional[list[str]] = None,
         how: str = "any",
     ) -> PrepareStep:
         """Map dropna() to a PrepareStep."""
@@ -145,11 +149,11 @@ class PandasMapper:
             keep_empty=False,
         )
 
-    def map_rename(self, mapping: Dict[str, str]) -> PrepareStep:
+    def map_rename(self, mapping: dict[str, str]) -> PrepareStep:
         """Map rename() to a PrepareStep."""
         return PrepareStep.rename_columns(mapping)
 
-    def map_drop_columns(self, columns: List[str]) -> PrepareStep:
+    def map_drop_columns(self, columns: list[str]) -> PrepareStep:
         """Map drop(columns=...) to a PrepareStep."""
         return PrepareStep.delete_columns(columns)
 
@@ -173,7 +177,7 @@ class PandasMapper:
         return PrepareStep.set_type(column, dataiku_type)
 
     def map_string_method(
-        self, column: str, method: str, args: Optional[List[Any]] = None
+        self, column: str, method: str, args: Optional[list[Any]] = None
     ) -> Optional[PrepareStep]:
         """Map a string accessor method to a PrepareStep."""
         mode = self.get_string_mode(method)
@@ -241,7 +245,7 @@ class PandasMapper:
         return None
 
     # Window function mappings (pandas methods that map to Dataiku WINDOW recipe)
-    WINDOW_MAPPINGS: Dict[str, str] = {
+    WINDOW_MAPPINGS: dict[str, str] = {
         "cumsum": "RUNNING_SUM",
         "cumprod": "RUNNING_PRODUCT",
         "cummin": "RUNNING_MIN",
@@ -252,20 +256,20 @@ class PandasMapper:
     }
 
     # NumPy function to processor mappings
-    NUMPY_PROCESSOR_MAPPINGS: Dict[str, ProcessorType] = {
+    NUMPY_PROCESSOR_MAPPINGS: dict[str, ProcessorType] = {
         "select": ProcessorType.SWITCH_CASE,
         "digitize": ProcessorType.BINNER,
     }
 
     # NumPy window function mappings
-    NUMPY_WINDOW_MAPPINGS: Dict[str, str] = {
+    NUMPY_WINDOW_MAPPINGS: dict[str, str] = {
         "cumsum": "RUNNING_SUM",
         "cumprod": "RUNNING_PRODUCT",
         "diff": "LAG_DIFF",
     }
 
     # NumPy aggregation to binner mappings
-    NUMPY_BINNER_MAPPINGS: Dict[str, str] = {
+    NUMPY_BINNER_MAPPINGS: dict[str, str] = {
         "percentile": "QUANTILE",
         "quantile": "QUANTILE",
     }

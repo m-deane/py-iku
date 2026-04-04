@@ -1,10 +1,9 @@
 """Generate visual flow diagrams from Dataiku flows."""
 
-from typing import Dict, List, Optional, Set
 
+from py2dataiku.models.dataiku_dataset import DatasetType
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
-from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 
 
 class DiagramGenerator:
@@ -53,8 +52,8 @@ class DiagramGenerator:
         lines = ["flowchart TD"]
 
         # Create node IDs
-        dataset_ids: Dict[str, str] = {}
-        recipe_ids: Dict[str, str] = {}
+        dataset_ids: dict[str, str] = {}
+        recipe_ids: dict[str, str] = {}
 
         # Generate dataset node IDs
         for i, ds in enumerate(flow.datasets):
@@ -187,7 +186,7 @@ class DiagramGenerator:
             return "Empty flow - no recipes"
 
         lines = []
-        processed: Set[str] = set()
+        processed: set[str] = set()
 
         # Find starting datasets (inputs with no upstream recipes)
         start_datasets = set()
@@ -196,7 +195,7 @@ class DiagramGenerator:
                 start_datasets.add(ds.name)
 
         # Build adjacency
-        recipe_outputs: Dict[str, List[str]] = {}
+        recipe_outputs: dict[str, list[str]] = {}
         for recipe in flow.recipes:
             for out in recipe.outputs:
                 recipe_outputs[out] = recipe.inputs
@@ -210,8 +209,8 @@ class DiagramGenerator:
         return "\n".join(lines)
 
     def _build_ascii_path(
-        self, flow: DataikuFlow, start: str, processed: Set[str]
-    ) -> List[str]:
+        self, flow: DataikuFlow, start: str, processed: set[str]
+    ) -> list[str]:
         """Build ASCII representation of a single path."""
         lines = []
         current = start
@@ -248,7 +247,7 @@ class DiagramGenerator:
 
     def _ascii_box(self, text: str, box_type: str = "dataset") -> str:
         """Create an ASCII box around text."""
-        width = len(text) + 2
+        len(text) + 2
         if box_type == "dataset":
             return f"[{text}]"
         else:
@@ -316,8 +315,8 @@ class DiagramGenerator:
         """
         try:
             import graphviz
-        except ImportError:
-            raise ImportError("graphviz package required: pip install graphviz")
+        except ImportError as e:
+            raise ImportError("graphviz package required: pip install graphviz") from e
 
         dot_source = self.to_graphviz(flow)
         graph = graphviz.Source(dot_source)
@@ -334,8 +333,8 @@ class DiagramGenerator:
         """
         try:
             import graphviz
-        except ImportError:
-            raise ImportError("graphviz package required: pip install graphviz")
+        except ImportError as e:
+            raise ImportError("graphviz package required: pip install graphviz") from e
 
         dot_source = self.to_graphviz(flow)
         graph = graphviz.Source(dot_source)

@@ -3,9 +3,9 @@ Demonstration of py2dataiku library converting Python pandas code
 to Dataiku DSS recipes and flow diagrams.
 """
 
-from py2dataiku.parser.ast_analyzer import CodeAnalyzer
-from py2dataiku.generators.flow_generator import FlowGenerator
 from py2dataiku.generators.diagram_generator import DiagramGenerator
+from py2dataiku.generators.flow_generator import FlowGenerator
+from py2dataiku.parser.ast_analyzer import CodeAnalyzer
 
 
 def main():

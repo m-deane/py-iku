@@ -5,8 +5,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
-
+from typing import Any, Optional
 
 _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
 
@@ -28,7 +27,7 @@ class LLMResponse:
 
     content: str
     model: str
-    usage: Optional[Dict[str, int]] = None
+    usage: Optional[dict[str, int]] = None
     raw_response: Optional[Any] = None
 
 
@@ -43,7 +42,7 @@ class LLMProvider(ABC):
     @abstractmethod
     def complete_json(
         self, prompt: str, system_prompt: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send a completion request and parse JSON response."""
         pass
 
@@ -83,14 +82,14 @@ class AnthropicProvider(LLMProvider):
         if self._client is None:
             try:
                 import anthropic
-                kwargs: Dict[str, Any] = {"api_key": self.api_key, "max_retries": self.max_retries}
+                kwargs: dict[str, Any] = {"api_key": self.api_key, "max_retries": self.max_retries}
                 if self.timeout is not None:
                     kwargs["timeout"] = self.timeout
                 self._client = anthropic.Anthropic(**kwargs)
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
                     "anthropic package required. Install with: pip install anthropic"
-                )
+                ) from e
         return self._client
 
     def complete(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse:
@@ -119,7 +118,7 @@ class AnthropicProvider(LLMProvider):
 
     def complete_json(
         self, prompt: str, system_prompt: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send a completion request and parse JSON response."""
         # Add JSON instruction to system prompt
         json_system = (system_prompt or "") + "\n\nYou must respond with valid JSON only. No other text."
@@ -162,14 +161,14 @@ class OpenAIProvider(LLMProvider):
         if self._client is None:
             try:
                 import openai
-                kwargs: Dict[str, Any] = {"api_key": self.api_key, "max_retries": self.max_retries}
+                kwargs: dict[str, Any] = {"api_key": self.api_key, "max_retries": self.max_retries}
                 if self.timeout is not None:
                     kwargs["timeout"] = self.timeout
                 self._client = openai.OpenAI(**kwargs)
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
                     "openai package required. Install with: pip install openai"
-                )
+                ) from e
         return self._client
 
     def complete(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse:
@@ -197,7 +196,7 @@ class OpenAIProvider(LLMProvider):
 
     def complete_json(
         self, prompt: str, system_prompt: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send a completion request with JSON mode."""
         messages = []
         json_system = (system_prompt or "") + "\n\nYou must respond with valid JSON only."
@@ -222,7 +221,7 @@ class OpenAIProvider(LLMProvider):
 class MockProvider(LLMProvider):
     """Mock provider for testing without API calls."""
 
-    def __init__(self, responses: Optional[Dict[str, str]] = None):
+    def __init__(self, responses: Optional[dict[str, str]] = None):
         self.responses = responses or {}
         self.calls = []
 
@@ -243,7 +242,7 @@ class MockProvider(LLMProvider):
 
     def complete_json(
         self, prompt: str, system_prompt: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Return mock JSON response."""
         response = self.complete(prompt, system_prompt)
         return json.loads(response.content)

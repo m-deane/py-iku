@@ -3,7 +3,7 @@
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Optional
 
 
 class NodeType(Enum):
@@ -19,7 +19,7 @@ class FlowNode:
 
     name: str
     node_type: NodeType
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __hash__(self):
         return hash((self.name, self.node_type))
@@ -43,15 +43,15 @@ class FlowGraph:
     """
 
     def __init__(self):
-        self._nodes: Dict[str, FlowNode] = {}
-        self._successors: Dict[str, List[str]] = defaultdict(list)
-        self._predecessors: Dict[str, List[str]] = defaultdict(list)
+        self._nodes: dict[str, FlowNode] = {}
+        self._successors: dict[str, list[str]] = defaultdict(list)
+        self._predecessors: dict[str, list[str]] = defaultdict(list)
 
     def add_node(
         self,
         name: str,
         node_type: NodeType,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> FlowNode:
         """Add a node to the graph."""
         node = FlowNode(name=name, node_type=node_type, metadata=metadata or {})
@@ -74,22 +74,22 @@ class FlowGraph:
         return self._nodes.get(name)
 
     @property
-    def nodes(self) -> List[FlowNode]:
+    def nodes(self) -> list[FlowNode]:
         """Get all nodes."""
         return list(self._nodes.values())
 
     @property
-    def dataset_nodes(self) -> List[FlowNode]:
+    def dataset_nodes(self) -> list[FlowNode]:
         """Get all dataset nodes."""
         return [n for n in self._nodes.values() if n.node_type == NodeType.DATASET]
 
     @property
-    def recipe_nodes(self) -> List[FlowNode]:
+    def recipe_nodes(self) -> list[FlowNode]:
         """Get all recipe nodes."""
         return [n for n in self._nodes.values() if n.node_type == NodeType.RECIPE]
 
     @property
-    def edges(self) -> List[Tuple[str, str]]:
+    def edges(self) -> list[tuple[str, str]]:
         """Get all edges as (source, target) tuples."""
         result = []
         for source, targets in self._successors.items():
@@ -97,21 +97,21 @@ class FlowGraph:
                 result.append((source, target))
         return result
 
-    def get_successors(self, name: str) -> List[str]:
+    def get_successors(self, name: str) -> list[str]:
         """Get direct successor node names."""
         return list(self._successors.get(name, []))
 
-    def get_predecessors(self, name: str) -> List[str]:
+    def get_predecessors(self, name: str) -> list[str]:
         """Get direct predecessor node names."""
         return list(self._predecessors.get(name, []))
 
-    def topological_sort(self) -> List[str]:
+    def topological_sort(self) -> list[str]:
         """
         Return nodes in topological order (Kahn's algorithm).
 
         Raises ValueError if the graph contains a cycle.
         """
-        in_degree: Dict[str, int] = {name: 0 for name in self._nodes}
+        in_degree: dict[str, int] = dict.fromkeys(self._nodes, 0)
         for targets in self._successors.values():
             for t in targets:
                 in_degree[t] += 1
@@ -132,7 +132,7 @@ class FlowGraph:
 
         return result
 
-    def detect_cycles(self) -> List[List[str]]:
+    def detect_cycles(self) -> list[list[str]]:
         """
         Detect all cycles in the graph using DFS.
 
@@ -140,9 +140,9 @@ class FlowGraph:
         Returns an empty list if the graph is acyclic.
         """
         WHITE, GRAY, BLACK = 0, 1, 2
-        color: Dict[str, int] = {name: WHITE for name in self._nodes}
-        path: List[str] = []
-        cycles: List[List[str]] = []
+        color: dict[str, int] = dict.fromkeys(self._nodes, WHITE)
+        path: list[str] = []
+        cycles: list[list[str]] = []
 
         def dfs(node: str) -> None:
             color[node] = GRAY
@@ -165,17 +165,17 @@ class FlowGraph:
 
         return cycles
 
-    def find_disconnected_subgraphs(self) -> List[Set[str]]:
+    def find_disconnected_subgraphs(self) -> list[set[str]]:
         """
         Find disconnected subgraphs (connected components) in the undirected sense.
 
         Returns a list of sets, where each set contains node names in a component.
         """
-        visited: Set[str] = set()
-        components: List[Set[str]] = []
+        visited: set[str] = set()
+        components: list[set[str]] = []
 
-        def bfs(start: str) -> Set[str]:
-            component: Set[str] = set()
+        def bfs(start: str) -> set[str]:
+            component: set[str] = set()
             queue = deque([start])
             while queue:
                 node = queue.popleft()
@@ -199,7 +199,7 @@ class FlowGraph:
 
         return components
 
-    def get_path(self, source: str, target: str) -> Optional[List[str]]:
+    def get_path(self, source: str, target: str) -> Optional[list[str]]:
         """
         Find a path from source to target using BFS.
 
@@ -211,8 +211,8 @@ class FlowGraph:
         if source == target:
             return [source]
 
-        visited: Set[str] = set()
-        queue: deque[Tuple[str, List[str]]] = deque([(source, [source])])
+        visited: set[str] = set()
+        queue: deque[tuple[str, list[str]]] = deque([(source, [source])])
 
         while queue:
             current, path = queue.popleft()
@@ -229,14 +229,14 @@ class FlowGraph:
 
         return None
 
-    def get_roots(self) -> List[str]:
+    def get_roots(self) -> list[str]:
         """Get nodes with no predecessors (source nodes)."""
         return [
             name for name in self._nodes
             if not self._predecessors.get(name)
         ]
 
-    def get_leaves(self) -> List[str]:
+    def get_leaves(self) -> list[str]:
         """Get nodes with no successors (sink nodes)."""
         return [
             name for name in self._nodes

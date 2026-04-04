@@ -1,12 +1,11 @@
 """Validation utilities for Dataiku configurations."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from py2dataiku.exceptions import ValidationError
 from py2dataiku.mappings.processor_catalog import ProcessorCatalog
 
 
-def validate_recipe_config(config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def validate_recipe_config(config: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     Validate a Dataiku recipe configuration.
 
@@ -60,7 +59,7 @@ def validate_recipe_config(config: Dict[str, Any]) -> Tuple[bool, List[str]]:
     return len(errors) == 0, errors
 
 
-def _validate_prepare_settings(settings: Dict[str, Any]) -> List[str]:
+def _validate_prepare_settings(settings: dict[str, Any]) -> list[str]:
     """Validate Prepare recipe settings."""
     errors = []
 
@@ -76,7 +75,7 @@ def _validate_prepare_settings(settings: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def _validate_prepare_step(step: Dict[str, Any], index: int) -> List[str]:
+def _validate_prepare_step(step: dict[str, Any], index: int) -> list[str]:
     """Validate a single Prepare step."""
     errors = []
 
@@ -102,7 +101,7 @@ def _validate_prepare_step(step: Dict[str, Any], index: int) -> List[str]:
     return errors
 
 
-def _validate_join_settings(settings: Dict[str, Any]) -> List[str]:
+def _validate_join_settings(settings: dict[str, Any]) -> list[str]:
     """Validate Join recipe settings."""
     errors = []
 
@@ -129,7 +128,7 @@ def _validate_join_settings(settings: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def _validate_grouping_settings(settings: Dict[str, Any]) -> List[str]:
+def _validate_grouping_settings(settings: dict[str, Any]) -> list[str]:
     """Validate Grouping recipe settings."""
     errors = []
 
@@ -157,7 +156,7 @@ def _validate_grouping_settings(settings: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def validate_flow(flow_config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def validate_flow(flow_config: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     Validate a complete Dataiku flow configuration.
 

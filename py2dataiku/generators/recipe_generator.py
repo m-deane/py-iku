@@ -1,8 +1,7 @@
 """Generate individual Dataiku recipe configurations."""
 
-from typing import Any, Dict, List
+from typing import Any
 
-from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
 from py2dataiku.models.prepare_step import PrepareStep
 
 
@@ -19,8 +18,8 @@ class RecipeGenerator:
         name: str,
         input_dataset: str,
         output_dataset: str,
-        steps: List[PrepareStep],
-    ) -> Dict[str, Any]:
+        steps: list[PrepareStep],
+    ) -> dict[str, Any]:
         """Generate a Prepare recipe configuration."""
         return {
             "type": "prepare",
@@ -40,8 +39,8 @@ class RecipeGenerator:
         right_dataset: str,
         output_dataset: str,
         join_type: str,
-        join_conditions: List[Dict[str, str]],
-    ) -> Dict[str, Any]:
+        join_conditions: list[dict[str, str]],
+    ) -> dict[str, Any]:
         """Generate a Join recipe configuration."""
         return {
             "type": "join",
@@ -69,9 +68,9 @@ class RecipeGenerator:
         name: str,
         input_dataset: str,
         output_dataset: str,
-        keys: List[str],
-        aggregations: List[Dict[str, str]],
-    ) -> Dict[str, Any]:
+        keys: list[str],
+        aggregations: list[dict[str, str]],
+    ) -> dict[str, Any]:
         """Generate a Grouping recipe configuration."""
         return {
             "type": "grouping",
@@ -95,9 +94,9 @@ class RecipeGenerator:
     @staticmethod
     def generate_stack(
         name: str,
-        input_datasets: List[str],
+        input_datasets: list[str],
         output_dataset: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a Stack recipe configuration."""
         return {
             "type": "stack",
@@ -113,9 +112,9 @@ class RecipeGenerator:
     def generate_split(
         name: str,
         input_dataset: str,
-        output_datasets: List[str],
+        output_datasets: list[str],
         condition: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a Split recipe configuration."""
         return {
             "type": "split",
@@ -131,10 +130,10 @@ class RecipeGenerator:
     @staticmethod
     def generate_python(
         name: str,
-        input_datasets: List[str],
-        output_datasets: List[str],
+        input_datasets: list[str],
+        output_datasets: list[str],
         code: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a Python recipe configuration."""
         return {
             "type": "python",
@@ -151,10 +150,10 @@ class RecipeGenerator:
         name: str,
         input_dataset: str,
         output_dataset: str,
-        partition_columns: List[str],
-        order_columns: List[str],
-        aggregations: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        partition_columns: list[str],
+        order_columns: list[str],
+        aggregations: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Generate a Window recipe configuration."""
         return {
             "type": "window",
@@ -173,8 +172,8 @@ class RecipeGenerator:
         name: str,
         input_dataset: str,
         output_dataset: str,
-        sort_columns: List[Dict[str, str]],
-    ) -> Dict[str, Any]:
+        sort_columns: list[dict[str, str]],
+    ) -> dict[str, Any]:
         """Generate a Sort recipe configuration."""
         return {
             "type": "sort",
@@ -191,7 +190,7 @@ class RecipeGenerator:
         name: str,
         input_dataset: str,
         output_dataset: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a Distinct recipe configuration."""
         return {
             "type": "distinct",
@@ -210,7 +209,7 @@ class RecipeGenerator:
         output_dataset: str,
         sampling_method: str = "RANDOM_FIXED_RATIO",
         ratio: float = 0.1,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate a Sampling recipe configuration."""
         return {
             "type": "sampling",

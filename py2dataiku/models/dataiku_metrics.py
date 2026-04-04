@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class MetricType(Enum):
@@ -47,10 +47,10 @@ class DataikuMetric:
     name: str
     metric_type: MetricType
     column: Optional[str] = None
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "name": self.name,
             "type": self.metric_type.value,
         }
@@ -61,7 +61,7 @@ class DataikuMetric:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataikuMetric":
+    def from_dict(cls, data: dict[str, Any]) -> "DataikuMetric":
         return cls(
             name=data["name"],
             metric_type=MetricType(data["type"]),
@@ -132,8 +132,8 @@ class DataikuCheck:
     max_value: Optional[Any] = None
     severity: CheckSeverity = CheckSeverity.ERROR
 
-    def to_dict(self) -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "name": self.name,
             "metric": self.metric_name,
             "condition": self.condition.value,
@@ -148,7 +148,7 @@ class DataikuCheck:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataikuCheck":
+    def from_dict(cls, data: dict[str, Any]) -> "DataikuCheck":
         return cls(
             name=data["name"],
             metric_name=data["metric"],
@@ -197,10 +197,10 @@ class DataQualityRule:
     name: str
     column: str
     rule_type: str  # not_null, unique, in_range, regex_match, in_set, etc.
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     severity: CheckSeverity = CheckSeverity.ERROR
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "column": self.column,
@@ -210,7 +210,7 @@ class DataQualityRule:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataQualityRule":
+    def from_dict(cls, data: dict[str, Any]) -> "DataQualityRule":
         return cls(
             name=data["name"],
             column=data["column"],
@@ -260,7 +260,7 @@ class DataQualityRule:
         )
 
     @classmethod
-    def in_set(cls, column: str, values: List[Any]) -> "DataQualityRule":
+    def in_set(cls, column: str, values: list[Any]) -> "DataQualityRule":
         """Create an in-set rule."""
         return cls(
             name=f"{column}_in_set",

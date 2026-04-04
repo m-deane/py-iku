@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 try:
     import tomllib
@@ -14,7 +14,6 @@ except ModuleNotFoundError:
         tomllib = None  # type: ignore[assignment]
 
 import yaml
-
 
 CONFIG_FILE_NAMES = [
     "py2dataiku.toml",
@@ -52,9 +51,9 @@ class Py2DataikuConfig:
     default_connection: str = "Filesystem"
 
     # Extra settings
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "provider": {
@@ -82,7 +81,7 @@ class Py2DataikuConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Py2DataikuConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "Py2DataikuConfig":
         """Create config from dictionary."""
         provider = data.get("provider", {})
         project = data.get("project", {})
@@ -107,7 +106,7 @@ class Py2DataikuConfig:
         )
 
 
-def _load_toml(path: Path) -> Dict[str, Any]:
+def _load_toml(path: Path) -> dict[str, Any]:
     """Load a TOML config file."""
     if tomllib is None:
         raise ImportError(
@@ -117,9 +116,9 @@ def _load_toml(path: Path) -> Dict[str, Any]:
         return tomllib.load(f)
 
 
-def _load_yaml(path: Path) -> Dict[str, Any]:
+def _load_yaml(path: Path) -> dict[str, Any]:
     """Load a YAML config file."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 

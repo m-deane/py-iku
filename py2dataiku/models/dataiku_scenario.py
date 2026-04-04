@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TriggerType(Enum):
@@ -39,10 +39,10 @@ class ScenarioTrigger:
 
     name: str
     trigger_type: TriggerType
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     active: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "type": self.trigger_type.value,
@@ -51,7 +51,7 @@ class ScenarioTrigger:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ScenarioTrigger":
+    def from_dict(cls, data: dict[str, Any]) -> "ScenarioTrigger":
         return cls(
             name=data["name"],
             trigger_type=TriggerType(data["type"]),
@@ -88,9 +88,9 @@ class ScenarioStep:
 
     name: str
     step_type: StepType
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "type": self.step_type.value,
@@ -98,7 +98,7 @@ class ScenarioStep:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ScenarioStep":
+    def from_dict(cls, data: dict[str, Any]) -> "ScenarioStep":
         return cls(
             name=data["name"],
             step_type=StepType(data["type"]),
@@ -159,11 +159,11 @@ class ScenarioReporter:
 
     name: str
     reporter_type: ReporterType
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     on_success: bool = True
     on_failure: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "type": self.reporter_type.value,
@@ -173,7 +173,7 @@ class ScenarioReporter:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ScenarioReporter":
+    def from_dict(cls, data: dict[str, Any]) -> "ScenarioReporter":
         return cls(
             name=data["name"],
             reporter_type=ReporterType(data["type"]),
@@ -186,7 +186,7 @@ class ScenarioReporter:
     def email(
         cls,
         name: str,
-        recipients: List[str],
+        recipients: list[str],
         subject: str = "Scenario Report",
     ) -> "ScenarioReporter":
         """Create an email reporter."""
@@ -226,11 +226,11 @@ class DataikuScenario:
     """
 
     name: str
-    triggers: List[ScenarioTrigger] = field(default_factory=list)
-    steps: List[ScenarioStep] = field(default_factory=list)
-    reporters: List[ScenarioReporter] = field(default_factory=list)
+    triggers: list[ScenarioTrigger] = field(default_factory=list)
+    steps: list[ScenarioStep] = field(default_factory=list)
+    reporters: list[ScenarioReporter] = field(default_factory=list)
     active: bool = True
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
     def add_trigger(self, trigger: ScenarioTrigger) -> None:
         """Add a trigger to the scenario."""
@@ -244,7 +244,7 @@ class DataikuScenario:
         """Add a reporter to the scenario."""
         self.reporters.append(reporter)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "name": self.name,
@@ -255,7 +255,7 @@ class DataikuScenario:
             "reporters": [r.to_dict() for r in self.reporters],
         }
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """Convert to Dataiku API-compatible JSON."""
         return {
             "id": self.name,
@@ -271,7 +271,7 @@ class DataikuScenario:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataikuScenario":
+    def from_dict(cls, data: dict[str, Any]) -> "DataikuScenario":
         """Reconstruct a DataikuScenario from a dictionary."""
         return cls(
             name=data["name"],

@@ -1,7 +1,7 @@
 """Track data lineage through Python code."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Optional
 
 
 @dataclass
@@ -9,9 +9,9 @@ class DataFrameState:
     """State of a DataFrame at a point in the code."""
 
     variable_name: str
-    columns: List[str] = field(default_factory=list)
+    columns: list[str] = field(default_factory=list)
     source: Optional[str] = None  # Original data source
-    transformations: List[str] = field(default_factory=list)
+    transformations: list[str] = field(default_factory=list)
     line_number: int = 0
 
 
@@ -24,14 +24,14 @@ class DataFlowTracker:
     """
 
     def __init__(self):
-        self.states: Dict[str, DataFrameState] = {}
-        self.aliases: Dict[str, str] = {}  # variable aliases
+        self.states: dict[str, DataFrameState] = {}
+        self.aliases: dict[str, str] = {}  # variable aliases
 
     def register_read(
         self,
         variable: str,
         source: str,
-        columns: Optional[List[str]] = None,
+        columns: Optional[list[str]] = None,
         line: int = 0,
     ) -> None:
         """Register a data read operation."""
@@ -82,7 +82,7 @@ class DataFlowTracker:
     def register_column_drop(
         self,
         variable: str,
-        columns: List[str],
+        columns: list[str],
         line: int = 0,
     ) -> None:
         """Register columns being dropped."""
@@ -97,7 +97,7 @@ class DataFlowTracker:
     def register_column_rename(
         self,
         variable: str,
-        mapping: Dict[str, str],
+        mapping: dict[str, str],
         line: int = 0,
     ) -> None:
         """Register column renames."""
@@ -115,7 +115,7 @@ class DataFlowTracker:
         left_var: str,
         right_var: str,
         target_var: str,
-        on: Optional[List[str]] = None,
+        on: Optional[list[str]] = None,
         line: int = 0,
     ) -> None:
         """Register a merge/join operation."""
@@ -140,12 +140,12 @@ class DataFlowTracker:
         """Get the current state of a variable."""
         return self.states.get(variable)
 
-    def get_columns(self, variable: str) -> List[str]:
+    def get_columns(self, variable: str) -> list[str]:
         """Get the columns for a variable."""
         state = self.get_state(variable)
         return state.columns if state else []
 
-    def get_lineage(self, variable: str) -> List[str]:
+    def get_lineage(self, variable: str) -> list[str]:
         """Get the transformation lineage for a variable."""
         state = self.get_state(variable)
         return state.transformations if state else []

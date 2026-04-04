@@ -1,7 +1,7 @@
 """Complete catalog of Dataiku Prepare recipe processor types."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -11,9 +11,9 @@ class ProcessorInfo:
     name: str
     category: str
     description: str
-    required_params: List[str]
-    optional_params: List[str]
-    example_params: Dict[str, Any]
+    required_params: list[str]
+    optional_params: list[str]
+    example_params: dict[str, Any]
 
 
 class ProcessorCatalog:
@@ -24,7 +24,7 @@ class ProcessorCatalog:
     processors, their parameters, and usage examples.
     """
 
-    PROCESSORS: Dict[str, ProcessorInfo] = {
+    PROCESSORS: dict[str, ProcessorInfo] = {
         # Column manipulation
         "ColumnRenamer": ProcessorInfo(
             name="ColumnRenamer",
@@ -1146,7 +1146,7 @@ class ProcessorCatalog:
         return cls.PROCESSORS.get(name)
 
     @classmethod
-    def list_processors(cls, category: Optional[str] = None) -> List[str]:
+    def list_processors(cls, category: Optional[str] = None) -> list[str]:
         """List all processor names, optionally filtered by category."""
         if category:
             return [
@@ -1157,18 +1157,18 @@ class ProcessorCatalog:
         return list(cls.PROCESSORS.keys())
 
     @classmethod
-    def list_categories(cls) -> List[str]:
+    def list_categories(cls) -> list[str]:
         """List all processor categories."""
-        return sorted(set(info.category for info in cls.PROCESSORS.values()))
+        return sorted({info.category for info in cls.PROCESSORS.values()})
 
     @classmethod
-    def get_required_params(cls, name: str) -> List[str]:
+    def get_required_params(cls, name: str) -> list[str]:
         """Get required parameters for a processor."""
         info = cls.PROCESSORS.get(name)
         return info.required_params if info else []
 
     @classmethod
-    def get_example(cls, name: str) -> Dict[str, Any]:
+    def get_example(cls, name: str) -> dict[str, Any]:
         """Get example parameters for a processor."""
         info = cls.PROCESSORS.get(name)
         return info.example_params if info else {}

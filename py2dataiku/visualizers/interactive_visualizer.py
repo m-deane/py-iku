@@ -11,12 +11,13 @@ Enhanced visualization with:
 - Flow statistics
 """
 
-from typing import Optional
 import json
+from typing import Optional
+
 from py2dataiku.visualizers.base import FlowVisualizer
-from py2dataiku.visualizers.layout_engine import LayoutEngine
-from py2dataiku.visualizers.themes import DataikuTheme, DATAIKU_LIGHT
 from py2dataiku.visualizers.icons import RecipeIcons
+from py2dataiku.visualizers.layout_engine import LayoutEngine
+from py2dataiku.visualizers.themes import DataikuTheme
 
 
 class InteractiveVisualizer(FlowVisualizer):

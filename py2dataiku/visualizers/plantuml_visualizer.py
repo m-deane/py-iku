@@ -4,11 +4,12 @@ PlantUML visualizer for Dataiku flows.
 Generates PlantUML code that can be rendered by PlantUML servers.
 """
 
-from typing import Optional, List, Dict
+from typing import Optional
+
 from py2dataiku.visualizers.base import FlowVisualizer
-from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
-from py2dataiku.visualizers.themes import DataikuTheme, DATAIKU_LIGHT
 from py2dataiku.visualizers.icons import RecipeIcons
+from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
+from py2dataiku.visualizers.themes import DataikuTheme
 
 
 class PlantUMLVisualizer(FlowVisualizer):
@@ -54,7 +55,7 @@ class PlantUMLVisualizer(FlowVisualizer):
 
         return "\n".join(lines)
 
-    def _generate_style(self) -> List[str]:
+    def _generate_style(self) -> list[str]:
         """Generate PlantUML styling directives."""
         return [
             "!theme plain",
@@ -90,7 +91,7 @@ class PlantUMLVisualizer(FlowVisualizer):
             "}",
             "",
             "' Arrow style",
-            f"skinparam arrow {{",
+            "skinparam arrow {",
             f"  Color {self.theme.connection_color}",
             f"  Thickness {self.theme.connection_width}",
             "}",
@@ -135,8 +136,8 @@ class PlantUMLVisualizer(FlowVisualizer):
         Returns:
             URL that renders the diagram as PNG
         """
-        import zlib
         import base64
+        import zlib
 
         content = self.render(flow)
 

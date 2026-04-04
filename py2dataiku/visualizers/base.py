@@ -4,7 +4,8 @@ Base class for flow visualizers.
 
 from abc import ABC, abstractmethod
 from typing import Optional
-from py2dataiku.visualizers.themes import DataikuTheme, DATAIKU_LIGHT
+
+from py2dataiku.visualizers.themes import DATAIKU_LIGHT, DataikuTheme
 
 
 class FlowVisualizer(ABC):

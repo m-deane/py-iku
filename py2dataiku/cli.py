@@ -16,10 +16,10 @@ import sys
 from typing import Optional
 
 from py2dataiku import (
+    CodeAnalyzer,
+    DataikuFlow,
     __version__,
     convert,
-    DataikuFlow,
-    CodeAnalyzer,
 )
 
 
@@ -262,7 +262,7 @@ def read_input(input_path: str) -> str:
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
-    with open(input_path, "r", encoding="utf-8") as f:
+    with open(input_path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -306,7 +306,7 @@ def convert_code(
             raise ImportError(
                 f"LLM dependencies not installed. Install with: pip install py-iku[llm]\n"
                 f"Error: {e}"
-            )
+            ) from e
     else:
         return convert(code, optimize=optimize)
 
@@ -387,7 +387,7 @@ def cmd_visualize(args: argparse.Namespace) -> int:
         # Get theme
         theme = None
         if args.format in ("svg", "html"):
-            from py2dataiku.visualizers import DATAIKU_LIGHT, DATAIKU_DARK
+            from py2dataiku.visualizers import DATAIKU_DARK, DATAIKU_LIGHT
             theme = DATAIKU_DARK if args.theme == "dark" else DATAIKU_LIGHT
 
         if args.format == "mermaid":
@@ -564,7 +564,7 @@ def cmd_export(args: argparse.Namespace) -> int:
             optimize=not args.no_optimize,
         )
 
-        log(f"Exporting to DSS project format...", args.quiet)
+        log("Exporting to DSS project format...", args.quiet)
 
         from py2dataiku.exporters import DSSExporter, DSSProjectConfig
 

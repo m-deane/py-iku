@@ -1,7 +1,6 @@
 """Flow optimization utilities."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
 
 from py2dataiku.models.dataiku_dataset import DatasetType
 from py2dataiku.models.dataiku_flow import DataikuFlow, FlowRecommendation
@@ -16,9 +15,9 @@ class OptimizationResult:
     recipes_merged: int = 0
     datasets_removed: int = 0
     filters_pushed_down: int = 0
-    log: List[str] = field(default_factory=list)
+    log: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, object]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "recipes_merged": self.recipes_merged,
             "datasets_removed": self.datasets_removed,
@@ -39,7 +38,7 @@ class FlowOptimizer:
     """
 
     def __init__(self):
-        self.recommendations: List[FlowRecommendation] = []
+        self.recommendations: list[FlowRecommendation] = []
 
     def optimize(
         self, flow: DataikuFlow, apply: bool = True
@@ -127,7 +126,7 @@ class FlowOptimizer:
         self, flow: DataikuFlow, result: OptimizationResult
     ) -> None:
         """Remove intermediate datasets that are no longer referenced."""
-        referenced: Set[str] = set()
+        referenced: set[str] = set()
         for recipe in flow.recipes:
             referenced.update(recipe.inputs)
             referenced.update(recipe.outputs)
@@ -202,9 +201,9 @@ class FlowOptimizer:
 
     def _identify_parallel_branches(
         self, flow: DataikuFlow
-    ) -> List[List[DataikuRecipe]]:
+    ) -> list[list[DataikuRecipe]]:
         """Identify recipe sequences that can run in parallel."""
-        parallel_groups: List[List[DataikuRecipe]] = []
+        parallel_groups: list[list[DataikuRecipe]] = []
 
         dependencies = self._build_dependency_graph(flow)
 
@@ -217,7 +216,7 @@ class FlowOptimizer:
 
     def _build_dependency_graph(self, flow: DataikuFlow) -> dict:
         """Build a dependency graph of recipes."""
-        deps: Dict[str, Set[str]] = {}
+        deps: dict[str, set[str]] = {}
         for recipe in flow.recipes:
             deps[recipe.name] = set()
             for inp in recipe.inputs:
@@ -238,7 +237,7 @@ class FlowOptimizer:
         if recipe1.name in dependencies.get(recipe2.name, set()):
             return True
 
-        visited: Set[str] = set()
+        visited: set[str] = set()
         to_check = list(dependencies.get(recipe1.name, set()))
         while to_check:
             current = to_check.pop()

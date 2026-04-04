@@ -1,0 +1,1040 @@
+"""Edge-case tests for CodeAnalyzer (AST-based analysis).
+
+Targets the 77 branch misses that kept ast_analyzer.py at 79% coverage.
+Each test class exercises a distinct scenario not already covered by
+test_ast_parser_fixes.py.
+"""
+
+import pytest
+
+from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+from py2dataiku.models.transformation import TransformationType
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _types(transformations):
+    """Return a list of TransformationType values for quick assertions."""
+    return [t.transformation_type for t in transformations]
+
+
+def _find(transformations, ttype):
+    """Return all transformations whose type matches *ttype*."""
+    return [t for t in transformations if t.transformation_type == ttype]
+
+
+# ---------------------------------------------------------------------------
+# 1. Chained operations
+# ---------------------------------------------------------------------------
+
+class TestChainedOperations:
+    """df.dropna().rename(columns={…}).sort_values('c') should emit all three ops."""
+
+    def test_three_op_chain_emits_three_transformations(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna().rename(columns={'a': 'b'}).sort_values('c')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        types = _types(transformations)
+        assert TransformationType.DROP_NA in types, "dropna() should produce DROP_NA"
+        assert TransformationType.COLUMN_RENAME in types, "rename() should produce COLUMN_RENAME"
+        assert TransformationType.SORT in types, "sort_values() should produce SORT"
+
+    def test_three_op_chain_rename_mapping_extracted(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna().rename(columns={'old': 'new'}).sort_values('new')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        renames = _find(transformations, TransformationType.COLUMN_RENAME)
+        assert len(renames) >= 1
+        mapping = renames[0].parameters.get("mapping", {})
+        assert mapping.get("old") == "new"
+
+    def test_two_op_chain_dropna_then_drop_duplicates(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna().drop_duplicates()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        types = _types(transformations)
+        assert TransformationType.DROP_NA in types
+        assert TransformationType.DROP_DUPLICATES in types
+
+
+# ---------------------------------------------------------------------------
+# 2. groupby().sum() / .mean() / .count() (single aggregation shorthand)
+# ---------------------------------------------------------------------------
+
+class TestGroupbyShorthandAggregations:
+    """groupby('col').sum() — single-agg shorthand that bypasses the .agg() dict path."""
+
+    def test_groupby_sum_produces_groupby_transformation(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.groupby('cat').sum()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        groupby_trans = _find(transformations, TransformationType.GROUPBY)
+        # The analyzer should detect *something* groupby-related
+        assert len(groupby_trans) >= 1, (
+            "groupby().sum() should produce at least one GROUPBY transformation"
+        )
+
+    def test_groupby_sum_keys_extracted(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.groupby('region').sum()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        groupby_trans = _find(transformations, TransformationType.GROUPBY)
+        assert len(groupby_trans) >= 1
+        # Keys may be in .columns or parameters['keys']
+        gb = groupby_trans[0]
+        keys = gb.parameters.get("keys", []) or gb.columns
+        assert "region" in keys, f"Expected 'region' in groupby keys, got: {keys}"
+
+    def test_groupby_mean_produces_groupby_transformation(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.groupby('category').mean()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        groupby_trans = _find(transformations, TransformationType.GROUPBY)
+        assert len(groupby_trans) >= 1
+
+    def test_groupby_count_produces_groupby_transformation(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.groupby(['a', 'b']).count()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        groupby_trans = _find(transformations, TransformationType.GROUPBY)
+        assert len(groupby_trans) >= 1
+
+
+# ---------------------------------------------------------------------------
+# 3. df.expanding() — absent from dispatch table, should not crash
+# ---------------------------------------------------------------------------
+
+class TestExpandingGracefulHandling:
+    """df.expanding() is listed in CLAUDE.md but absent from _METHOD_HANDLER_NAMES.
+    The analyzer must not raise; it may emit UNKNOWN or ROLLING."""
+
+    def test_expanding_does_not_raise(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df['value'].expanding().mean()\n"
+        )
+        analyzer = CodeAnalyzer()
+        # Must not raise any exception
+        transformations = analyzer.analyze(code)
+        assert isinstance(transformations, list)
+
+    def test_expanding_emits_at_least_one_transformation(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.expanding(min_periods=3).sum()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        # Should produce the READ_DATA transformation at minimum
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) >= 1
+
+    def test_expanding_does_not_produce_error_type(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.expanding().mean()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        # None of the emitted transformations should crash downstream consumers
+        for t in transformations:
+            assert t.transformation_type is not None
+            assert isinstance(t.parameters, dict)
+
+
+# ---------------------------------------------------------------------------
+# 4. Multiple assignments from the same source DataFrame
+# ---------------------------------------------------------------------------
+
+class TestMultipleAssignmentsFromSameDataFrame:
+    """Two conditional subsets derived from the same source should each be detected."""
+
+    def test_two_boolean_filters_both_detected(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df2 = df[df.amount > 100]\n"
+            "df3 = df[df.amount <= 100]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 2, (
+            f"Expected at least 2 FILTER transformations, got {len(filter_trans)}"
+        )
+
+    def test_two_filters_have_distinct_targets(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df2 = df[df.amount > 100]\n"
+            "df3 = df[df.amount <= 100]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 2
+        targets = {t.target_dataframe for t in filter_trans}
+        assert len(targets) >= 2, "Each filter should target a different variable"
+
+    def test_source_dataframe_recorded_for_both_filters(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "high = df[df.amount > 100]\n"
+            "low  = df[df.amount <= 100]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        for ft in filter_trans:
+            assert ft.source_dataframe == "df", (
+                f"Both filters should originate from 'df', got '{ft.source_dataframe}'"
+            )
+
+
+# ---------------------------------------------------------------------------
+# 5. pd.cut() and pd.qcut() as top-level calls
+# ---------------------------------------------------------------------------
+
+class TestPdCutAndQcut:
+    """pd.cut() and pd.qcut() assigned to df columns should be handled gracefully."""
+
+    def test_pd_cut_does_not_raise(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['binned'] = pd.cut(df['value'], bins=5)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert isinstance(transformations, list)
+
+    def test_pd_cut_emits_read_data_at_minimum(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['binned'] = pd.cut(df['value'], bins=5)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) >= 1
+
+    def test_pd_qcut_does_not_raise(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['quartile'] = pd.qcut(df['score'], q=4)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert isinstance(transformations, list)
+
+    def test_pd_cut_and_qcut_together_do_not_crash(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['binned'] = pd.cut(df['value'], bins=5)\n"
+            "df['quartile'] = pd.qcut(df['score'], q=4)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        # At a minimum we should get the read operation
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) >= 1
+
+
+# ---------------------------------------------------------------------------
+# 6. NumPy element-wise operations
+# ---------------------------------------------------------------------------
+
+class TestNumpyOperations:
+    """np.log(), np.abs() assigned to a DataFrame column should map to NUMERIC_TRANSFORM."""
+
+    def test_np_log_produces_numeric_transform(self):
+        code = (
+            "import pandas as pd\n"
+            "import numpy as np\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['log_val'] = np.log(df['value'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        numeric_trans = _find(transformations, TransformationType.NUMERIC_TRANSFORM)
+        assert len(numeric_trans) >= 1, "np.log() should produce NUMERIC_TRANSFORM"
+
+    def test_np_log_operation_parameter(self):
+        code = (
+            "import pandas as pd\n"
+            "import numpy as np\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['log_val'] = np.log(df['value'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        numeric_trans = _find(transformations, TransformationType.NUMERIC_TRANSFORM)
+        assert len(numeric_trans) >= 1
+        op = numeric_trans[0].parameters.get("operation", "")
+        assert "log" in op.lower(), f"Expected 'log' in operation, got '{op}'"
+
+    def test_np_abs_produces_numeric_transform(self):
+        code = (
+            "import pandas as pd\n"
+            "import numpy as np\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['abs_val'] = np.abs(df['value'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        numeric_trans = _find(transformations, TransformationType.NUMERIC_TRANSFORM)
+        assert len(numeric_trans) >= 1, "np.abs() should produce NUMERIC_TRANSFORM"
+
+    def test_np_sqrt_does_not_raise(self):
+        code = (
+            "import pandas as pd\n"
+            "import numpy as np\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df['sqrt_val'] = np.sqrt(df['value'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert isinstance(transformations, list)
+
+
+# ---------------------------------------------------------------------------
+# 7. df.assign()
+# ---------------------------------------------------------------------------
+
+class TestAssign:
+    """df.assign(new_col=...) should produce a COLUMN_CREATE transformation."""
+
+    def test_assign_single_column_detected(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.assign(new_col=lambda x: x['a'] + x['b'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1, "df.assign() should produce COLUMN_CREATE"
+
+    def test_assign_new_column_name_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.assign(total=lambda x: x['qty'] * x['price'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1
+        cc = col_create[0]
+        col_names = cc.columns or cc.parameters.get("columns", [])
+        assert "total" in col_names, f"Expected 'total' in column names, got {col_names}"
+
+    def test_assign_multiple_columns_all_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.assign(col_a=1, col_b=2, col_c=3)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1
+        cc = col_create[0]
+        col_names = cc.columns or cc.parameters.get("columns", [])
+        assert "col_a" in col_names
+        assert "col_b" in col_names
+        assert "col_c" in col_names
+
+    def test_assign_suggested_processor(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.assign(result=lambda x: x['val'] * 2)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1
+        assert col_create[0].suggested_processor == "CreateColumnWithGREL"
+
+
+# ---------------------------------------------------------------------------
+# 8. df.explode()
+# ---------------------------------------------------------------------------
+
+class TestExplode:
+    """df.explode('list_col') should produce a COLUMN_CREATE with operation='unfold'."""
+
+    def test_explode_detected(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.explode('list_col')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1, "df.explode() should produce COLUMN_CREATE"
+
+    def test_explode_operation_is_unfold(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.explode('tags')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1
+        op = col_create[0].parameters.get("operation", "")
+        assert op == "unfold", f"Expected operation='unfold', got '{op}'"
+
+    def test_explode_column_name_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.explode('items')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1
+        col = col_create[0].parameters.get("column")
+        assert col == "items", f"Expected column='items', got '{col}'"
+
+    def test_explode_suggested_processor_is_unfold(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df = df.explode('nested')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        col_create = _find(transformations, TransformationType.COLUMN_CREATE)
+        assert len(col_create) >= 1
+        assert col_create[0].suggested_processor == "Unfold"
+
+
+# ---------------------------------------------------------------------------
+# 9. Empty / trivial code (imports only, no data operations)
+# ---------------------------------------------------------------------------
+
+class TestEmptyAndTrivialCode:
+    """Code with only imports should produce zero transformations without crashing."""
+
+    def test_import_only_returns_empty_list(self):
+        code = "import pandas as pd\nimport numpy as np\n"
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert transformations == []
+
+    def test_empty_string_returns_empty_list(self):
+        code = ""
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert transformations == []
+
+    def test_comment_only_returns_empty_list(self):
+        code = "# This is just a comment\n# Another comment\n"
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert transformations == []
+
+    def test_variable_assignment_without_pandas_returns_no_read(self):
+        code = "x = 42\ny = 'hello'\n"
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) == 0
+
+    def test_analyzer_resets_state_between_analyze_calls(self):
+        """Calling analyze() twice on the same instance should not accumulate results."""
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+        )
+        analyzer = CodeAnalyzer()
+        first = analyzer.analyze(code)
+        second = analyzer.analyze(code)
+        assert len(first) == len(second), (
+            "Second analyze() call should reset state, not accumulate transformations"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 10. Multiple pd.read_csv() calls (two separate input datasets)
+# ---------------------------------------------------------------------------
+
+class TestMultipleReadCsvCalls:
+    """Two read_csv() calls should each produce a READ_DATA transformation."""
+
+    def test_two_read_csv_produce_two_read_data(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('sales.csv')\n"
+            "df2 = pd.read_csv('customers.csv')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) == 2, (
+            f"Expected 2 READ_DATA transformations, got {len(read_trans)}"
+        )
+
+    def test_two_read_csv_have_distinct_targets(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('sales.csv')\n"
+            "df2 = pd.read_csv('customers.csv')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) == 2
+        targets = {t.target_dataframe for t in read_trans}
+        assert "df1" in targets
+        assert "df2" in targets
+
+    def test_two_read_csv_filepaths_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('sales.csv')\n"
+            "df2 = pd.read_csv('customers.csv')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) == 2
+        filepaths = {t.parameters.get("filepath") for t in read_trans}
+        assert "sales.csv" in filepaths
+        assert "customers.csv" in filepaths
+
+    def test_three_read_csv_produce_three_read_data(self):
+        code = (
+            "import pandas as pd\n"
+            "a = pd.read_csv('a.csv')\n"
+            "b = pd.read_csv('b.csv')\n"
+            "c = pd.read_csv('c.csv')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) == 3
+
+
+# ---------------------------------------------------------------------------
+# 11. Variable aliasing — data = df; data.dropna()
+# ---------------------------------------------------------------------------
+
+class TestVariableAliasing:
+    """When a DataFrame is aliased, operations on the alias should still be detected."""
+
+    def test_alias_then_dropna_does_not_crash(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "data = df\n"
+            "result = data.dropna()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        assert isinstance(transformations, list)
+
+    def test_alias_dropna_emits_drop_na(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "data = df\n"
+            "result = data.dropna()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        drop_na = _find(transformations, TransformationType.DROP_NA)
+        assert len(drop_na) >= 1, "dropna() on an alias should produce DROP_NA"
+
+    def test_alias_sort_values_emits_sort(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "clean = df\n"
+            "result = clean.sort_values('name')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        sort_trans = _find(transformations, TransformationType.SORT)
+        assert len(sort_trans) >= 1
+
+
+# ---------------------------------------------------------------------------
+# 12. Complex boolean indexing with & operator
+# ---------------------------------------------------------------------------
+
+class TestComplexBooleanIndexing:
+    """df[(df.a > 1) & (df.b < 5)] should produce a FILTER transformation."""
+
+    def test_and_boolean_filter_detected(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df[(df.a > 1) & (df.b < 5)]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 1, "Compound & filter should produce FILTER"
+
+    def test_or_boolean_filter_detected(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df[(df.status == 'active') | (df.priority > 3)]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 1, "Compound | filter should produce FILTER"
+
+    def test_complex_filter_condition_not_empty(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df[(df.a > 1) & (df.b < 5)]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 1
+        condition = filter_trans[0].parameters.get("condition", "")
+        assert len(condition) > 0, "Filter condition string should not be empty"
+
+    def test_negated_boolean_filter_detected(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df[~(df.amount == 0)]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 1
+
+    def test_complex_filter_source_dataframe_correct(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "filtered = df[(df.x > 0) & (df.y > 0)]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 1
+        assert filter_trans[0].source_dataframe == "df"
+
+    def test_complex_filter_target_dataframe_correct(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "filtered = df[(df.x > 0) & (df.y > 0)]\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        filter_trans = _find(transformations, TransformationType.FILTER)
+        assert len(filter_trans) >= 1
+        assert filter_trans[0].target_dataframe == "filtered"
+
+
+# ---------------------------------------------------------------------------
+# 13. Transformation metadata — source_line populated
+# ---------------------------------------------------------------------------
+
+class TestTransformationMetadata:
+    """Transformations should carry accurate source_line and type information."""
+
+    def test_read_csv_source_line_populated(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        read_trans = _find(transformations, TransformationType.READ_DATA)
+        assert len(read_trans) >= 1
+        assert read_trans[0].source_line is not None
+        assert read_trans[0].source_line > 0
+
+    def test_dropna_source_line_populated(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        drop_na = _find(transformations, TransformationType.DROP_NA)
+        assert len(drop_na) >= 1
+        assert drop_na[0].source_line is not None
+
+    def test_transformation_type_is_enum_instance(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        for t in transformations:
+            assert isinstance(t.transformation_type, TransformationType), (
+                f"Expected TransformationType enum, got {type(t.transformation_type)}"
+            )
+
+    def test_to_dict_serialisable(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna().sort_values('col')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        for t in transformations:
+            d = t.to_dict()
+            assert isinstance(d, dict)
+            assert "type" in d
+
+
+# ---------------------------------------------------------------------------
+# 14. Invalid Python syntax raises InvalidPythonCodeError
+# ---------------------------------------------------------------------------
+
+class TestInvalidSyntax:
+    """SyntaxError in input code should be re-raised as InvalidPythonCodeError."""
+
+    def test_syntax_error_raises_invalid_python_code_error(self):
+        from py2dataiku.exceptions import InvalidPythonCodeError
+
+        code = "def broken(:\n    pass\n"
+        analyzer = CodeAnalyzer()
+        with pytest.raises(InvalidPythonCodeError):
+            analyzer.analyze(code)
+
+    def test_unclosed_paren_raises_invalid_python_code_error(self):
+        from py2dataiku.exceptions import InvalidPythonCodeError
+
+        code = "x = (1 + 2\n"
+        analyzer = CodeAnalyzer()
+        with pytest.raises(InvalidPythonCodeError):
+            analyzer.analyze(code)
+
+
+# ---------------------------------------------------------------------------
+# 15. Dispatch table completeness — all entries resolve to callable handlers
+# ---------------------------------------------------------------------------
+
+class TestDispatchTableIntegrity:
+    """Every entry in _METHOD_HANDLER_NAMES that has a matching method should be callable."""
+
+    def test_all_registered_handlers_are_callable(self):
+        analyzer = CodeAnalyzer()
+        for method_name, handler in analyzer._method_handlers.items():
+            assert callable(handler), (
+                f"Handler for '{method_name}' is not callable: {handler!r}"
+            )
+
+    def test_handler_count_matches_available_methods(self):
+        """Handlers registered in __init__ should be a subset of _METHOD_HANDLER_NAMES."""
+        analyzer = CodeAnalyzer()
+        for name in analyzer._method_handlers:
+            assert name in CodeAnalyzer._METHOD_HANDLER_NAMES, (
+                f"'{name}' in _method_handlers but not in _METHOD_HANDLER_NAMES"
+            )
+
+    def test_expanding_absent_from_dispatch_table(self):
+        """Document the known gap: 'expanding' is not in the dispatch table."""
+        assert "expanding" not in CodeAnalyzer._METHOD_HANDLER_NAMES, (
+            "'expanding' was added to _METHOD_HANDLER_NAMES — update the tests accordingly"
+        )
+
+
+# ---------------------------------------------------------------------------
+# 16. dropna with subset keyword
+# ---------------------------------------------------------------------------
+
+class TestDropnaSubset:
+    """dropna(subset=['col']) should capture the subset columns."""
+
+    def test_dropna_subset_single_column(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna(subset=['age'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        drop_na = _find(transformations, TransformationType.DROP_NA)
+        assert len(drop_na) >= 1
+        subset = drop_na[0].parameters.get("subset")
+        assert subset is not None
+        assert "age" in subset
+
+    def test_dropna_subset_multiple_columns(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.dropna(subset=['age', 'income'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        drop_na = _find(transformations, TransformationType.DROP_NA)
+        assert len(drop_na) >= 1
+        subset = drop_na[0].parameters.get("subset") or drop_na[0].columns
+        assert "age" in subset
+        assert "income" in subset
+
+
+# ---------------------------------------------------------------------------
+# 17. sort_values with ascending=False
+# ---------------------------------------------------------------------------
+
+class TestSortValuesDescending:
+    """sort_values('col', ascending=False) should record ascending=False."""
+
+    def test_sort_descending_parameter_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.sort_values('revenue', ascending=False)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        sort_trans = _find(transformations, TransformationType.SORT)
+        assert len(sort_trans) >= 1
+        ascending = sort_trans[0].parameters.get("ascending")
+        assert ascending is False, f"Expected ascending=False, got {ascending}"
+
+    def test_sort_ascending_default_is_true(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.sort_values('name')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        sort_trans = _find(transformations, TransformationType.SORT)
+        assert len(sort_trans) >= 1
+        ascending = sort_trans[0].parameters.get("ascending")
+        assert ascending is True, f"Expected ascending=True (default), got {ascending}"
+
+
+# ---------------------------------------------------------------------------
+# 18. head() and tail() with explicit n
+# ---------------------------------------------------------------------------
+
+class TestHeadAndTail:
+    """head(n) and tail(n) should capture the n parameter."""
+
+    def test_head_n_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.head(20)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        head_trans = _find(transformations, TransformationType.HEAD)
+        assert len(head_trans) >= 1
+        assert head_trans[0].parameters.get("n") == 20
+
+    def test_tail_n_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.tail(10)\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        tail_trans = _find(transformations, TransformationType.TAIL)
+        assert len(tail_trans) >= 1
+        assert tail_trans[0].parameters.get("n") == 10
+
+    def test_head_default_n_is_five(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "result = df.head()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        head_trans = _find(transformations, TransformationType.HEAD)
+        assert len(head_trans) >= 1
+        assert head_trans[0].parameters.get("n") == 5
+
+
+# ---------------------------------------------------------------------------
+# 19. pd.merge() (module-level, not method-level)
+# ---------------------------------------------------------------------------
+
+class TestPdMerge:
+    """pd.merge(left, right, on=...) should produce a MERGE transformation."""
+
+    def test_pd_merge_produces_merge(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('a.csv')\n"
+            "df2 = pd.read_csv('b.csv')\n"
+            "result = pd.merge(df1, df2, on='id')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        merge_trans = _find(transformations, TransformationType.MERGE)
+        assert len(merge_trans) >= 1
+
+    def test_pd_merge_on_parameter_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('a.csv')\n"
+            "df2 = pd.read_csv('b.csv')\n"
+            "result = pd.merge(df1, df2, on='customer_id')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        merge_trans = _find(transformations, TransformationType.MERGE)
+        assert len(merge_trans) >= 1
+        on = merge_trans[0].parameters.get("on")
+        assert on is not None
+        assert "customer_id" in on
+
+    def test_pd_merge_how_parameter_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('a.csv')\n"
+            "df2 = pd.read_csv('b.csv')\n"
+            "result = pd.merge(df1, df2, on='id', how='left')\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        merge_trans = _find(transformations, TransformationType.MERGE)
+        assert len(merge_trans) >= 1
+        how = merge_trans[0].parameters.get("how")
+        assert how == "left"
+
+
+# ---------------------------------------------------------------------------
+# 20. pd.concat()
+# ---------------------------------------------------------------------------
+
+class TestPdConcat:
+    """pd.concat([df1, df2]) should produce a CONCAT transformation."""
+
+    def test_concat_produces_concat(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('a.csv')\n"
+            "df2 = pd.read_csv('b.csv')\n"
+            "result = pd.concat([df1, df2])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        concat_trans = _find(transformations, TransformationType.CONCAT)
+        assert len(concat_trans) >= 1
+
+    def test_concat_dataframes_list_captured(self):
+        code = (
+            "import pandas as pd\n"
+            "df1 = pd.read_csv('a.csv')\n"
+            "df2 = pd.read_csv('b.csv')\n"
+            "result = pd.concat([df1, df2])\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+
+        concat_trans = _find(transformations, TransformationType.CONCAT)
+        assert len(concat_trans) >= 1
+        dfs = concat_trans[0].parameters.get("dataframes", [])
+        assert "df1" in dfs
+        assert "df2" in dfs

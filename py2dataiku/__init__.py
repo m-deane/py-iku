@@ -26,107 +26,23 @@ except Exception:
 import warnings
 from typing import Optional
 
-# Rule-based components (legacy)
-from py2dataiku.parser.ast_analyzer import CodeAnalyzer
-from py2dataiku.generators.flow_generator import FlowGenerator
-from py2dataiku.generators.diagram_generator import DiagramGenerator
-
-# LLM-based components (recommended)
-from py2dataiku.llm.analyzer import LLMCodeAnalyzer
-from py2dataiku.llm.providers import (
-    LLMProvider,
-    AnthropicProvider,
-    OpenAIProvider,
-    MockProvider,
-    get_provider,
-)
-from py2dataiku.llm.schemas import AnalysisResult, DataStep, OperationType
-from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
-
-# Core models
-from py2dataiku.models.dataiku_flow import DataikuFlow, FlowZone
-from py2dataiku.models.dataiku_recipe import (
-    DataikuRecipe,
-    RecipeType,
-    Aggregation,
-    JoinKey,
-    JoinType,
-    AggregationFunction,
-    WindowFunctionType,
-    SplitMode,
-    SamplingMethod,
-)
-from py2dataiku.models.dataiku_dataset import (
-    DataikuDataset,
-    DatasetType,
-    DatasetConnectionType,
-    ColumnSchema,
-)
-from py2dataiku.models.prepare_step import (
-    PrepareStep,
-    ProcessorType,
-    StringTransformerMode,
-    NumericalTransformerMode,
-    FilterMatchMode,
-)
-
-# Scenario model
-from py2dataiku.models.dataiku_scenario import (
-    DataikuScenario,
-    ScenarioTrigger,
-    ScenarioStep,
-    ScenarioReporter,
-    TriggerType,
-    StepType,
-    ReporterType,
-)
-
-# Metrics and checks
-from py2dataiku.models.dataiku_metrics import (
-    DataikuMetric,
-    DataikuCheck,
-    DataQualityRule,
-    MetricType,
-    CheckCondition,
-    CheckSeverity,
-)
-
-# MLOps models
-from py2dataiku.models.dataiku_mlops import (
-    APIEndpoint,
-    ModelVersion,
-    DriftConfig,
-    EndpointType,
-    ModelFramework,
-    DriftMetricType,
-)
-
 # Configuration
 from py2dataiku.config import (
     Py2DataikuConfig,
-    load_config,
     find_config_file,
+    load_config,
 )
 
-# Visualizers
-from py2dataiku.visualizers import (
-    SVGVisualizer,
-    ASCIIVisualizer,
-    PlantUMLVisualizer,
-    HTMLVisualizer,
-    visualize_flow,
-    DataikuTheme,
-    DATAIKU_LIGHT,
-    DATAIKU_DARK,
-)
-
-# Plugin system
-from py2dataiku.plugins import (
-    PluginRegistry,
-    plugin_hook,
-    register_recipe_handler,
-    register_processor_handler,
-    register_pandas_mapping,
+# Exceptions
+from py2dataiku.exceptions import (
+    ConfigurationError,
+    ConversionError,
+    ExportError,
+    InvalidPythonCodeError,
+    LLMResponseParseError,
+    ProviderError,
+    Py2DataikuError,
+    ValidationError,
 )
 
 # Exporters
@@ -135,25 +51,109 @@ from py2dataiku.exporters import (
     DSSProjectConfig,
     export_to_dss,
 )
+from py2dataiku.generators.diagram_generator import DiagramGenerator
+from py2dataiku.generators.flow_generator import FlowGenerator
+from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
 
 # Integrations
 from py2dataiku.integrations import (
-    DSSFlowDeployer,
     DeploymentResult,
-    generate_mcp_tool_calls,
+    DSSFlowDeployer,
     format_mcp_script,
+    generate_mcp_tool_calls,
 )
 
-# Exceptions
-from py2dataiku.exceptions import (
-    Py2DataikuError,
-    ConversionError,
-    ProviderError,
-    LLMResponseParseError,
-    InvalidPythonCodeError,
-    ValidationError,
-    ExportError,
-    ConfigurationError,
+# LLM-based components (recommended)
+from py2dataiku.llm.analyzer import LLMCodeAnalyzer
+from py2dataiku.llm.providers import (
+    AnthropicProvider,
+    LLMProvider,
+    MockProvider,
+    OpenAIProvider,
+    get_provider,
+)
+from py2dataiku.llm.schemas import AnalysisResult, DataStep, OperationType
+from py2dataiku.models.dataiku_dataset import (
+    ColumnSchema,
+    DataikuDataset,
+    DatasetConnectionType,
+    DatasetType,
+)
+
+# Core models
+from py2dataiku.models.dataiku_flow import DataikuFlow, FlowZone
+
+# Metrics and checks
+from py2dataiku.models.dataiku_metrics import (
+    CheckCondition,
+    CheckSeverity,
+    DataikuCheck,
+    DataikuMetric,
+    DataQualityRule,
+    MetricType,
+)
+
+# MLOps models
+from py2dataiku.models.dataiku_mlops import (
+    APIEndpoint,
+    DriftConfig,
+    DriftMetricType,
+    EndpointType,
+    ModelFramework,
+    ModelVersion,
+)
+from py2dataiku.models.dataiku_recipe import (
+    Aggregation,
+    AggregationFunction,
+    DataikuRecipe,
+    JoinKey,
+    JoinType,
+    RecipeType,
+    SamplingMethod,
+    SplitMode,
+    WindowFunctionType,
+)
+
+# Scenario model
+from py2dataiku.models.dataiku_scenario import (
+    DataikuScenario,
+    ReporterType,
+    ScenarioReporter,
+    ScenarioStep,
+    ScenarioTrigger,
+    StepType,
+    TriggerType,
+)
+from py2dataiku.models.prepare_step import (
+    FilterMatchMode,
+    NumericalTransformerMode,
+    PrepareStep,
+    ProcessorType,
+    StringTransformerMode,
+)
+
+# Rule-based components (legacy)
+from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+
+# Plugin system
+from py2dataiku.plugins import (
+    PluginRegistry,
+    plugin_hook,
+    register_pandas_mapping,
+    register_processor_handler,
+    register_recipe_handler,
+)
+
+# Visualizers
+from py2dataiku.visualizers import (
+    DATAIKU_DARK,
+    DATAIKU_LIGHT,
+    ASCIIVisualizer,
+    DataikuTheme,
+    HTMLVisualizer,
+    PlantUMLVisualizer,
+    SVGVisualizer,
+    visualize_flow,
 )
 
 __all__ = [
@@ -342,7 +342,7 @@ def convert_file(path: str, optimize: bool = True) -> DataikuFlow:
     Returns:
         DataikuFlow object representing the converted pipeline
     """
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         code = f.read()
     flow = convert(code, optimize=optimize)
     flow.source_file = path
@@ -372,7 +372,7 @@ def convert_file_with_llm(
         DataikuFlow object representing the converted pipeline
     """
     import os
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         code = f.read()
     if flow_name is None:
         flow_name = os.path.splitext(os.path.basename(path))[0]

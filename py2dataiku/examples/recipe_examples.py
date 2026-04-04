@@ -6,7 +6,7 @@ demonstrating how py2dataiku detects and converts various pandas operations
 into their corresponding Dataiku DSS recipe configurations.
 """
 
-from typing import Dict, Any
+from typing import Any
 
 # =============================================================================
 # VISUAL RECIPES
@@ -953,7 +953,7 @@ summary.to_csv('hive_result.csv', index=False)
 # RECIPE EXAMPLES REGISTRY
 # =============================================================================
 
-RECIPE_EXAMPLES: Dict[str, str] = {
+RECIPE_EXAMPLES: dict[str, str] = {
     # Visual Recipes
     "prepare": PREPARE_EXAMPLE,
     "sync": SYNC_EXAMPLE,
@@ -1000,7 +1000,7 @@ RECIPE_EXAMPLES: Dict[str, str] = {
 }
 
 # Metadata for each example
-RECIPE_METADATA: Dict[str, Dict[str, Any]] = {
+RECIPE_METADATA: dict[str, dict[str, Any]] = {
     "prepare": {
         "name": "prepare",
         "description": "Data transformation with multiple processors",
@@ -1106,7 +1106,7 @@ def get_recipe_example(name: str) -> str:
     return RECIPE_EXAMPLES.get(name, "")
 
 
-def get_recipe_metadata(name: str) -> Dict[str, Any]:
+def get_recipe_metadata(name: str) -> dict[str, Any]:
     """Get metadata for a recipe example."""
     return RECIPE_METADATA.get(name, {})
 

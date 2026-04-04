@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class ProcessorType(Enum):
@@ -340,14 +340,14 @@ class PrepareStep:
     """
 
     processor_type: ProcessorType
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
     disabled: bool = False
     name: Optional[str] = None  # Optional step label
     meta_type: str = "PROCESSOR"  # PROCESSOR or GROUP
     source_line: Optional[int] = None  # Line in original Python code
     source_code: Optional[str] = None  # Original Python expression
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         result = {
             "metaType": self.meta_type,
@@ -359,12 +359,12 @@ class PrepareStep:
             result["name"] = self.name
         return result
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """Convert to Dataiku API-compatible JSON."""
         return self.to_dict()
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PrepareStep":
+    def from_dict(cls, data: dict[str, Any]) -> "PrepareStep":
         """Reconstruct a PrepareStep from a dictionary (inverse of to_dict)."""
         processor_type = ProcessorType(data["type"])
         return cls(
@@ -392,7 +392,7 @@ class PrepareStep:
     @classmethod
     def rename_columns(
         cls,
-        renamings: Dict[str, str],
+        renamings: dict[str, str],
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
         """Create a ColumnRenamer step."""
@@ -409,7 +409,7 @@ class PrepareStep:
     @classmethod
     def delete_columns(
         cls,
-        columns: List[str],
+        columns: list[str],
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
         """Create a ColumnDeleter step."""
@@ -451,7 +451,7 @@ class PrepareStep:
     def parse_date(
         cls,
         column: str,
-        formats: Optional[List[str]] = None,
+        formats: Optional[list[str]] = None,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
         """Create a DateParser step."""
@@ -468,7 +468,7 @@ class PrepareStep:
     def filter_on_value(
         cls,
         column: str,
-        values: List[Any],
+        values: list[Any],
         matching_mode: str = "EQUALS",
         keep: bool = True,
         source_line: Optional[int] = None,
@@ -488,7 +488,7 @@ class PrepareStep:
     @classmethod
     def remove_rows_on_empty(
         cls,
-        columns: List[str],
+        columns: list[str],
         keep_empty: bool = False,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
@@ -502,7 +502,7 @@ class PrepareStep:
     @classmethod
     def remove_duplicates(
         cls,
-        columns: Optional[List[str]] = None,
+        columns: Optional[list[str]] = None,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
         """Create a RemoveDuplicates step."""
@@ -534,7 +534,7 @@ class PrepareStep:
         cls,
         column: str,
         pattern: str,
-        output_columns: Optional[List[str]] = None,
+        output_columns: Optional[list[str]] = None,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
         """Create a RegexpExtractor step."""
@@ -551,7 +551,7 @@ class PrepareStep:
     def python_udf(
         cls,
         code: str,
-        input_columns: List[str],
+        input_columns: list[str],
         output_column: str,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
@@ -595,7 +595,7 @@ class PrepareStep:
     def switch_case(
         cls,
         column: str,
-        cases: Dict[str, Any],
+        cases: dict[str, Any],
         default_value: Any = None,
         output_column: Optional[str] = None,
         source_line: Optional[int] = None,
@@ -621,7 +621,7 @@ class PrepareStep:
     def translate_values(
         cls,
         column: str,
-        translations: Dict[str, str],
+        translations: dict[str, str],
         output_column: Optional[str] = None,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
@@ -665,7 +665,7 @@ class PrepareStep:
     def split_url(
         cls,
         column: str,
-        extract_components: Optional[List[str]] = None,
+        extract_components: Optional[list[str]] = None,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
         """Create a SplitURL step for URL parsing."""
@@ -681,7 +681,7 @@ class PrepareStep:
     @classmethod
     def fold_multiple_columns(
         cls,
-        columns: List[str],
+        columns: list[str],
         var_name: str = "variable",
         value_name: str = "value",
         source_line: Optional[int] = None,
@@ -725,7 +725,7 @@ class PrepareStep:
     @classmethod
     def coalesce(
         cls,
-        columns: List[str],
+        columns: list[str],
         output_column: Optional[str] = None,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":

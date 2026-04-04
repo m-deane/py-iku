@@ -1,8 +1,8 @@
 """LLM-based code analysis for py2dataiku."""
 
 from py2dataiku.llm.analyzer import LLMCodeAnalyzer
-from py2dataiku.llm.providers import LLMProvider, AnthropicProvider, OpenAIProvider
-from py2dataiku.llm.schemas import DataStep, AnalysisResult
+from py2dataiku.llm.providers import AnthropicProvider, LLMProvider, OpenAIProvider
+from py2dataiku.llm.schemas import AnalysisResult, DataStep
 
 __all__ = [
     "LLMCodeAnalyzer",

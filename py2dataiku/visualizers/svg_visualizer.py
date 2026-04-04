@@ -4,11 +4,12 @@ SVG visualizer for Dataiku flows.
 Generates scalable vector graphics that match the Dataiku DSS interface.
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
+
 from py2dataiku.visualizers.base import FlowVisualizer
-from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition, Edge
-from py2dataiku.visualizers.themes import DataikuTheme, DATAIKU_LIGHT
 from py2dataiku.visualizers.icons import RecipeIcons
+from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
+from py2dataiku.visualizers.themes import DataikuTheme
 
 # Zone styling colors
 ZONE_FILLS = ["#E3F2FD", "#F3E5F5", "#E8F5E9", "#FFF3E0", "#FCE4EC", "#E0F7FA", "#FFF8E1", "#EFEBE9"]
@@ -52,7 +53,7 @@ class SVGVisualizer(FlowVisualizer):
                 ))
 
         # Draw nodes
-        for node_id, pos in positions.items():
+        for _node_id, pos in positions.items():
             if pos.node_type == "dataset":
                 svg_parts.append(self._draw_dataset(pos))
             else:
@@ -109,7 +110,7 @@ class SVGVisualizer(FlowVisualizer):
         defs_parts.append('  </defs>')
         return "\n".join(defs_parts)
 
-    def _draw_zones(self, flow, positions: Dict[str, NodePosition]) -> str:
+    def _draw_zones(self, flow, positions: dict[str, NodePosition]) -> str:
         """Draw flow zone backgrounds behind all nodes."""
         if not hasattr(flow, 'zones') or not flow.zones:
             return ""
@@ -282,8 +283,8 @@ class SVGVisualizer(FlowVisualizer):
                 write_to=output_path,
                 scale=scale
             )
-        except ImportError:
-            raise ImportError("cairosvg is required for PNG export. Install with: pip install cairosvg")
+        except ImportError as e:
+            raise ImportError("cairosvg is required for PNG export. Install with: pip install cairosvg") from e
 
     def export_pdf(self, flow, output_path: str) -> None:
         """Export flow as PDF (requires cairosvg)."""
@@ -294,5 +295,5 @@ class SVGVisualizer(FlowVisualizer):
                 bytestring=svg_content.encode('utf-8'),
                 write_to=output_path
             )
-        except ImportError:
-            raise ImportError("cairosvg is required for PDF export. Install with: pip install cairosvg")
+        except ImportError as e:
+            raise ImportError("cairosvg is required for PDF export. Install with: pip install cairosvg") from e

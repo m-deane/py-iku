@@ -1,9 +1,9 @@
 """JSON schemas and data models for LLM responses."""
 
+import json
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
-import json
+from typing import Any, Optional
 
 
 class OperationType(Enum):
@@ -70,7 +70,7 @@ class ColumnTransform:
 
     column: str
     operation: str  # e.g., "uppercase", "trim", "round", "abs"
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
     output_column: Optional[str] = None  # If different from input
 
 
@@ -116,34 +116,34 @@ class DataStep:
     description: str  # Human-readable description of what this step does
 
     # Input/Output
-    input_datasets: List[str] = field(default_factory=list)
+    input_datasets: list[str] = field(default_factory=list)
     output_dataset: Optional[str] = None
 
     # Columns involved
-    columns: List[str] = field(default_factory=list)
+    columns: list[str] = field(default_factory=list)
 
     # Operation-specific details
-    filter_conditions: List[FilterCondition] = field(default_factory=list)
-    aggregations: List[Aggregation] = field(default_factory=list)
-    group_by_columns: List[str] = field(default_factory=list)
-    join_conditions: List[JoinCondition] = field(default_factory=list)
+    filter_conditions: list[FilterCondition] = field(default_factory=list)
+    aggregations: list[Aggregation] = field(default_factory=list)
+    group_by_columns: list[str] = field(default_factory=list)
+    join_conditions: list[JoinCondition] = field(default_factory=list)
     join_type: Optional[str] = None  # inner, left, right, outer
-    column_transforms: List[ColumnTransform] = field(default_factory=list)
-    rename_mapping: Dict[str, str] = field(default_factory=dict)
-    sort_columns: List[Dict[str, str]] = field(default_factory=list)  # [{column, order}]
+    column_transforms: list[ColumnTransform] = field(default_factory=list)
+    rename_mapping: dict[str, str] = field(default_factory=dict)
+    sort_columns: list[dict[str, str]] = field(default_factory=list)  # [{column, order}]
     fill_value: Optional[Any] = None
 
     # Source code reference
-    source_lines: List[int] = field(default_factory=list)
+    source_lines: list[int] = field(default_factory=list)
     source_code: Optional[str] = None
 
     # Dataiku mapping hints from LLM
     suggested_recipe: Optional[str] = None  # prepare, join, grouping, etc.
-    suggested_processors: List[str] = field(default_factory=list)
+    suggested_processors: list[str] = field(default_factory=list)
     requires_python_recipe: bool = False
     reasoning: Optional[str] = None  # LLM's explanation for the mapping
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "step_number": self.step_number,
@@ -181,7 +181,7 @@ class DataStep:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataStep":
+    def from_dict(cls, data: dict[str, Any]) -> "DataStep":
         """Create from dictionary (LLM response)."""
         try:
             operation = OperationType(data.get("operation", "unknown"))
@@ -248,7 +248,7 @@ class DatasetInfo:
     source: Optional[str] = None  # file path, database table, etc.
     is_input: bool = False
     is_output: bool = False
-    inferred_columns: List[str] = field(default_factory=list)
+    inferred_columns: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -259,8 +259,8 @@ class AnalysisResult:
     Contains all extracted data steps and metadata about the analysis.
     """
 
-    steps: List[DataStep]
-    datasets: List[DatasetInfo]
+    steps: list[DataStep]
+    datasets: list[DatasetInfo]
 
     # Analysis metadata
     code_summary: str = ""
@@ -268,14 +268,14 @@ class AnalysisResult:
     complexity_score: int = 0  # 1-10 scale
 
     # Recommendations
-    recommendations: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    recommendations: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     # Raw LLM response for debugging
     raw_response: Optional[str] = None
     model_used: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "steps": [s.to_dict() for s in self.steps],
@@ -302,7 +302,7 @@ class AnalysisResult:
         return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AnalysisResult":
+    def from_dict(cls, data: dict[str, Any]) -> "AnalysisResult":
         """Create from dictionary (LLM response)."""
         return cls(
             steps=[DataStep.from_dict(s) for s in data.get("steps", [])],

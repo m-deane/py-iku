@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 from py2dataiku.models.prepare_step import PrepareStep
 from py2dataiku.models.recipe_settings import RecipeSettings
@@ -225,7 +225,7 @@ class Aggregation:
     function: str  # SUM, AVG, COUNT, MIN, MAX, FIRST, LAST, etc.
     output_column: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {
             "column": self.column,
             "type": self.function.upper(),
@@ -243,7 +243,7 @@ class JoinKey:
     right_column: str
     match_type: str = "EXACT"  # EXACT, FUZZY
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "left": {"column": self.left_column},
             "right": {"column": self.right_column},
@@ -262,25 +262,25 @@ class DataikuRecipe:
 
     name: str
     recipe_type: RecipeType
-    inputs: List[str] = field(default_factory=list)  # Dataset names
-    outputs: List[str] = field(default_factory=list)  # Dataset names
+    inputs: list[str] = field(default_factory=list)  # Dataset names
+    outputs: list[str] = field(default_factory=list)  # Dataset names
 
     # Prepare recipe specific
-    steps: List[PrepareStep] = field(default_factory=list)
+    steps: list[PrepareStep] = field(default_factory=list)
 
     # Grouping recipe specific
-    group_keys: List[str] = field(default_factory=list)
-    aggregations: List[Aggregation] = field(default_factory=list)
+    group_keys: list[str] = field(default_factory=list)
+    aggregations: list[Aggregation] = field(default_factory=list)
 
     # Join recipe specific
     join_type: JoinType = JoinType.LEFT
-    join_keys: List[JoinKey] = field(default_factory=list)
-    selected_columns: Optional[Dict[str, List[str]]] = None  # {left: [...], right: [...]}
+    join_keys: list[JoinKey] = field(default_factory=list)
+    selected_columns: Optional[dict[str, list[str]]] = None  # {left: [...], right: [...]}
 
     # Window recipe specific
-    partition_columns: List[str] = field(default_factory=list)
-    order_columns: List[str] = field(default_factory=list)
-    window_aggregations: List[Dict[str, Any]] = field(default_factory=list)
+    partition_columns: list[str] = field(default_factory=list)
+    order_columns: list[str] = field(default_factory=list)
+    window_aggregations: list[dict[str, Any]] = field(default_factory=list)
 
     # Sampling recipe specific
     sampling_method: SamplingMethod = SamplingMethod.RANDOM
@@ -290,7 +290,7 @@ class DataikuRecipe:
     split_condition: Optional[str] = None
 
     # Sort recipe specific
-    sort_columns: List[Dict[str, str]] = field(default_factory=list)  # [{column, order}]
+    sort_columns: list[dict[str, str]] = field(default_factory=list)  # [{column, order}]
 
     # Top N recipe specific
     top_n: Optional[int] = None
@@ -303,10 +303,10 @@ class DataikuRecipe:
     settings: Optional[RecipeSettings] = None
 
     # Metadata
-    source_lines: List[int] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)
+    source_lines: list[int] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         result = {
             "name": self.name,
@@ -336,10 +336,10 @@ class DataikuRecipe:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataikuRecipe":
+    def from_dict(cls, data: dict[str, Any]) -> "DataikuRecipe":
         """Reconstruct a DataikuRecipe from a dictionary (inverse of to_dict)."""
         recipe_type = RecipeType(data["type"])
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "name": data["name"],
             "recipe_type": recipe_type,
             "inputs": data.get("inputs", []),
@@ -385,7 +385,7 @@ class DataikuRecipe:
         "stack": "vstack",
     }
 
-    def to_api_dict(self, project_key: str = "") -> Dict[str, Any]:
+    def to_api_dict(self, project_key: str = "") -> dict[str, Any]:
         """Convert to Dataiku DSS API-compatible dictionary.
 
         Produces output consistent with the DSSExporter format:
@@ -399,7 +399,7 @@ class DataikuRecipe:
         dss_type = self._DSS_TYPE_MAP.get(
             self.recipe_type.value, self.recipe_type.value
         )
-        base: Dict[str, Any] = {
+        base: dict[str, Any] = {
             "type": dss_type,
             "name": self.name,
             "inputs": {
@@ -424,7 +424,7 @@ class DataikuRecipe:
 
         return base
 
-    def to_json(self, project_key: str = "") -> Dict[str, Any]:
+    def to_json(self, project_key: str = "") -> dict[str, Any]:
         """Convert to Dataiku API-compatible dictionary.
 
         Note: This method returns a dict, not a JSON string. It is an alias
@@ -432,7 +432,7 @@ class DataikuRecipe:
         """
         return self.to_api_dict(project_key=project_key)
 
-    def _build_settings(self) -> Dict[str, Any]:
+    def _build_settings(self) -> dict[str, Any]:
         """Build recipe-specific settings.
 
         If a composed RecipeSettings object is set, it takes precedence
@@ -473,7 +473,7 @@ class DataikuRecipe:
                 "aggregations": aggregations,
             }
         elif self.recipe_type == RecipeType.SAMPLING:
-            settings: Dict[str, Any] = {
+            settings: dict[str, Any] = {
                 "samplingMethod": self.sampling_method.value,
             }
             if self.sample_size is not None:
@@ -547,7 +547,7 @@ class DataikuRecipe:
         """Add a note about this recipe."""
         self.notes.append(note)
 
-    def get_step_summary(self) -> List[str]:
+    def get_step_summary(self) -> list[str]:
         """Get a summary of steps for Prepare recipes."""
         if self.recipe_type != RecipeType.PREPARE:
             return []
@@ -559,7 +559,7 @@ class DataikuRecipe:
         name: str,
         input_dataset: str,
         output_dataset: str,
-        steps: Optional[List[PrepareStep]] = None,
+        steps: Optional[list[PrepareStep]] = None,
     ) -> "DataikuRecipe":
         """Factory method to create a Prepare recipe."""
         return cls(
@@ -576,8 +576,8 @@ class DataikuRecipe:
         name: str,
         input_dataset: str,
         output_dataset: str,
-        keys: List[str],
-        aggregations: Optional[List[Aggregation]] = None,
+        keys: list[str],
+        aggregations: Optional[list[Aggregation]] = None,
     ) -> "DataikuRecipe":
         """Factory method to create a Grouping recipe."""
         return cls(
@@ -596,7 +596,7 @@ class DataikuRecipe:
         left_dataset: str,
         right_dataset: str,
         output_dataset: str,
-        join_keys: List[JoinKey],
+        join_keys: list[JoinKey],
         join_type: JoinType = JoinType.LEFT,
     ) -> "DataikuRecipe":
         """Factory method to create a Join recipe."""
@@ -613,8 +613,8 @@ class DataikuRecipe:
     def create_python(
         cls,
         name: str,
-        inputs: List[str],
-        outputs: List[str],
+        inputs: list[str],
+        outputs: list[str],
         code: str,
     ) -> "DataikuRecipe":
         """Factory method to create a Python recipe."""

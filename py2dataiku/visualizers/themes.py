@@ -3,7 +3,6 @@ Visual themes for Dataiku flow visualization.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
 
 
 @dataclass
@@ -30,7 +29,7 @@ class DataikuTheme:
     error_text: str = "#C62828"
 
     # Recipe colors by type (background, border)
-    recipe_colors: Dict[str, Tuple[str, str, str]] = field(default_factory=lambda: {
+    recipe_colors: dict[str, tuple[str, str, str]] = field(default_factory=lambda: {
         "prepare": ("#FFF3E0", "#FF9800", "#E65100"),
         "join": ("#E3F2FD", "#2196F3", "#1565C0"),
         "stack": ("#F3E5F5", "#9C27B0", "#6A1B9A"),
@@ -78,18 +77,18 @@ class DataikuTheme:
     show_grid: bool = False
 
     # Zone styling
-    zone_colors: List[str] = field(default_factory=lambda: [
+    zone_colors: list[str] = field(default_factory=lambda: [
         "#E3F2FD", "#F3E5F5", "#E8F5E9", "#FFF3E0",
         "#FCE4EC", "#E0F7FA", "#FFF8E1", "#EFEBE9",
     ])
-    zone_border_colors: List[str] = field(default_factory=lambda: [
+    zone_border_colors: list[str] = field(default_factory=lambda: [
         "#90CAF9", "#CE93D8", "#A5D6A7", "#FFCC80",
         "#F48FB1", "#80DEEA", "#FFD54F", "#BCAAA4",
     ])
     zone_label_size: int = 11
     zone_padding: int = 20
 
-    def get_recipe_colors(self, recipe_type: str) -> Tuple[str, str, str]:
+    def get_recipe_colors(self, recipe_type: str) -> tuple[str, str, str]:
         """Get colors for a recipe type (bg, border, text)."""
         recipe_type = recipe_type.lower().replace(" ", "_")
         return self.recipe_colors.get(recipe_type, self.recipe_colors["default"])

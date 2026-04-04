@@ -25,9 +25,9 @@ Example usage:
 from py2dataiku.plugins.registry import (
     PluginRegistry,
     plugin_hook,
-    register_recipe_handler,
-    register_processor_handler,
     register_pandas_mapping,
+    register_processor_handler,
+    register_recipe_handler,
 )
 
 __all__ = [

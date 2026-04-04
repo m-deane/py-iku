@@ -6,7 +6,6 @@ and processors in realistic data processing pipelines, demonstrating
 how py2dataiku handles complex multi-step transformations.
 """
 
-from typing import Dict, Any
 
 # =============================================================================
 # RECIPE COMBINATIONS (20 combinations)
@@ -665,7 +664,7 @@ df.to_csv('no_missing_data.csv', index=False)
 # COMBINATION EXAMPLES REGISTRY
 # =============================================================================
 
-COMBINATION_EXAMPLES: Dict[str, str] = {
+COMBINATION_EXAMPLES: dict[str, str] = {
     # Recipe Combinations
     "prepare_grouping_prepare": PREPARE_GROUPING_PREPARE_EXAMPLE,
     "join_window_split": JOIN_WINDOW_SPLIT_EXAMPLE,

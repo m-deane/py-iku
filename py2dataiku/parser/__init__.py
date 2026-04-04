@@ -1,10 +1,10 @@
 """Python code parsing and analysis."""
 
-from typing import Any, List, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from py2dataiku.parser.ast_analyzer import CodeAnalyzer
-from py2dataiku.parser.pattern_matcher import PatternMatcher
 from py2dataiku.parser.dataflow_tracker import DataFlowTracker
+from py2dataiku.parser.pattern_matcher import PatternMatcher
 
 
 @runtime_checkable

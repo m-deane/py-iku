@@ -37,8 +37,8 @@ class TestGetRecipeType:
     def test_pivot_table_maps_to_pivot(self, mapper):
         assert mapper.get_recipe_type("pivot_table") == RecipeType.PIVOT
 
-    def test_melt_maps_to_pivot(self, mapper):
-        assert mapper.get_recipe_type("melt") == RecipeType.PIVOT
+    def test_melt_maps_to_prepare(self, mapper):
+        assert mapper.get_recipe_type("melt") == RecipeType.PREPARE
 
     def test_sort_values_maps_to_sort(self, mapper):
         assert mapper.get_recipe_type("sort_values") == RecipeType.SORT
@@ -181,8 +181,8 @@ class TestGetAggFunction:
     def test_median_maps_to_MEDIAN(self, mapper):
         assert mapper.get_agg_function("median") == "MEDIAN"
 
-    def test_nunique_maps_to_COUNTDISTINCT(self, mapper):
-        assert mapper.get_agg_function("nunique") == "COUNTDISTINCT"
+    def test_nunique_maps_to_COUNTD(self, mapper):
+        assert mapper.get_agg_function("nunique") == "COUNTD"
 
     def test_case_insensitive(self, mapper):
         assert mapper.get_agg_function("SUM") == "SUM"

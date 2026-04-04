@@ -14,9 +14,9 @@ Usage:
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
-from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+from py2dataiku.models.dataiku_dataset import DataikuDataset
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
 from py2dataiku.models.flow_graph import NodeType
@@ -49,9 +49,9 @@ _MCP_RECIPE_TYPE_MAP = {
 }
 
 
-def _dataset_to_mcp_args(dataset: DataikuDataset, project_key: str) -> Dict[str, Any]:
+def _dataset_to_mcp_args(dataset: DataikuDataset, project_key: str) -> dict[str, Any]:
     """Build MCP ``create_dataset`` arguments for a dataset."""
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "project_key": project_key,
         "dataset_name": dataset.name,
         "connection_type": dataset.connection_type.value,
@@ -68,10 +68,10 @@ def _dataset_to_mcp_args(dataset: DataikuDataset, project_key: str) -> Dict[str,
     return args
 
 
-def _recipe_to_mcp_args(recipe: DataikuRecipe, project_key: str) -> Dict[str, Any]:
+def _recipe_to_mcp_args(recipe: DataikuRecipe, project_key: str) -> dict[str, Any]:
     """Build MCP ``create_recipe`` arguments for a recipe."""
     dss_type = _MCP_RECIPE_TYPE_MAP.get(recipe.recipe_type, "python")
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "project_key": project_key,
         "recipe_name": recipe.name,
         "recipe_type": dss_type,
@@ -87,7 +87,7 @@ def _recipe_to_mcp_args(recipe: DataikuRecipe, project_key: str) -> Dict[str, An
     return args
 
 
-def _get_recipe_settings(recipe: DataikuRecipe) -> Dict[str, Any]:
+def _get_recipe_settings(recipe: DataikuRecipe) -> dict[str, Any]:
     """Extract recipe settings for the MCP payload."""
     if recipe.settings is not None:
         return recipe.settings.to_dict()
@@ -97,7 +97,7 @@ def _get_recipe_settings(recipe: DataikuRecipe) -> Dict[str, Any]:
 def generate_mcp_tool_calls(
     flow: DataikuFlow,
     project_key: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Generate MCP tool call payloads for a DataikuFlow.
 
     The calls are ordered topologically so that datasets are created
@@ -114,7 +114,7 @@ def generate_mcp_tool_calls(
     Returns:
         Ordered list of MCP tool call dicts.
     """
-    tool_calls: List[Dict[str, Any]] = []
+    tool_calls: list[dict[str, Any]] = []
 
     try:
         graph = flow.graph
@@ -150,7 +150,7 @@ def generate_mcp_tool_calls(
     return tool_calls
 
 
-def format_mcp_script(tool_calls: List[Dict[str, Any]]) -> str:
+def format_mcp_script(tool_calls: list[dict[str, Any]]) -> str:
     """Format MCP tool calls as a human-readable script.
 
     Produces output that can be copy-pasted into an MCP-aware client
@@ -162,7 +162,7 @@ def format_mcp_script(tool_calls: List[Dict[str, Any]]) -> str:
     Returns:
         A formatted multi-line string.
     """
-    lines: List[str] = [
+    lines: list[str] = [
         "# MCP Tool Calls for Dataiku DSS",
         f"# Total calls: {len(tool_calls)}",
         "",

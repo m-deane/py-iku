@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class EndpointType(Enum):
@@ -40,13 +40,13 @@ class APIEndpoint:
     model_name: str
     endpoint_type: EndpointType = EndpointType.REST
     url_path: Optional[str] = None
-    input_schema: Dict[str, str] = field(default_factory=dict)
-    output_schema: Dict[str, str] = field(default_factory=dict)
+    input_schema: dict[str, str] = field(default_factory=dict)
+    output_schema: dict[str, str] = field(default_factory=dict)
     auth_required: bool = True
     rate_limit: Optional[int] = None
 
-    def to_dict(self) -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "name": self.name,
             "modelName": self.model_name,
             "type": self.endpoint_type.value,
@@ -63,7 +63,7 @@ class APIEndpoint:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "APIEndpoint":
+    def from_dict(cls, data: dict[str, Any]) -> "APIEndpoint":
         return cls(
             name=data["name"],
             model_name=data["modelName"],
@@ -84,13 +84,13 @@ class ModelVersion:
     model_name: str
     framework: ModelFramework = ModelFramework.SCIKIT_LEARN
     algorithm: Optional[str] = None
-    metrics: Dict[str, float] = field(default_factory=dict)
-    features: List[str] = field(default_factory=list)
+    metrics: dict[str, float] = field(default_factory=dict)
+    features: list[str] = field(default_factory=list)
     target: Optional[str] = None
     active: bool = False
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "versionId": self.version_id,
             "modelName": self.model_name,
@@ -104,7 +104,7 @@ class ModelVersion:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ModelVersion":
+    def from_dict(cls, data: dict[str, Any]) -> "ModelVersion":
         return cls(
             version_id=data["versionId"],
             model_name=data["modelName"],
@@ -125,10 +125,10 @@ class DriftConfig:
     enabled: bool = True
     metric: DriftMetricType = DriftMetricType.PSI
     threshold: float = 0.2
-    columns: List[str] = field(default_factory=list)
+    columns: list[str] = field(default_factory=list)
     check_frequency: str = "daily"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
             "metric": self.metric.value,
@@ -138,7 +138,7 @@ class DriftConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DriftConfig":
+    def from_dict(cls, data: dict[str, Any]) -> "DriftConfig":
         return cls(
             enabled=data.get("enabled", True),
             metric=DriftMetricType(data.get("metric", "psi")),

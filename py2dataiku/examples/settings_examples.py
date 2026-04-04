@@ -6,7 +6,6 @@ settings for various Dataiku recipes including join types, aggregation
 functions, string transformer modes, numerical transformer modes, and more.
 """
 
-from typing import Dict, Any
 
 # =============================================================================
 # JOIN TYPE SETTINGS
@@ -751,7 +750,7 @@ df.to_csv('moving_sum.csv', index=False)
 # SETTINGS EXAMPLES REGISTRY
 # =============================================================================
 
-SETTINGS_EXAMPLES: Dict[str, str] = {
+SETTINGS_EXAMPLES: dict[str, str] = {
     # Join Types
     "join_inner": JOIN_TYPE_INNER_EXAMPLE,
     "join_left": JOIN_TYPE_LEFT_EXAMPLE,

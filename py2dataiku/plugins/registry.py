@@ -6,11 +6,10 @@ py2dataiku's conversion capabilities.
 
 import copy
 import functools
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Optional, Union
 
 from py2dataiku.models.dataiku_recipe import RecipeType
-from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
-from py2dataiku.models.transformation import Transformation, TransformationType
+from py2dataiku.models.prepare_step import ProcessorType
 
 
 class PluginRegistry:
@@ -28,12 +27,12 @@ class PluginRegistry:
     _default_instance: Optional["PluginRegistry"] = None
 
     def __init__(self):
-        self._recipe_mappings: Dict[str, RecipeType] = {}
-        self._processor_mappings: Dict[str, ProcessorType] = {}
-        self._method_handlers: Dict[str, Callable] = {}
-        self._recipe_handlers: Dict[RecipeType, Callable] = {}
-        self._processor_handlers: Dict[ProcessorType, Callable] = {}
-        self._plugins: Dict[str, Dict[str, Any]] = {}
+        self._recipe_mappings: dict[str, RecipeType] = {}
+        self._processor_mappings: dict[str, ProcessorType] = {}
+        self._method_handlers: dict[str, Callable] = {}
+        self._recipe_handlers: dict[RecipeType, Callable] = {}
+        self._processor_handlers: dict[ProcessorType, Callable] = {}
+        self._plugins: dict[str, dict[str, Any]] = {}
 
     @classmethod
     def _get_default(cls) -> "PluginRegistry":
@@ -298,17 +297,17 @@ class PluginRegistry:
         return cls._get_default().find_processor_handler(processor_type)
 
     @classmethod
-    def list_recipe_mappings(cls) -> Dict[str, RecipeType]:
+    def list_recipe_mappings(cls) -> dict[str, RecipeType]:
         """List all registered recipe mappings."""
         return cls._get_default()._recipe_mappings.copy()
 
     @classmethod
-    def list_processor_mappings(cls) -> Dict[str, ProcessorType]:
+    def list_processor_mappings(cls) -> dict[str, ProcessorType]:
         """List all registered processor mappings."""
         return cls._get_default()._processor_mappings.copy()
 
     @classmethod
-    def list_plugins(cls) -> Dict[str, Dict[str, Any]]:
+    def list_plugins(cls) -> dict[str, dict[str, Any]]:
         """List all registered plugins."""
         return cls._get_default()._plugins.copy()
 
@@ -445,8 +444,8 @@ class PluginContext:
         self,
         source_code: str = "",
         current_line: int = 0,
-        variables: Optional[Dict[str, Any]] = None,
-        dataframes: Optional[Dict[str, str]] = None,
+        variables: Optional[dict[str, Any]] = None,
+        dataframes: Optional[dict[str, str]] = None,
     ):
         self.source_code = source_code
         self.current_line = current_line
@@ -488,9 +487,9 @@ class Plugin:
 
     def __init__(self, registry: Optional[PluginRegistry] = None):
         self._registry = registry or PluginRegistry._get_default()
-        self._local_recipe_mappings: Dict[str, RecipeType] = {}
-        self._local_processor_mappings: Dict[str, ProcessorType] = {}
-        self._local_handlers: Dict[str, Callable] = {}
+        self._local_recipe_mappings: dict[str, RecipeType] = {}
+        self._local_processor_mappings: dict[str, ProcessorType] = {}
+        self._local_handlers: dict[str, Callable] = {}
 
     def register(self) -> None:
         """

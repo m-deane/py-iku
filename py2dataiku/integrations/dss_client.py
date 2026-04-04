@@ -25,7 +25,7 @@ Usage:
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from py2dataiku.exceptions import ExportError
 from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
@@ -67,10 +67,10 @@ _DSS_RECIPE_TYPE_MAP = {
 class DeploymentResult:
     """Result of deploying a DataikuFlow to DSS."""
 
-    datasets_created: List[str] = field(default_factory=list)
-    recipes_created: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    datasets_created: list[str] = field(default_factory=list)
+    recipes_created: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     dry_run: bool = False
 
     @property
@@ -78,7 +78,7 @@ class DeploymentResult:
         """Whether the deployment completed without errors."""
         return len(self.errors) == 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "datasets_created": self.datasets_created,
@@ -104,7 +104,7 @@ def _get_dss_recipe_type(recipe_type: RecipeType) -> str:
     return _DSS_RECIPE_TYPE_MAP.get(recipe_type, "python")
 
 
-def _deep_merge(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+def _deep_merge(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge *updates* into *base*, returning a new dict.
 
     - Dict values are merged recursively.
@@ -157,12 +157,12 @@ class DSSFlowDeployer:
 
         try:
             import dataikuapi  # type: ignore[import-untyped]
-        except ImportError:
+        except ImportError as e:
             raise ExportError(
                 "The 'dataikuapi' package is required to deploy to DSS. "
                 "Install it with: pip install dataiku-api-client\n"
                 "See https://doc.dataiku.com/dss/latest/python-api/outside-usage.html"
-            )
+            ) from e
 
         self._client = dataikuapi.DSSClient(self.host, self.api_key)
         self._project = self._client.get_project(self.project_key)
@@ -240,7 +240,7 @@ class DSSFlowDeployer:
         self,
         dataset: DataikuDataset,
         connection_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a single dataset in DSS.
 
         Args:
@@ -291,7 +291,7 @@ class DSSFlowDeployer:
 
         return info
 
-    def deploy_recipe(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def deploy_recipe(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Create a single recipe in DSS.
 
         Uses the dataikuapi builder pattern::
@@ -347,7 +347,7 @@ class DSSFlowDeployer:
 
         return info
 
-    def _get_recipe_builder_args(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _get_recipe_builder_args(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Extract dataikuapi builder arguments from a DataikuRecipe.
 
         If the recipe has a composed ``settings`` object with a

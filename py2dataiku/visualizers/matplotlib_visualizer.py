@@ -10,13 +10,13 @@ from typing import Optional
 
 from py2dataiku.visualizers.base import FlowVisualizer
 from py2dataiku.visualizers.layout_engine import LayoutEngine
-from py2dataiku.visualizers.themes import DataikuTheme, DATAIKU_LIGHT
+from py2dataiku.visualizers.themes import DataikuTheme
 
 try:
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -120,7 +120,7 @@ class MatplotlibVisualizer(FlowVisualizer):
                 self._draw_arrow(ax, positions[edge.source], positions[edge.target], scale_x, scale_y)
 
         # Draw nodes
-        for node_id, pos in positions.items():
+        for _node_id, pos in positions.items():
             if pos.node_type == "dataset":
                 self._draw_dataset(ax, pos, scale_x, scale_y)
             else:

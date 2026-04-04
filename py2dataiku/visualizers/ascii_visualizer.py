@@ -4,11 +4,12 @@ ASCII art visualizer for Dataiku flows.
 Generates terminal-friendly text representations of flows.
 """
 
-from typing import Optional, List, Dict
+from typing import Optional
+
 from py2dataiku.visualizers.base import FlowVisualizer
-from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
-from py2dataiku.visualizers.themes import DataikuTheme, DATAIKU_LIGHT
 from py2dataiku.visualizers.icons import RecipeIcons
+from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
+from py2dataiku.visualizers.themes import DataikuTheme
 
 
 class ASCIIVisualizer(FlowVisualizer):
@@ -56,7 +57,7 @@ class ASCIIVisualizer(FlowVisualizer):
         edges = layout.get_edges()
 
         # Group by layers
-        layers: Dict[int, List[NodePosition]] = {}
+        layers: dict[int, list[NodePosition]] = {}
         for pos in positions.values():
             if pos.layer not in layers:
                 layers[pos.layer] = []
@@ -114,7 +115,7 @@ class ASCIIVisualizer(FlowVisualizer):
         ]
         return "Legend: " + "  ".join(icons)
 
-    def _draw_node(self, pos: NodePosition) -> List[str]:
+    def _draw_node(self, pos: NodePosition) -> list[str]:
         """Draw a single node."""
         lines = []
 
@@ -125,7 +126,7 @@ class ASCIIVisualizer(FlowVisualizer):
 
         return lines
 
-    def _draw_dataset_box(self, pos: NodePosition) -> List[str]:
+    def _draw_dataset_box(self, pos: NodePosition) -> list[str]:
         """Draw a dataset box."""
         extra = pos.extra
         ds_type = extra.get("dataset_type", "intermediate")
@@ -147,7 +148,7 @@ class ASCIIVisualizer(FlowVisualizer):
 
         return lines
 
-    def _draw_recipe_box(self, pos: NodePosition) -> List[str]:
+    def _draw_recipe_box(self, pos: NodePosition) -> list[str]:
         """Draw a recipe box."""
         extra = pos.extra
         recipe_type = extra.get("recipe_type", "default")
@@ -174,10 +175,10 @@ class ASCIIVisualizer(FlowVisualizer):
 
     def _draw_connections(
         self,
-        prev_nodes: List[NodePosition],
-        curr_nodes: List[NodePosition],
-        edges: List
-    ) -> List[str]:
+        prev_nodes: list[NodePosition],
+        curr_nodes: list[NodePosition],
+        edges: list
+    ) -> list[str]:
         """Draw connection arrows between layers."""
         lines = []
 
@@ -199,7 +200,7 @@ class ASCIIVisualizer(FlowVisualizer):
         positions = layout.calculate_layout(flow)
 
         # Group by layers
-        layers: Dict[int, List[NodePosition]] = {}
+        layers: dict[int, list[NodePosition]] = {}
         for pos in positions.values():
             if pos.layer not in layers:
                 layers[pos.layer] = []

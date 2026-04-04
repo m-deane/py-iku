@@ -12,8 +12,8 @@ Usage:
     >>> tool_calls = generate_mcp_tool_calls(flow, "MY_PROJECT")
 """
 
-from py2dataiku.integrations.dss_client import DSSFlowDeployer, DeploymentResult
-from py2dataiku.integrations.mcp_tools import generate_mcp_tool_calls, format_mcp_script
+from py2dataiku.integrations.dss_client import DeploymentResult, DSSFlowDeployer
+from py2dataiku.integrations.mcp_tools import format_mcp_script, generate_mcp_tool_calls
 
 __all__ = [
     "DSSFlowDeployer",

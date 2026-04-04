@@ -30,12 +30,11 @@ import os
 import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from py2dataiku.exceptions import ExportError
+from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
-from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 
 
 @dataclass
@@ -46,7 +45,7 @@ class DSSProjectConfig:
     project_name: str = "Converted Python Pipeline"
     owner: str = "py2dataiku"
     description: str = "Auto-generated from Python code using py2dataiku"
-    tags: List[str] = field(default_factory=lambda: ["py2dataiku", "auto-generated"])
+    tags: list[str] = field(default_factory=lambda: ["py2dataiku", "auto-generated"])
 
     # Dataset defaults
     default_connection: str = "filesystem_managed"
@@ -55,7 +54,7 @@ class DSSProjectConfig:
     # Recipe defaults
     include_code_comments: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "projectKey": self.project_key,
@@ -201,7 +200,7 @@ class DSSExporter:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(dataset_json, f, indent=2)
 
-    def _build_dataset_config(self, dataset: DataikuDataset) -> Dict[str, Any]:
+    def _build_dataset_config(self, dataset: DataikuDataset) -> dict[str, Any]:
         """Build DSS-compatible dataset configuration."""
         # Determine managed vs filesystem
         is_input = dataset.dataset_type == DatasetType.INPUT
@@ -263,7 +262,7 @@ class DSSExporter:
 
         return dataset_json
 
-    def _get_format_params(self, format_type: str) -> Dict[str, Any]:
+    def _get_format_params(self, format_type: str) -> dict[str, Any]:
         """Get format parameters for a dataset."""
         if format_type.lower() == "csv":
             return {
@@ -303,7 +302,7 @@ class DSSExporter:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(recipe_json, f, indent=2)
 
-    def _build_recipe_config(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_recipe_config(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build DSS-compatible recipe configuration."""
         base_config = {
             "name": recipe.name,
@@ -373,13 +372,13 @@ class DSSExporter:
         """Get the output role name for a recipe type."""
         return "main"
 
-    def _format_io_items(self, names: List[str]) -> Dict[str, Any]:
+    def _format_io_items(self, names: list[str]) -> dict[str, Any]:
         """Format input/output items for DSS recipe."""
         return {
             "items": [{"ref": name, "appendMode": False} for name in names]
         }
 
-    def _build_recipe_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_recipe_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build the recipe-specific payload."""
         if recipe.recipe_type == RecipeType.PREPARE:
             return self._build_prepare_payload(recipe)
@@ -395,7 +394,7 @@ class DSSExporter:
             return self._build_python_payload(recipe)
         return {}
 
-    def _build_prepare_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_prepare_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build Prepare recipe payload with steps."""
         steps = []
         for step in recipe.steps:
@@ -445,7 +444,7 @@ class DSSExporter:
             "filterExpression": {},
         }
 
-    def _build_join_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_join_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build Join recipe payload."""
         join_type = recipe.join_type.value if hasattr(recipe.join_type, 'value') else "LEFT"
         conditions = []
@@ -481,12 +480,12 @@ class DSSExporter:
             "limitOutputColumns": False,
         }
 
-    def _build_grouping_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_grouping_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build Grouping recipe payload."""
         agg_flags = ("sum", "avg", "count", "min", "max", "stddev", "countDistinct")
         values = []
         for a in recipe.aggregations:
-            entry: Dict[str, Any] = {"column": a.column, "type": "COLUMN"}
+            entry: dict[str, Any] = {"column": a.column, "type": "COLUMN"}
             func = a.function.upper()
             for flag in agg_flags:
                 entry[flag] = (func == flag.upper())
@@ -507,7 +506,7 @@ class DSSExporter:
             "computedColumns": [],
         }
 
-    def _build_sort_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_sort_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build Sort recipe payload."""
         return {
             "engineParams": {
@@ -527,7 +526,7 @@ class DSSExporter:
             "computedColumns": [],
         }
 
-    def _build_distinct_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_distinct_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build Distinct recipe payload."""
         return {
             "engineParams": {
@@ -543,7 +542,7 @@ class DSSExporter:
             "postFilter": {},
         }
 
-    def _build_python_payload(self, recipe: DataikuRecipe) -> Dict[str, Any]:
+    def _build_python_payload(self, recipe: DataikuRecipe) -> dict[str, Any]:
         """Build Python recipe payload."""
         code = recipe.code or ""
 
@@ -647,7 +646,7 @@ class DSSExporter:
                     arcname = os.path.relpath(file_path, source_dir)
                     zipf.write(file_path, arcname)
 
-    def get_api_bundle(self) -> Dict[str, Any]:
+    def get_api_bundle(self) -> dict[str, Any]:
         """
         Get a bundle suitable for DSS API import.
 

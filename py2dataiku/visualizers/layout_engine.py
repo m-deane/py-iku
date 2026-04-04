@@ -7,9 +7,9 @@ Implements a simplified Sugiyama algorithm for hierarchical graph layout:
 3. Assign x, y coordinates
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Set, Tuple, Optional
 from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -23,7 +23,7 @@ class NodePosition:
     node_type: str  # "dataset" or "recipe"
     node_id: str
     label: str
-    extra: Dict = field(default_factory=dict)
+    extra: dict = field(default_factory=dict)
 
     @property
     def center_x(self) -> float:
@@ -77,12 +77,12 @@ class LayoutEngine:
         self.padding = padding
 
         # Internal state
-        self.nodes: Dict[str, dict] = {}
-        self.edges: List[Edge] = []
-        self.layers: List[List[str]] = []
-        self.positions: Dict[str, NodePosition] = {}
+        self.nodes: dict[str, dict] = {}
+        self.edges: list[Edge] = []
+        self.layers: list[list[str]] = []
+        self.positions: dict[str, NodePosition] = {}
 
-    def calculate_layout(self, flow) -> Dict[str, NodePosition]:
+    def calculate_layout(self, flow) -> dict[str, NodePosition]:
         """
         Calculate positions for all nodes in the flow.
 
@@ -98,11 +98,11 @@ class LayoutEngine:
         self._assign_coordinates()
         return self.positions
 
-    def get_edges(self) -> List[Edge]:
+    def get_edges(self) -> list[Edge]:
         """Get all edges after layout calculation."""
         return self.edges
 
-    def get_bounds(self) -> Tuple[float, float, float, float]:
+    def get_bounds(self) -> tuple[float, float, float, float]:
         """Get bounding box (min_x, min_y, max_x, max_y)."""
         if not self.positions:
             return (0, 0, 100, 100)
@@ -114,7 +114,7 @@ class LayoutEngine:
 
         return (min_x, min_y, max_x, max_y)
 
-    def get_canvas_size(self) -> Tuple[int, int]:
+    def get_canvas_size(self) -> tuple[int, int]:
         """Get required canvas size with padding."""
         min_x, min_y, max_x, max_y = self.get_bounds()
         width = int(max_x - min_x + 2 * self.padding)
@@ -189,8 +189,8 @@ class LayoutEngine:
     def _assign_layers(self):
         """Assign nodes to layers using topological sort."""
         # Build adjacency lists
-        outgoing: Dict[str, List[str]] = defaultdict(list)
-        incoming: Dict[str, List[str]] = defaultdict(list)
+        outgoing: dict[str, list[str]] = defaultdict(list)
+        incoming: dict[str, list[str]] = defaultdict(list)
 
         for edge in self.edges:
             outgoing[edge.source].append(edge.target)
@@ -201,7 +201,7 @@ class LayoutEngine:
         sources = [node for node, deg in in_degree.items() if deg == 0]
 
         # Assign layers using BFS
-        layer_assignment: Dict[str, int] = {}
+        layer_assignment: dict[str, int] = {}
         current_layer = 0
         current_nodes = sources
 
@@ -234,8 +234,8 @@ class LayoutEngine:
     def _minimize_crossings(self):
         """Minimize edge crossings using barycenter heuristic."""
         # Build adjacency for barycenter calculation
-        outgoing: Dict[str, List[str]] = defaultdict(list)
-        incoming: Dict[str, List[str]] = defaultdict(list)
+        outgoing: dict[str, list[str]] = defaultdict(list)
+        incoming: dict[str, list[str]] = defaultdict(list)
 
         for edge in self.edges:
             outgoing[edge.source].append(edge.target)
@@ -252,7 +252,7 @@ class LayoutEngine:
                 self._order_layer_by_barycenter(i, outgoing, forward=False)
 
     def _order_layer_by_barycenter(
-        self, layer_idx: int, adjacency: Dict[str, List[str]], forward: bool
+        self, layer_idx: int, adjacency: dict[str, list[str]], forward: bool
     ):
         """Order nodes in a layer by barycenter of connected nodes."""
         if layer_idx < 0 or layer_idx >= len(self.layers):
@@ -309,8 +309,8 @@ class LayoutEngine:
         # --- Compute x_starts for each layer, accounting for sub-columns ---
         # For each layer, figure out how many sub-columns it needs and
         # how wide those sub-columns are, so the next layer starts after them.
-        x_starts: List[float] = [float(self.padding)]
-        layer_sub_counts: List[int] = []  # number of sub-columns per layer
+        x_starts: list[float] = [float(self.padding)]
+        layer_sub_counts: list[int] = []  # number of sub-columns per layer
 
         for layer_idx, layer_nodes in enumerate(self.layers):
             n_sub = max(1, (len(layer_nodes) + MAX_PER_COL - 1) // MAX_PER_COL)
@@ -324,14 +324,14 @@ class LayoutEngine:
 
         # --- Compute per-sub-column heights for vertical centering ---
         # We need the global max height across all sub-columns of all layers.
-        def _sub_column_height(nodes: List[str]) -> float:
+        def _sub_column_height(nodes: list[str]) -> float:
             if not nodes:
                 return 0
             h = sum(self._node_height(n) for n in nodes)
             h += max(0, len(nodes) - 1) * self.node_spacing
             return h
 
-        all_sub_heights: List[List[float]] = []
+        all_sub_heights: list[list[float]] = []
         for layer_idx, layer_nodes in enumerate(self.layers):
             n_sub = layer_sub_counts[layer_idx]
             sub_heights = []

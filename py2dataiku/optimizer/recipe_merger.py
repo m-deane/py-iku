@@ -1,6 +1,5 @@
 """Recipe merging utilities."""
 
-from typing import List, Optional
 
 from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
 from py2dataiku.models.prepare_step import PrepareStep
@@ -32,7 +31,7 @@ class RecipeMerger:
 
     @staticmethod
     def merge_prepare_recipes(
-        recipes: List[DataikuRecipe],
+        recipes: list[DataikuRecipe],
     ) -> DataikuRecipe:
         """
         Merge multiple consecutive Prepare recipes into one.
@@ -55,9 +54,9 @@ class RecipeMerger:
                 raise ValueError(f"Recipe '{r.name}' is not a Prepare recipe")
 
         # Combine all steps
-        all_steps: List[PrepareStep] = []
-        all_source_lines: List[int] = []
-        all_notes: List[str] = []
+        all_steps: list[PrepareStep] = []
+        all_source_lines: list[int] = []
+        all_notes: list[str] = []
 
         for recipe in recipes:
             all_steps.extend(recipe.steps)
@@ -78,7 +77,7 @@ class RecipeMerger:
         return merged
 
     @staticmethod
-    def optimize_prepare_steps(steps: List[PrepareStep]) -> List[PrepareStep]:
+    def optimize_prepare_steps(steps: list[PrepareStep]) -> list[PrepareStep]:
         """
         Optimize the order of Prepare steps for efficiency.
 
@@ -117,7 +116,7 @@ class RecipeMerger:
         return deletions + type_setters + row_filters + other + renames
 
     @staticmethod
-    def remove_redundant_steps(steps: List[PrepareStep]) -> List[PrepareStep]:
+    def remove_redundant_steps(steps: list[PrepareStep]) -> list[PrepareStep]:
         """
         Remove redundant or contradictory steps.
 

@@ -1,12 +1,11 @@
 """LLM-based Python code analyzer for py2dataiku."""
 
 import json
-from typing import List, Optional
+from typing import Optional
 
-from py2dataiku.exceptions import LLMResponseParseError, ProviderError
+from py2dataiku.exceptions import LLMResponseParseError
 from py2dataiku.llm.providers import LLMProvider, get_provider
 from py2dataiku.llm.schemas import AnalysisResult, DataStep, OperationType
-
 
 # System prompt for code analysis
 ANALYSIS_SYSTEM_PROMPT = """You are an expert data engineer specializing in Python data processing and Dataiku DSS.
@@ -170,7 +169,7 @@ class LLMCodeAnalyzer:
         self,
         code: str,
         context: Optional[str] = None,
-        existing_datasets: Optional[List[str]] = None,
+        existing_datasets: Optional[list[str]] = None,
     ) -> AnalysisResult:
         """
         Analyze code with additional context.
@@ -264,7 +263,7 @@ class LLMCodeAnalyzer:
 
         return recipe_map.get(op, "python")
 
-    def get_optimization_suggestions(self, result: AnalysisResult) -> List[str]:
+    def get_optimization_suggestions(self, result: AnalysisResult) -> list[str]:
         """
         Get optimization suggestions for the analyzed code.
 

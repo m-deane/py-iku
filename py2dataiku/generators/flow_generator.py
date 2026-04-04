@@ -1,9 +1,10 @@
 """Generate Dataiku flows from transformations."""
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from py2dataiku.generators.base_generator import BaseFlowGenerator
 from py2dataiku.mappings.pandas_mappings import PandasMapper
+from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.models.dataiku_recipe import (
     Aggregation,
@@ -13,7 +14,6 @@ from py2dataiku.models.dataiku_recipe import (
     RecipeType,
     SamplingMethod,
 )
-from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
 from py2dataiku.models.prepare_step import PrepareStep, ProcessorType
 from py2dataiku.models.transformation import Transformation, TransformationType
 
@@ -30,11 +30,11 @@ class FlowGenerator(BaseFlowGenerator):
     def __init__(self):
         super().__init__()
         self.dataset_counter = 0
-        self.current_dataset: Dict[str, str] = {}  # variable -> dataset name
+        self.current_dataset: dict[str, str] = {}  # variable -> dataset name
 
     def generate(
         self,
-        transformations: List[Transformation],
+        transformations: list[Transformation],
         flow_name: str = "converted_flow",
         optimize: bool = True,
     ) -> DataikuFlow:
@@ -68,10 +68,10 @@ class FlowGenerator(BaseFlowGenerator):
         return self.flow
 
     def _group_transformations(
-        self, transformations: List[Transformation]
-    ) -> Dict[str, List[Transformation]]:
+        self, transformations: list[Transformation]
+    ) -> dict[str, list[Transformation]]:
         """Group transformations by target DataFrame variable."""
-        groups: Dict[str, List[Transformation]] = {}
+        groups: dict[str, list[Transformation]] = {}
 
         for trans in transformations:
             target = trans.target_dataframe or "unknown"
@@ -82,10 +82,10 @@ class FlowGenerator(BaseFlowGenerator):
         return groups
 
     def _process_transformation_group(
-        self, var_name: str, transformations: List[Transformation]
+        self, var_name: str, transformations: list[Transformation]
     ) -> None:
         """Process a group of transformations for a single variable."""
-        prepare_steps: List[PrepareStep] = []
+        prepare_steps: list[PrepareStep] = []
         current_input: Optional[str] = None
 
         for trans in transformations:
@@ -362,7 +362,7 @@ class FlowGenerator(BaseFlowGenerator):
         return dataset
 
     def _create_prepare_recipe(
-        self, input_dataset: str, steps: List[PrepareStep]
+        self, input_dataset: str, steps: list[PrepareStep]
     ) -> str:
         """Create a Prepare recipe and return output dataset name."""
         self.recipe_counter += 1
@@ -599,7 +599,7 @@ class FlowGenerator(BaseFlowGenerator):
         else:
             # SAMPLE
             n = trans.parameters.get("n", None)
-            frac = trans.parameters.get("frac", None)
+            trans.parameters.get("frac", None)
             if n is not None:
                 method = SamplingMethod.RANDOM_FIXED
             else:

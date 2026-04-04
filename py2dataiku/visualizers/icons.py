@@ -2,14 +2,13 @@
 Recipe type icons for Dataiku flow visualization.
 """
 
-from typing import Dict
 
 
 class RecipeIcons:
     """Icons for different Dataiku recipe types."""
 
     # Unicode icons for each recipe type
-    UNICODE: Dict[str, str] = {
+    UNICODE: dict[str, str] = {
         "prepare": "\u2699",      # ⚙ Gear
         "join": "\u22c8",         # ⋈ Bowtie (join symbol)
         "stack": "\u2630",        # ☰ Trigram (stacked lines)
@@ -28,7 +27,7 @@ class RecipeIcons:
     }
 
     # Text labels for recipe types
-    LABELS: Dict[str, str] = {
+    LABELS: dict[str, str] = {
         "prepare": "Prepare",
         "join": "Join",
         "stack": "Stack",
@@ -47,7 +46,7 @@ class RecipeIcons:
     }
 
     # SVG path icons (for high-quality rendering)
-    SVG_PATHS: Dict[str, str] = {
+    SVG_PATHS: dict[str, str] = {
         "prepare": "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z",
         "join": "M12 2L4 7v10l8 5 8-5V7l-8-5zm0 2.5l6 3.75v7.5L12 19.5l-6-3.75v-7.5L12 4.5z",
         "grouping": "M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z",
@@ -56,7 +55,7 @@ class RecipeIcons:
     }
 
     # ASCII representations for terminal output
-    ASCII: Dict[str, str] = {
+    ASCII: dict[str, str] = {
         "prepare": "[*]",
         "join": "[><]",
         "stack": "[=]",

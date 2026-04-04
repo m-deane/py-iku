@@ -1,10 +1,13 @@
 """Pattern matching for pandas operations."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from py2dataiku.mappings.pandas_mappings import PandasMapper
-from py2dataiku.models.prepare_step import PrepareStep, ProcessorType, StringTransformerMode
+from py2dataiku.models.prepare_step import (
+    PrepareStep,
+    ProcessorType,
+)
 
 
 @dataclass
@@ -14,7 +17,7 @@ class MatchResult:
     matched: bool
     processor_type: Optional[ProcessorType] = None
     recipe_type: Optional[str] = None
-    params: Dict[str, Any] = None
+    params: dict[str, Any] = None
 
     def __post_init__(self):
         if self.params is None:
@@ -38,19 +41,19 @@ class PatternMatcher:
         """Match fillna() to FillEmptyWithValue processor."""
         return PrepareStep.fill_empty(column, value)
 
-    def match_dropna(self, columns: List[str]) -> PrepareStep:
+    def match_dropna(self, columns: list[str]) -> PrepareStep:
         """Match dropna() to RemoveRowsOnEmpty processor."""
         return PrepareStep.remove_rows_on_empty(columns)
 
-    def match_drop_duplicates(self, columns: Optional[List[str]] = None) -> PrepareStep:
+    def match_drop_duplicates(self, columns: Optional[list[str]] = None) -> PrepareStep:
         """Match drop_duplicates() to RemoveDuplicates processor."""
         return PrepareStep.remove_duplicates(columns)
 
-    def match_rename(self, mapping: Dict[str, str]) -> PrepareStep:
+    def match_rename(self, mapping: dict[str, str]) -> PrepareStep:
         """Match rename() to ColumnRenamer processor."""
         return PrepareStep.rename_columns(mapping)
 
-    def match_drop_columns(self, columns: List[str]) -> PrepareStep:
+    def match_drop_columns(self, columns: list[str]) -> PrepareStep:
         """Match drop(columns=...) to ColumnDeleter processor."""
         return PrepareStep.delete_columns(columns)
 
@@ -113,7 +116,7 @@ class PatternMatcher:
         return self.JOIN_TYPES.get(pandas_how.lower(), "INNER")
 
     def match_regex_extract(
-        self, column: str, pattern: str, output_columns: Optional[List[str]] = None
+        self, column: str, pattern: str, output_columns: Optional[list[str]] = None
     ) -> PrepareStep:
         """Match str.extract() to RegexpExtractor processor."""
         return PrepareStep.regexp_extract(column, pattern, output_columns)

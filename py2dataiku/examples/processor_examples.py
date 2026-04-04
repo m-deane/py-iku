@@ -6,7 +6,6 @@ recipe processor type, demonstrating how py2dataiku detects and converts
 various pandas operations into their corresponding processor configurations.
 """
 
-from typing import Dict, Any
 
 # =============================================================================
 # COLUMN MANIPULATION PROCESSORS
@@ -1468,7 +1467,7 @@ df.to_csv('udf_result.csv', index=False)
 # PROCESSOR EXAMPLES REGISTRY
 # =============================================================================
 
-PROCESSOR_EXAMPLES: Dict[str, str] = {
+PROCESSOR_EXAMPLES: dict[str, str] = {
     # Column Manipulation
     "column_renamer": COLUMN_RENAMER_EXAMPLE,
     "column_copier": COLUMN_COPIER_EXAMPLE,

@@ -3,7 +3,7 @@
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 import yaml
 
@@ -21,9 +21,9 @@ class FlowRecommendation:
     message: str
     impact: Optional[str] = None
     action: Optional[str] = None
-    source_lines: List[int] = field(default_factory=list)
+    source_lines: list[int] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "type": self.type,
             "priority": self.priority,
@@ -42,9 +42,9 @@ class ColumnLineage:
     final_dataset: str
     origin_dataset: str
     origin_column: str
-    transformations: List[Dict[str, str]] = field(default_factory=list)
+    transformations: list[dict[str, str]] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "column": self.column,
             "final_dataset": self.final_dataset,
@@ -62,10 +62,10 @@ class FlowZone:
 
     name: str
     color: str = "#4b96e6"
-    datasets: List[str] = field(default_factory=list)
-    recipes: List[str] = field(default_factory=list)
+    datasets: list[str] = field(default_factory=list)
+    recipes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "color": self.color,
@@ -74,7 +74,7 @@ class FlowZone:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FlowZone":
+    def from_dict(cls, data: dict[str, Any]) -> "FlowZone":
         return cls(
             name=data["name"],
             color=data.get("color", "#4b96e6"),
@@ -106,13 +106,13 @@ class DataikuFlow:
     source_file: Optional[str] = None
     generation_timestamp: Optional[str] = None
 
-    datasets: List[DataikuDataset] = field(default_factory=list)
-    recipes: List[DataikuRecipe] = field(default_factory=list)
-    zones: List[FlowZone] = field(default_factory=list)
+    datasets: list[DataikuDataset] = field(default_factory=list)
+    recipes: list[DataikuRecipe] = field(default_factory=list)
+    zones: list[FlowZone] = field(default_factory=list)
 
-    recommendations: List[FlowRecommendation] = field(default_factory=list)
-    optimization_notes: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    recommendations: list[FlowRecommendation] = field(default_factory=list)
+    optimization_notes: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.generation_timestamp:
@@ -142,17 +142,17 @@ class DataikuFlow:
         return any(ds.name == name for ds in self.datasets)
 
     @property
-    def input_datasets(self) -> List[DataikuDataset]:
+    def input_datasets(self) -> list[DataikuDataset]:
         """Get all input datasets."""
         return [ds for ds in self.datasets if ds.dataset_type == DatasetType.INPUT]
 
     @property
-    def output_datasets(self) -> List[DataikuDataset]:
+    def output_datasets(self) -> list[DataikuDataset]:
         """Get all output datasets."""
         return [ds for ds in self.datasets if ds.dataset_type == DatasetType.OUTPUT]
 
     @property
-    def intermediate_datasets(self) -> List[DataikuDataset]:
+    def intermediate_datasets(self) -> list[DataikuDataset]:
         """Get all intermediate datasets."""
         return [ds for ds in self.datasets if ds.dataset_type == DatasetType.INTERMEDIATE]
 
@@ -176,13 +176,13 @@ class DataikuFlow:
                 return recipe
         return None
 
-    def get_recipes_by_type(self, recipe_type: RecipeType) -> List[DataikuRecipe]:
+    def get_recipes_by_type(self, recipe_type: RecipeType) -> list[DataikuRecipe]:
         """Get all recipes of a specific type."""
         return [r for r in self.recipes if r.recipe_type == recipe_type]
 
     # Analysis methods
 
-    def get_recommendations(self) -> List[FlowRecommendation]:
+    def get_recommendations(self) -> list[FlowRecommendation]:
         """Get optimization recommendations for the flow."""
         return self.recommendations
 
@@ -238,7 +238,7 @@ class DataikuFlow:
             raise ValueError(f"Dataset '{dataset}' not found in flow")
 
         # Build reverse lookup: dataset -> recipe that produces it
-        producer: Dict[str, DataikuRecipe] = {}
+        producer: dict[str, DataikuRecipe] = {}
         for recipe in self.recipes:
             for out in recipe.outputs:
                 producer[out] = recipe
@@ -248,7 +248,7 @@ class DataikuFlow:
         current_dataset = dataset
         transformations: list = []
 
-        visited: Set[str] = set()
+        visited: set[str] = set()
         while current_dataset in producer and current_dataset not in visited:
             visited.add(current_dataset)
             recipe = producer[current_dataset]
@@ -335,7 +335,7 @@ class DataikuFlow:
             transformations=transformations,
         )
 
-    def validate(self) -> Dict[str, Any]:
+    def validate(self) -> dict[str, Any]:
         """Validate the flow structure using DAG analysis."""
         errors = []
         warnings = []
@@ -353,7 +353,7 @@ class DataikuFlow:
             })
 
         # Check for orphan datasets
-        referenced_datasets: Set[str] = set()
+        referenced_datasets: set[str] = set()
         for recipe in self.recipes:
             referenced_datasets.update(recipe.inputs)
             referenced_datasets.update(recipe.outputs)
@@ -411,7 +411,7 @@ class DataikuFlow:
                 return z
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         result = {
             "flow_name": self.name,
@@ -429,7 +429,7 @@ class DataikuFlow:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataikuFlow":
+    def from_dict(cls, data: dict[str, Any]) -> "DataikuFlow":
         """Reconstruct a DataikuFlow from a dictionary (inverse of to_dict)."""
         datasets = [
             DataikuDataset.from_dict(ds) for ds in data.get("datasets", [])
@@ -480,7 +480,7 @@ class DataikuFlow:
         """Convert to JSON string."""
         return json.dumps(self.to_dict(), indent=indent)
 
-    def to_recipe_configs(self) -> List[Dict[str, Any]]:
+    def to_recipe_configs(self) -> list[dict[str, Any]]:
         """Get Dataiku API-compatible recipe configurations.
 
         Returns recipe configs using the same DSS API format as
@@ -511,7 +511,7 @@ class DataikuFlow:
         ]
 
         # Count by type
-        type_counts: Dict[str, int] = {}
+        type_counts: dict[str, int] = {}
         for recipe in self.recipes:
             t = recipe.recipe_type.value
             type_counts[t] = type_counts.get(t, 0) + 1
@@ -570,7 +570,9 @@ class DataikuFlow:
             return DiagramGenerator().to_mermaid(self)
 
         if format in ("png", "matplotlib"):
-            from py2dataiku.visualizers.matplotlib_visualizer import MatplotlibVisualizer
+            from py2dataiku.visualizers.matplotlib_visualizer import (
+                MatplotlibVisualizer,
+            )
             theme = kwargs.pop("theme", None)
             dpi = kwargs.pop("dpi", 150)
             return MatplotlibVisualizer(theme=theme, dpi=dpi).render(self)

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class DatasetType(Enum):
@@ -41,7 +41,7 @@ class ColumnSchema:
     default: Optional[Any] = None
     format: Optional[str] = None  # For dates, etc.
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         result = {
             "name": self.name,
@@ -67,12 +67,12 @@ class DataikuDataset:
     name: str
     dataset_type: DatasetType = DatasetType.INTERMEDIATE
     connection_type: DatasetConnectionType = DatasetConnectionType.FILESYSTEM
-    schema: List[ColumnSchema] = field(default_factory=list)
+    schema: list[ColumnSchema] = field(default_factory=list)
     source_variable: Optional[str] = None  # Original Python variable name
     source_line: Optional[int] = None  # Line number in source code
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "name": self.name,
@@ -84,13 +84,13 @@ class DataikuDataset:
             "notes": self.notes,
         }
 
-    def to_json(self, project_key: str = "") -> Dict[str, Any]:
+    def to_json(self, project_key: str = "") -> dict[str, Any]:
         """Convert to Dataiku API-compatible JSON.
 
         Args:
             project_key: The DSS project key. If empty, the field is omitted.
         """
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "name": self.name,
             "type": self.connection_type.value,
             "versionTag": {"versionNumber": 0},
@@ -105,7 +105,7 @@ class DataikuDataset:
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DataikuDataset":
+    def from_dict(cls, data: dict[str, Any]) -> "DataikuDataset":
         """Reconstruct a DataikuDataset from a dictionary (inverse of to_dict)."""
         schema = [
             ColumnSchema(

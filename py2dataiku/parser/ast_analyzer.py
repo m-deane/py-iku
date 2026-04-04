@@ -1,12 +1,12 @@
 """Python AST analysis for extracting data transformations."""
 
 import ast
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Optional
 
 from py2dataiku.exceptions import InvalidPythonCodeError
 from py2dataiku.mappings.pandas_mappings import PandasMapper
 from py2dataiku.models.transformation import Transformation, TransformationType
-from py2dataiku.plugins.registry import PluginRegistry, PluginContext
+from py2dataiku.plugins.registry import PluginContext, PluginRegistry
 
 
 class CodeAnalyzer:
@@ -53,6 +53,8 @@ class CodeAnalyzer:
         "explode": "_handle_explode",
         "combine_first": "_handle_combine_first",
         "cumsum": "_handle_cumsum",
+        "cummin": "_handle_cummin",
+        "cummax": "_handle_cummax",
         "cumprod": "_handle_cumprod",
         "diff": "_handle_diff",
         "shift": "_handle_shift",
@@ -62,8 +64,8 @@ class CodeAnalyzer:
     }
 
     def __init__(self):
-        self.transformations: List[Transformation] = []
-        self.dataframes: Dict[str, str] = {}  # variable -> source
+        self.transformations: list[Transformation] = []
+        self.dataframes: dict[str, str] = {}  # variable -> source
         self.current_line: int = 0
         self._source_code: str = ""
         # Build bound-method dispatch table from class-level name mapping,
@@ -74,7 +76,7 @@ class CodeAnalyzer:
             if hasattr(self, handler_name)
         }
 
-    def analyze(self, code: str) -> List[Transformation]:
+    def analyze(self, code: str) -> list[Transformation]:
         """
         Extract all transformations from Python code.
 
@@ -241,7 +243,7 @@ class CodeAnalyzer:
             return True
         return False
 
-    def _unwind_method_chain(self, node: ast.Call) -> List[Tuple[str, ast.Call]]:
+    def _unwind_method_chain(self, node: ast.Call) -> list[tuple[str, ast.Call]]:
         """
         Unwind a method chain into a list of (method_name, call_node) tuples.
 
@@ -280,22 +282,28 @@ class CodeAnalyzer:
         if not chain:
             return
 
-        # C2: Detect groupby().agg() chain and extract aggregations
+        # C2: Detect groupby().agg() and groupby().<shorthand>() chains
+        _SHORTHAND_AGG_METHODS = {"sum", "mean", "count", "min", "max", "std", "var"}
         if len(chain) >= 2:
             for i in range(len(chain) - 1):
-                if chain[i][0] == "groupby" and chain[i + 1][0] == "agg":
+                if chain[i][0] == "groupby" and chain[i + 1][0] in _SHORTHAND_AGG_METHODS | {"agg"}:
                     groupby_call = chain[i][1]
                     agg_call = chain[i + 1][1]
+                    agg_method = chain[i + 1][0]
 
                     # Extract groupby keys
                     keys = []
                     if groupby_call.args:
                         keys = self._get_list_value(groupby_call.args[0])
 
-                    # Extract aggregations from .agg() dict argument
-                    aggregations = {}
-                    if agg_call.args and isinstance(agg_call.args[0], ast.Dict):
-                        aggregations = self._get_dict_value(agg_call.args[0])
+                    # Extract aggregations: dict form for .agg(), method name for shorthand
+                    aggregations: dict = {}
+                    if agg_method == "agg":
+                        if agg_call.args and isinstance(agg_call.args[0], ast.Dict):
+                            aggregations = self._get_dict_value(agg_call.args[0])
+                    else:
+                        # Shorthand: groupby().sum() -> aggregation is the method name
+                        aggregations = {"*": agg_method}
 
                     self.transformations.append(
                         Transformation(
@@ -303,7 +311,11 @@ class CodeAnalyzer:
                             source_dataframe=base_df,
                             target_dataframe=target,
                             columns=keys,
-                            parameters={"keys": keys, "aggregations": aggregations},
+                            parameters={
+                                "keys": keys,
+                                "aggregations": aggregations,
+                                "aggregation": agg_method,
+                            },
                             source_line=self.current_line,
                             suggested_recipe="grouping",
                         )
@@ -1191,6 +1203,34 @@ class CodeAnalyzer:
             )
         )
 
+    def _handle_cummin(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle cummin() calls -> Window recipe with RUNNING_MIN."""
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.ROLLING,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"window_function": "RUNNING_MIN"},
+                source_line=self.current_line,
+                suggested_recipe="window",
+                notes=["df.cummin() -> Window recipe with RUNNING_MIN"],
+            )
+        )
+
+    def _handle_cummax(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle cummax() calls -> Window recipe with RUNNING_MAX."""
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.ROLLING,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"window_function": "RUNNING_MAX"},
+                source_line=self.current_line,
+                suggested_recipe="window",
+                notes=["df.cummax() -> Window recipe with RUNNING_MAX"],
+            )
+        )
+
     def _handle_cumprod(self, df: str, node: ast.Call, target: str) -> None:
         """Handle cumprod() calls -> Window recipe with RUNNING_PRODUCT."""
         self.transformations.append(
@@ -1414,7 +1454,7 @@ class CodeAnalyzer:
             return f"{base}[{node.slice.value!r}]"
         return base
 
-    def _get_list_value(self, node: ast.expr) -> List[str]:
+    def _get_list_value(self, node: ast.expr) -> list[str]:
         """Extract a list value from an AST node."""
         if isinstance(node, ast.List):
             result = []
@@ -1430,7 +1470,7 @@ class CodeAnalyzer:
             return [node.id]
         return []
 
-    def _get_dict_value(self, node: ast.expr) -> Dict[str, str]:
+    def _get_dict_value(self, node: ast.expr) -> dict[str, str]:
         """Extract a dict value from an AST node."""
         if isinstance(node, ast.Dict):
             result = {}
