@@ -328,7 +328,7 @@ class FlowGenerator(BaseFlowGenerator):
             columns = trans.columns or trans.parameters.get("columns", [])
             return PrepareStep(
                 processor_type=ProcessorType.COLUMNS_SELECTOR,
-                params={"columns": columns, "keep": True},
+                params={"columns": columns, "keep": True, "mode": "keep"},
                 source_line=trans.source_line,
             )
 
@@ -397,6 +397,26 @@ class FlowGenerator(BaseFlowGenerator):
                 return PrepareStep(
                     processor_type=ProcessorType.UNFOLD,
                     params={"column": trans.parameters.get("column", output_col)},
+                    source_line=trans.source_line,
+                )
+            if proc_name == "Binner":
+                return PrepareStep(
+                    processor_type=ProcessorType.BINNER,
+                    params={
+                        "column": trans.parameters.get("column", ""),
+                        "output_column": output_col,
+                        "bins": trans.parameters.get("bins"),
+                        "mode": trans.parameters.get("method", "cut"),
+                    },
+                    source_line=trans.source_line,
+                )
+            if proc_name == "CategoricalEncoder":
+                return PrepareStep(
+                    processor_type=ProcessorType.CATEGORICAL_ENCODER,
+                    params={
+                        "columns": trans.parameters.get("columns", trans.columns),
+                        "encoding": trans.parameters.get("encoding", "one_hot"),
+                    },
                     source_line=trans.source_line,
                 )
             if proc_name in ("IfThenElse", "If"):
@@ -624,7 +644,13 @@ class FlowGenerator(BaseFlowGenerator):
         """Create a Window recipe and return output dataset name."""
         self.recipe_counter += 1
 
-        output_name = f"{input_dataset}_windowed"
+        # Honor the variable name the user assigned to (target_dataframe).
+        # When N WINDOW operations chain on the same variable they would
+        # collide on a single auto-named output; disambiguate with the counter.
+        if trans.target_dataframe and trans.target_dataframe != input_dataset:
+            output_name = trans.target_dataframe
+        else:
+            output_name = f"{input_dataset}_windowed_{self.recipe_counter}"
 
         partition_cols = trans.parameters.get("partition_columns", [])
         order_cols = trans.parameters.get("order_columns", [])
@@ -663,8 +689,22 @@ class FlowGenerator(BaseFlowGenerator):
         self.recipe_counter += 1
 
         n = trans.parameters.get("n", 10)
-        ranking_col = trans.columns[0] if trans.columns else None
-        output_name = f"{input_dataset}_topn"
+        # Handler may store the ranking column in either columns[] or
+        # parameters["column"] (nlargest/nsmallest use the latter).
+        ranking_col = (
+            trans.columns[0] if trans.columns else trans.parameters.get("column")
+        )
+        ascending = trans.parameters.get("ascending", False)
+        if trans.target_dataframe and trans.target_dataframe != input_dataset:
+            output_name = trans.target_dataframe
+        else:
+            output_name = f"{input_dataset}_topn"
+
+        sort_columns = []
+        if ranking_col:
+            sort_columns = [
+                {"column": ranking_col, "order": "asc" if ascending else "desc"}
+            ]
 
         recipe = DataikuRecipe(
             name=f"topn_{self.recipe_counter}",
@@ -673,6 +713,7 @@ class FlowGenerator(BaseFlowGenerator):
             outputs=[output_name],
             top_n=n,
             ranking_column=ranking_col,
+            sort_columns=sort_columns,
         )
         recipe.source_lines = [trans.source_line] if trans.source_line else []
 
@@ -685,7 +726,10 @@ class FlowGenerator(BaseFlowGenerator):
         """Create a Sampling recipe and return output dataset name."""
         self.recipe_counter += 1
 
-        output_name = f"{input_dataset}_sampled"
+        if trans.target_dataframe and trans.target_dataframe != input_dataset:
+            output_name = trans.target_dataframe
+        else:
+            output_name = f"{input_dataset}_sampled"
         ttype = trans.transformation_type
 
         if ttype == TransformationType.HEAD:
@@ -777,7 +821,20 @@ class FlowGenerator(BaseFlowGenerator):
             source_line=trans.source_line,
         )
 
-        return self._create_prepare_recipe(input_dataset or "", [step])
+        # Honor the user's target variable name; otherwise auto-generate.
+        self.recipe_counter += 1
+        in_name = input_dataset or ""
+        out_name = trans.target_dataframe or f"{in_name}_melted"
+
+        recipe = DataikuRecipe.create_prepare(
+            name=f"prepare_{self.recipe_counter}",
+            input_dataset=in_name,
+            output_dataset=out_name,
+            steps=[step],
+        )
+        recipe.source_lines = [trans.source_line] if trans.source_line else []
+        self.flow.add_recipe(recipe)
+        return out_name
 
     def _numeric_transform_to_prepare_step(
         self, trans: Transformation

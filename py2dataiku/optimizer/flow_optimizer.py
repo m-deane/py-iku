@@ -64,7 +64,6 @@ class FlowOptimizer:
             self._recommend_merge_prepare_recipes(flow)
 
         self._push_filters_early(flow)
-        self._identify_parallel_branches(flow)
         self._add_recommendations(flow)
 
         # Store optimization log on the flow
@@ -202,17 +201,16 @@ class FlowOptimizer:
     def _identify_parallel_branches(
         self, flow: DataikuFlow
     ) -> list[list[DataikuRecipe]]:
-        """Identify recipe sequences that can run in parallel."""
-        parallel_groups: list[list[DataikuRecipe]] = []
+        """Identify recipe sequences that can run in parallel.
 
-        dependencies = self._build_dependency_graph(flow)
-
-        for i, recipe1 in enumerate(flow.recipes):
-            for recipe2 in flow.recipes[i + 1:]:
-                if not self._has_dependency(recipe1, recipe2, dependencies):
-                    pass
-
-        return parallel_groups
+        Currently a no-op stub. The previous implementation was an O(R^2 * D)
+        hot path that did no useful work (its inner body was ``pass`` and the
+        result was never accumulated). On flows with 100+ recipes this
+        consumed 99% of conversion time. The stub remains for callers/tests
+        that import it directly; a real implementation can be added later
+        using cached transitive-closure reachability rather than per-pair BFS.
+        """
+        return []
 
     def _build_dependency_graph(self, flow: DataikuFlow) -> dict:
         """Build a dependency graph of recipes."""

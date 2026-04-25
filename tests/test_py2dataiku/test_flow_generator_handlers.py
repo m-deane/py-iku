@@ -800,7 +800,9 @@ class TestOutputDatasetNames:
         ]
         flow = gen.generate(transformations, optimize=False)
         recipe = flow.get_recipes_by_type(RecipeType.WINDOW)[0]
-        assert recipe.outputs[0].endswith("_windowed")
+        # When target == input the generator auto-disambiguates with a counter
+        # (so chained windows on the same variable don't collide).
+        assert "_windowed" in recipe.outputs[0]
 
     def test_topn_output_name(self):
         gen = FlowGenerator()
@@ -877,7 +879,9 @@ class TestRecipeInputOutput:
         assert len(recipe.inputs) == 1
         assert len(recipe.outputs) == 1
         assert recipe.inputs[0] == "df"
-        assert recipe.outputs[0] == "df_windowed"
+        # When target == input we auto-disambiguate with a counter suffix
+        # so chained windows on the same variable get distinct outputs.
+        assert recipe.outputs[0].startswith("df_windowed")
 
     def test_chained_handlers_wiring(self):
         """Test that output of one handler flows as input to the next."""

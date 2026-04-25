@@ -115,7 +115,42 @@ Items 25–31. CLI bare-file, `convert()` Path support, flow.save, repr methods,
 
 ---
 
-## Items deferred to wave 2
+## Wave 2 — completed
+
+### Phase 5 (performance) — DONE
+- **`FlowOptimizer._identify_parallel_branches` was O(R²×D) dead code** — body was `pass`, `parallel_groups` never appended to, return always `[]`. On a 120-recipe flow this consumed 99% of conversion time (320 ms). Removed the call from `optimize()` and stubbed the method. **Speedup: ~230× on pathological inputs (320ms → 1.4ms p50).**
+
+### Phase 6 (parity) — DONE
+- `nlargest`/`nsmallest` `ranking_column` now read from `parameters["column"]` (was always None because handler stored it there but generator read empty `trans.columns[0]`). Also emits `sort_columns` and respects `ascending`.
+- TOP_N / SAMPLING / WINDOW / MELT recipes now honor `trans.target_dataframe` (was discarding the user's variable name and inventing `{input}_xxx`). Conditional avoids name collisions when `df = df.window(...)`.
+- `_handle_melt` now extracts `id_vars`, `value_vars`, `var_name`, `value_name` from kwargs **and** positional args. Supports both `df.melt(...)` and `pd.melt(df, ...)` forms.
+- Added `_handle_pd_binner` (handles `pd.cut`/`pd.qcut`) → emits COLUMN_CREATE with `suggested_processor="Binner"`. Wired in `_transform_to_prepare_step` to produce `BINNER` PrepareStep.
+- Added `_handle_pd_get_dummies` → emits COLUMN_CREATE with `suggested_processor="CategoricalEncoder"`. Wired to produce `CATEGORICAL_ENCODER` PrepareStep.
+- Wired `pd.melt` (top-level form) to `_handle_melt`.
+- `_handle_assign` rewritten: each kwarg becomes its own COLUMN_CREATE transformation; lambda values are unparsed via `ast.unparse(value.body)` so `CreateColumnWithGREL` gets a real expression (was always empty string).
+- Rule-based `COLUMN_SELECT` now emits `mode: keep` (wave-1 only fixed the LLM path).
+- LLM `_create_grouping_recipe` normalizes aggregation function names through `PandasMapper.AGG_MAPPINGS` (e.g. `mean` → `AVG`, `std` → `STDDEV`, `nunique` → `COUNTD`) so flow output matches DSS canonical form regardless of what the LLM emits.
+- Sample `frac=` correctly converted to `RANDOM_FIXED_RATIO` percentage (wave-1).
+
+### Wave-2 deferred (accepted divergences)
+- **`drop_duplicates` → PREPARE/RemoveDuplicates vs DISTINCT**: rule-based uses RemoveDuplicates so it can merge with adjacent prepare steps; LLM uses DISTINCT recipe. Both produce valid DSS output. Forcing DISTINCT in rule-based would break the merge optimization and existing tests.
+- **`SELECT_COLUMNS` emits both `keep:True` and `mode:keep`**: Harmless — DSS reads whichever it expects. Existing tests assert both; removing one would regress for purist reasons.
+
+### Test results — cumulative
+
+| Metric | Baseline | Wave-1 | Wave-2 | Delta |
+|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | +53 |
+| Tests failing | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 |
+| New regression tests | — | +39 | +53 | +53 |
+| 120-recipe convert p50 | 320ms | — | 1.4ms | **230× faster** |
+
+14 new wave-2 regression tests added: nlargest ranking column, target_dataframe usage for TOP_N/SAMPLING, melt kwargs extraction, `pd.cut`/`pd.qcut`/`pd.get_dummies` handlers, `df.assign(lambda)` expression capture, rule-based `COLUMN_SELECT` mode, LLM aggregation canonicalization, optimizer perf regression guard.
+
+---
+
+## Items deferred to wave 3
 
 1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim) or `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` (current) is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`.
 2. **System prompt processor names** — `analyzer.py:42-50` references `ColumnDeleter`, `Normalizer`, `RegexpExtractor` which don't all match `ProcessorType` `.value`s. Auto-generate from the enum to prevent drift.

@@ -569,10 +569,16 @@ class LLMFlowGenerator(BaseFlowGenerator):
         output_name = step.output_dataset or f"grouped_{self.recipe_counter}"
         output_name = self._sanitize_name(output_name)
 
+        # Normalize the aggregation function name to DSS canonical form
+        # (e.g. "mean" -> "AVG", "std" -> "STDDEV", "nunique" -> "COUNTD").
+        # If the LLM emitted an already-canonical DSS name we leave it alone.
+        def _canonical(fn: str) -> str:
+            return PandasMapper.AGG_MAPPINGS.get(fn.lower(), fn.upper())
+
         aggregations = [
             Aggregation(
                 column=agg.column,
-                function=agg.function.upper(),
+                function=_canonical(agg.function),
                 output_column=agg.output_column,
             )
             for agg in step.aggregations

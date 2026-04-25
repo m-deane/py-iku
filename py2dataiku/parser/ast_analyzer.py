@@ -182,6 +182,16 @@ class CodeAnalyzer:
                 self._handle_pd_merge(node, target)
             elif method_name == "concat" and obj_name == "pd":
                 self._handle_concat(node, target)
+            elif method_name in ("cut", "qcut") and obj_name == "pd":
+                self._handle_pd_binner(method_name, node, target)
+            elif method_name == "get_dummies" and obj_name == "pd":
+                self._handle_pd_get_dummies(node, target)
+            elif method_name == "melt" and obj_name == "pd":
+                # df = pd.melt(frame, ...) — extract source from first positional arg
+                source_df = (
+                    self._get_name(node.args[0]) if node.args else "df"
+                )
+                self._handle_melt(source_df, node, target)
             # Handle sklearn method calls (fit, transform, fit_transform, predict)
             elif method_name in ("fit", "transform", "fit_transform", "predict", "predict_proba"):
                 self._handle_sklearn_method(obj_name, method_name, node, target)
@@ -442,22 +452,47 @@ class CodeAnalyzer:
         )
 
     def _handle_assign(self, df: str, node: ast.Call, target: str) -> None:
-        """Handle assign() calls for creating new columns."""
-        new_columns = []
-        for kw in node.keywords:
-            new_columns.append(kw.arg)
+        """Handle assign() calls for creating new columns.
 
-        self.transformations.append(
-            Transformation(
-                transformation_type=TransformationType.COLUMN_CREATE,
-                source_dataframe=df,
-                target_dataframe=target,
-                columns=new_columns,
-                parameters={"columns": new_columns},
-                source_line=self.current_line,
-                suggested_processor="CreateColumnWithGREL",
+        Each keyword argument becomes a separate COLUMN_CREATE transformation
+        so the resulting flow has one PREPARE step per assigned column. For
+        lambda values, the lambda body is unparsed back to source so that
+        ``CreateColumnWithGREL`` has a real expression to put on the recipe.
+        """
+        for kw in node.keywords:
+            col_name = kw.arg or "new_column"
+            value = kw.value
+            expression = ""
+
+            if isinstance(value, ast.Lambda):
+                # df.assign(c=lambda x: x.a + x.b) -> "x.a + x.b"
+                try:
+                    expression = ast.unparse(value.body)
+                except (AttributeError, ValueError):
+                    expression = ""
+            elif isinstance(value, ast.Constant):
+                expression = repr(value.value)
+            else:
+                # Arbitrary expression — unparse if possible
+                try:
+                    expression = ast.unparse(value)
+                except (AttributeError, ValueError):
+                    expression = ""
+
+            self.transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.COLUMN_CREATE,
+                    source_dataframe=df,
+                    target_dataframe=target,
+                    columns=[col_name],
+                    parameters={
+                        "output_column": col_name,
+                        "expression": expression,
+                    },
+                    source_line=self.current_line,
+                    suggested_processor="CreateColumnWithGREL",
+                )
             )
-        )
 
     def _handle_clip(self, df: str, node: ast.Call, target: str) -> None:
         """Handle clip() calls."""
@@ -930,13 +965,42 @@ class CodeAnalyzer:
 
         Melt is unpivot (wide-to-long); it maps to a PREPARE recipe with the
         FOLD_MULTIPLE_COLUMNS processor, not PIVOT (which is long-to-wide).
+
+        Extracts ``id_vars``, ``value_vars``, ``var_name``, ``value_name`` from
+        kwargs (and corresponding positional args). The columns to fold come
+        from ``value_vars``; if absent, all columns except ``id_vars`` should
+        be folded, but we cannot know the schema at parse time — store
+        ``id_vars`` so the runtime can compute the complement.
         """
+        params: dict[str, Any] = {}
+        # Positional args of pd.melt: (frame, id_vars, value_vars, var_name, value_name)
+        # For df.melt(): (id_vars, value_vars, var_name, value_name)
+        positional_offset = 1 if node.args and not isinstance(node.args[0], ast.Constant) else 0
+        positional_names = ["id_vars", "value_vars", "var_name", "value_name"]
+        for i, name in enumerate(positional_names):
+            if positional_offset + i < len(node.args):
+                arg = node.args[positional_offset + i]
+                if isinstance(arg, (ast.List, ast.Tuple)):
+                    params[name] = self._get_list_value(arg)
+                elif isinstance(arg, ast.Constant):
+                    params[name] = arg.value
+
+        for kw in node.keywords:
+            if kw.arg in ("id_vars", "value_vars"):
+                params[kw.arg] = self._get_list_value(kw.value)
+            elif kw.arg in ("var_name", "value_name") and isinstance(kw.value, ast.Constant):
+                params[kw.arg] = kw.value.value
+
+        # Columns to fold = value_vars (the "wide" columns being unpivoted)
+        columns_to_fold = params.get("value_vars") or []
+
         self.transformations.append(
             Transformation(
                 transformation_type=TransformationType.MELT,
                 source_dataframe=df,
                 target_dataframe=target,
-                parameters={},
+                columns=columns_to_fold,
+                parameters=params,
                 source_line=self.current_line,
                 suggested_recipe="prepare",
                 suggested_processor="FoldMultipleColumns",
@@ -1392,6 +1456,85 @@ class CodeAnalyzer:
                 parameters={"dataframes": dataframes},
                 source_line=self.current_line,
                 suggested_recipe="stack",
+            )
+        )
+
+    def _handle_pd_binner(self, method_name: str, node: ast.Call, target: str) -> None:
+        """Handle pd.cut() and pd.qcut() -> Binner processor."""
+        # First positional arg is the column/series being binned
+        source_col = ""
+        source_df = "df"
+        if node.args:
+            arg0 = node.args[0]
+            # Could be df['col'] (Subscript) or just a name
+            if isinstance(arg0, ast.Subscript):
+                source_df = self._get_name(arg0.value)
+                if isinstance(arg0.slice, ast.Constant):
+                    source_col = arg0.slice.value
+            else:
+                source_df = self._get_name(arg0)
+
+        # bins/q is positional[1] or kwarg
+        bins: Any = None
+        if len(node.args) > 1:
+            arg1 = node.args[1]
+            if isinstance(arg1, ast.Constant):
+                bins = arg1.value
+            elif isinstance(arg1, (ast.List, ast.Tuple)):
+                bins = self._get_list_value(arg1)
+        for kw in node.keywords:
+            if kw.arg in ("bins", "q") and isinstance(kw.value, ast.Constant):
+                bins = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                source_dataframe=source_df,
+                target_dataframe=target,
+                columns=[source_col] if source_col else [],
+                parameters={
+                    "column": source_col,
+                    "output_column": target,
+                    "bins": bins,
+                    "method": method_name,
+                },
+                source_line=self.current_line,
+                suggested_processor="Binner",
+                notes=[f"pd.{method_name}() -> Binner processor"],
+            )
+        )
+
+    def _handle_pd_get_dummies(self, node: ast.Call, target: str) -> None:
+        """Handle pd.get_dummies() -> CATEGORICAL_ENCODER (one-hot) processor."""
+        source_df = "df"
+        source_cols: list[str] = []
+        if node.args:
+            arg0 = node.args[0]
+            if isinstance(arg0, ast.Subscript):
+                source_df = self._get_name(arg0.value)
+                if isinstance(arg0.slice, ast.Constant):
+                    source_cols = [arg0.slice.value]
+            else:
+                source_df = self._get_name(arg0)
+
+        # `columns=` kwarg overrides
+        for kw in node.keywords:
+            if kw.arg == "columns":
+                source_cols = self._get_list_value(kw.value)
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.COLUMN_CREATE,
+                source_dataframe=source_df,
+                target_dataframe=target,
+                columns=source_cols,
+                parameters={
+                    "columns": source_cols,
+                    "encoding": "one_hot",
+                },
+                source_line=self.current_line,
+                suggested_processor="CategoricalEncoder",
+                notes=["pd.get_dummies() -> CATEGORICAL_ENCODER (one-hot)"],
             )
         )
 

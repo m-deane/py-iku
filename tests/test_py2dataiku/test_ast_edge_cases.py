@@ -392,13 +392,12 @@ class TestAssign:
         analyzer = CodeAnalyzer()
         transformations = analyzer.analyze(code)
 
+        # Each assigned column becomes its own COLUMN_CREATE transformation
+        # so it can flow independently into a CreateColumnWithGREL prepare step.
         col_create = _find(transformations, TransformationType.COLUMN_CREATE)
-        assert len(col_create) >= 1
-        cc = col_create[0]
-        col_names = cc.columns or cc.parameters.get("columns", [])
-        assert "col_a" in col_names
-        assert "col_b" in col_names
-        assert "col_c" in col_names
+        assert len(col_create) == 3
+        col_names = {cc.columns[0] for cc in col_create if cc.columns}
+        assert col_names == {"col_a", "col_b", "col_c"}
 
     def test_assign_suggested_processor(self):
         code = (
@@ -1275,3 +1274,296 @@ class TestCliBareFileInvocation:
             pass
         captured = capsys.readouterr()
         assert "usage" in captured.out.lower()
+
+
+# ===================================================================
+# Ultrareview wave-2: Phases 5-6 (perf + parity fixes)
+# ===================================================================
+
+
+class TestNlargestRankingColumn:
+    """nlargest/nsmallest must populate ranking_column (was always None)."""
+
+    def test_nlargest_emits_ranking_column(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "top = df.nlargest(5, 'sales')\n"
+        )
+        flow = convert(code)
+        topn = flow.get_recipes_by_type(RecipeType.TOP_N)
+        assert len(topn) == 1
+        assert topn[0].ranking_column == "sales"
+        assert topn[0].top_n == 5
+
+    def test_nsmallest_emits_ranking_column_ascending(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "bottom = df.nsmallest(3, 'price')\n"
+        )
+        flow = convert(code)
+        topn = flow.get_recipes_by_type(RecipeType.TOP_N)
+        assert len(topn) == 1
+        assert topn[0].ranking_column == "price"
+
+
+class TestTopnSamplingHonorsTargetName:
+    """User-assigned variable name should be the recipe's output dataset."""
+
+    def test_topn_uses_target_dataframe(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "top10 = df.nlargest(10, 'rev')\n"
+        )
+        flow = convert(code)
+        topn = flow.get_recipes_by_type(RecipeType.TOP_N)
+        assert topn[0].outputs[0] == "top10"
+
+    def test_sampling_uses_target_dataframe(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "first50 = df.head(50)\n"
+        )
+        flow = convert(code)
+        sampling = flow.get_recipes_by_type(RecipeType.SAMPLING)
+        assert sampling[0].outputs[0] == "first50"
+
+
+class TestMeltKwargsExtracted:
+    """pd.melt / df.melt must extract id_vars/value_vars/var_name/value_name."""
+
+    def test_melt_extracts_value_vars(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "long = pd.melt(df, id_vars=['id'], value_vars=['q1', 'q2'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        analyzer.analyze(code)
+        melt = [t for t in analyzer.transformations if t.transformation_type.value == "melt"]
+        assert melt
+        assert melt[0].columns == ["q1", "q2"]
+        assert melt[0].parameters["id_vars"] == ["id"]
+        assert melt[0].parameters["value_vars"] == ["q1", "q2"]
+
+    def test_pd_melt_routes_to_prepare_with_fold_columns(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "long = pd.melt(df, id_vars=['id'], value_vars=['q1', 'q2'])\n"
+        )
+        flow = convert(code)
+        prep = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert prep
+        # Find the FOLD_MULTIPLE_COLUMNS step
+        fold_steps = [
+            s for s in prep[0].steps
+            if s.processor_type == ProcessorType.FOLD_MULTIPLE_COLUMNS
+        ]
+        assert fold_steps
+        assert fold_steps[0].params["columns"] == ["q1", "q2"]
+
+
+class TestPdCutQcutGetDummies:
+    """pd.cut / pd.qcut / pd.get_dummies must produce visual processors (were silent dead pass)."""
+
+    def test_pd_cut_emits_binner(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df['bins'] = pd.cut(df['amount'], bins=5)\n"
+        )
+        flow = convert(code)
+        prep = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert prep
+        binner_steps = [s for s in prep[0].steps if s.processor_type == ProcessorType.BINNER]
+        assert binner_steps
+        assert binner_steps[0].params.get("bins") == 5
+
+    def test_pd_qcut_emits_binner(self):
+        from py2dataiku import convert
+        from py2dataiku.models.prepare_step import ProcessorType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df['quartiles'] = pd.qcut(df['price'], q=4)\n"
+        )
+        flow = convert(code)
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        prep = flow.get_recipes_by_type(RecipeType.PREPARE)
+        binner_steps = [s for s in prep[0].steps if s.processor_type == ProcessorType.BINNER]
+        assert binner_steps
+        assert binner_steps[0].params.get("mode") == "qcut"
+
+    def test_pd_get_dummies_emits_categorical_encoder(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df = pd.get_dummies(df, columns=['category', 'region'])\n"
+        )
+        flow = convert(code)
+        prep = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert prep
+        enc_steps = [
+            s for s in prep[0].steps if s.processor_type == ProcessorType.CATEGORICAL_ENCODER
+        ]
+        assert enc_steps
+        assert enc_steps[0].params.get("columns") == ["category", "region"]
+
+
+class TestAssignLambdaExpression:
+    """df.assign(c=lambda x: ...) must extract the lambda body."""
+
+    def test_assign_lambda_captures_expression(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        from py2dataiku.models.transformation import TransformationType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df = df.assign(total=lambda x: x['a'] + x['b'])\n"
+        )
+        analyzer = CodeAnalyzer()
+        analyzer.analyze(code)
+        cc = [
+            t for t in analyzer.transformations
+            if t.transformation_type == TransformationType.COLUMN_CREATE
+            and t.columns == ["total"]
+        ]
+        assert cc
+        # Expression body unparsed back to source text
+        assert "x['a']" in cc[0].parameters.get("expression", "")
+        assert "x['b']" in cc[0].parameters.get("expression", "")
+
+
+class TestRuleBasedColumnSelectMode:
+    """Rule-based COLUMN_SELECT must include mode:keep (LLM path was already fixed)."""
+
+    def test_column_select_emits_mode_keep(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        from py2dataiku.generators.flow_generator import FlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+        from py2dataiku.models.transformation import Transformation, TransformationType
+        gen = FlowGenerator()
+        # Synthesize a COLUMN_SELECT transformation directly
+        trans = [
+            Transformation(
+                transformation_type=TransformationType.READ_DATA,
+                target_dataframe="df",
+                parameters={"filepath": "x.csv"},
+                source_line=1,
+            ),
+            Transformation(
+                transformation_type=TransformationType.COLUMN_SELECT,
+                source_dataframe="df",
+                target_dataframe="df",
+                columns=["a", "b"],
+                source_line=2,
+            ),
+        ]
+        flow = gen.generate(trans, optimize=False)
+        prep = flow.get_recipes_by_type(RecipeType.PREPARE)[0]
+        sel_steps = [s for s in prep.steps if s.processor_type == ProcessorType.COLUMNS_SELECTOR]
+        assert sel_steps
+        assert sel_steps[0].params.get("mode") == "keep"
+
+
+class TestOptimizerNotPathological:
+    """120-recipe input must convert in <100ms (was 320ms due to dead-code O(N²) loop)."""
+
+    def test_large_flow_under_100ms(self):
+        import time
+        from py2dataiku import convert
+        chunks = ["import pandas as pd"]
+        for i in range(40):
+            chunks.append(f"df{i} = pd.read_csv('x{i}.csv')")
+            chunks.append(f"df{i} = df{i}.dropna()")
+            chunks.append(f"df{i} = df{i}.drop_duplicates()")
+        code = "\n".join(chunks)
+        t = time.perf_counter()
+        flow = convert(code)
+        elapsed_ms = (time.perf_counter() - t) * 1000
+        assert flow is not None
+        assert elapsed_ms < 100, f"Conversion took {elapsed_ms:.1f}ms (regression — should be <100ms)"
+
+
+class TestLLMAggregationCanonical:
+    """LLM path must canonicalize agg names: mean->AVG, std->STDDEV, nunique->COUNTD."""
+
+    def test_mean_normalized_to_avg(self):
+        from py2dataiku.llm.schemas import (
+            AnalysisResult, DataStep, OperationType, Aggregation, DatasetInfo,
+        )
+        from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        analysis = AnalysisResult(
+            code_summary="g",
+            total_operations=1,
+            complexity_score=1,
+            datasets=[DatasetInfo(name="df", is_input=True)],
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.GROUP_AGGREGATE,
+                    description="group + mean",
+                    input_datasets=["df"],
+                    output_dataset="result",
+                    suggested_recipe="grouping",
+                    group_by_columns=["cat"],
+                    aggregations=[Aggregation("amount", "mean", "avg_amount")],
+                )
+            ],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        g = flow.get_recipes_by_type(RecipeType.GROUPING)[0]
+        # mean must be normalized to AVG (DSS canonical)
+        assert g.aggregations[0].function == "AVG"
+
+    def test_nunique_normalized_to_countd(self):
+        from py2dataiku.llm.schemas import (
+            AnalysisResult, DataStep, OperationType, Aggregation, DatasetInfo,
+        )
+        from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        analysis = AnalysisResult(
+            code_summary="g",
+            total_operations=1,
+            complexity_score=1,
+            datasets=[DatasetInfo(name="df", is_input=True)],
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.GROUP_AGGREGATE,
+                    description="g",
+                    input_datasets=["df"],
+                    output_dataset="result",
+                    suggested_recipe="grouping",
+                    group_by_columns=["cat"],
+                    aggregations=[Aggregation("user_id", "nunique")],
+                )
+            ],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        g = flow.get_recipes_by_type(RecipeType.GROUPING)[0]
+        assert g.aggregations[0].function == "COUNTD"
