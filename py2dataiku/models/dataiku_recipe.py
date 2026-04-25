@@ -100,27 +100,35 @@ class JoinConditionType(Enum):
 
 
 class AggregationFunction(Enum):
-    """Aggregation functions for Grouping and Window recipes."""
+    """Aggregation functions for Grouping and Window recipes.
+
+    Values match the canonical strings DSS Grouping recipes accept
+    (``AVG`` for mean, ``COUNTD`` for count-distinct, ``STDDEV`` for
+    sample stddev, ``VAR`` for variance). Pandas-style names like
+    ``MEAN``, ``NUNIQUE``, ``VARIANCE`` are kept as aliases that share
+    the canonical .value, so existing user code referring to them
+    still works and emitted JSON is DSS-valid.
+    """
 
     # Basic aggregations
     SUM = "SUM"
     AVG = "AVG"
-    MEAN = "MEAN"
+    MEAN = "AVG"  # alias of AVG (pandas .mean() -> DSS AVG)
     COUNT = "COUNT"
     COUNTD = "COUNTD"  # Count distinct
+    NUNIQUE = "COUNTD"  # alias of COUNTD (pandas .nunique() -> DSS COUNTD)
     MIN = "MIN"
     MAX = "MAX"
     FIRST = "FIRST"
     LAST = "LAST"
 
     # Statistical aggregations
-    STD = "STD"
     STDDEV = "STDDEV"
+    STD = "STDDEV"  # alias of STDDEV (pandas .std() -> DSS STDDEV)
     VAR = "VAR"
-    VARIANCE = "VARIANCE"
+    VARIANCE = "VAR"  # alias of VAR (pandas .var() -> DSS VAR)
     MEDIAN = "MEDIAN"
     MODE = "MODE"
-    NUNIQUE = "NUNIQUE"
 
     # Percentile aggregations
     PERCENTILE_25 = "PERCENTILE_25"

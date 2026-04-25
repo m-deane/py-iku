@@ -16,8 +16,13 @@ class ProcessorType(Enum):
     # Column manipulation
     COLUMN_RENAMER = "ColumnRenamer"
     COLUMN_COPIER = "ColumnCopier"
-    COLUMN_DELETER = "ColumnsSelector"  # DSS uses ColumnsSelector for column deletion
+    # COLUMNS_SELECTOR is the DSS-canonical processor for both KEEP and REMOVE
+    # column-set operations; the mode is controlled by params["mode"] (or
+    # the legacy params["keep"] boolean). COLUMN_DELETER is an alias kept for
+    # backward compat — declare COLUMNS_SELECTOR first so it's the resolution
+    # target for ProcessorType("ColumnsSelector").
     COLUMNS_SELECTOR = "ColumnsSelector"
+    COLUMN_DELETER = "ColumnsSelector"  # alias of COLUMNS_SELECTOR (use params["keep"]=False)
     COLUMN_REORDER = "ColumnReorder"
     COLUMNS_CONCATENATOR = "ColumnsConcat"
 
@@ -34,7 +39,7 @@ class ProcessorType(Enum):
     REGEXP_EXTRACTOR = "PatternExtract"
     FIND_REPLACE = "FindReplace"
     SPLIT_COLUMN = "ColumnsSplitter"
-    CONCAT_COLUMNS = "ColumnsConcat"
+    CONCAT_COLUMNS = "ColumnsConcat"  # alias of COLUMNS_CONCATENATOR
     HTML_STRIPPER = "HtmlStripper"
     MULTI_COLUMN_FIND_REPLACE = "MultiColumnFindReplace"
     NGRAMMER = "Ngrammer"
@@ -55,26 +60,31 @@ class ProcessorType(Enum):
     # Numeric transformations
     NUMERICAL_TRANSFORMER = "NumericalTransformer"
     ROUND_COLUMN = "Round"
-    ABS_COLUMN = "AbsColumn"  # No DSS equivalent: use CREATE_COLUMN_WITH_GREL with abs() expression
     CLIP_COLUMN = "NumberClipping"
     BINNER = "Binner"
     NORMALIZER = "MeasureNormalize"
-    DISCRETIZER = "Discretizer"  # No DSS equivalent: use BINNER processor instead
-    QUANTILE_TRANSFORMER = "QuantileTransformer"  # No DSS Prepare equivalent: ML preprocessing only
-    ROBUST_SCALER = "RobustScaler"  # No DSS Prepare equivalent: ML preprocessing only
-    MIN_MAX_SCALER = "MinMaxScaler"  # No DSS Prepare equivalent: use NORMALIZER (MeasureNormalize) with MIN_MAX mode
-    STANDARD_SCALER = "StandardScaler"  # No DSS Prepare equivalent: use NORMALIZER (MeasureNormalize) with ZSCORE mode
-    LOG_TRANSFORMER = "LogTransformer"  # No DSS Prepare equivalent: use NumericalTransformer with LOG mode
-    POWER_TRANSFORMER = "PowerTransformer"  # No DSS Prepare equivalent: ML preprocessing only
-    BOX_COX_TRANSFORMER = "BoxCoxTransformer"  # No DSS Prepare equivalent: ML preprocessing only
+    # The following are sklearn / ML preprocessing names without a native DSS
+    # Prepare processor. Their .value is aliased to the closest DSS equivalent
+    # so emitted recipe JSON imports cleanly. The Python enum name is retained
+    # for backward compatibility with existing user code; round-trip
+    # deserialization resolves to the canonical member declared first above.
+    DISCRETIZER = "Binner"  # alias of BINNER
+    QUANTILE_TRANSFORMER = "NumericalTransformer"  # alias of NUMERICAL_TRANSFORMER
+    ROBUST_SCALER = "MeasureNormalize"  # alias of NORMALIZER
+    MIN_MAX_SCALER = "MeasureNormalize"  # alias of NORMALIZER (use mode=MIN_MAX)
+    STANDARD_SCALER = "MeasureNormalize"  # alias of NORMALIZER (use mode=ZSCORE)
+    LOG_TRANSFORMER = "NumericalTransformer"  # alias of NUMERICAL_TRANSFORMER (use mode=LOG)
+    POWER_TRANSFORMER = "NumericalTransformer"  # alias of NUMERICAL_TRANSFORMER
+    BOX_COX_TRANSFORMER = "NumericalTransformer"  # alias of NUMERICAL_TRANSFORMER
 
     # Type conversion
     TYPE_SETTER = "TypeSetter"
     DATE_PARSER = "DateParser"
     DATE_FORMATTER = "DateFormatter"
-    BOOLEAN_CONVERTER = "BooleanConverter"  # No DSS equivalent: use TYPE_SETTER instead
-    NUMBER_TO_STRING = "NumberToString"  # No DSS equivalent: use TYPE_SETTER instead
-    STRING_TO_NUMBER = "StringToNumber"  # No DSS equivalent: use TYPE_SETTER instead
+    # Aliases of TYPE_SETTER — kept for backward compat
+    BOOLEAN_CONVERTER = "TypeSetter"
+    NUMBER_TO_STRING = "TypeSetter"
+    STRING_TO_NUMBER = "TypeSetter"
 
     # Date/Time operations
     DATE_COMPONENTS_EXTRACTOR = "DateComponentExtractor"
@@ -82,7 +92,7 @@ class ProcessorType(Enum):
     HOLIDAYS_COMPUTER = "HolidaysComputer"
     TIMEZONE_CONVERTER = "TimezoneConverter"
     DATE_RANGE_CLASSIFIER = "DateRangeClassifier"
-    DATETIME_FORMATTER = "DateFormatter"
+    DATETIME_FORMATTER = "DateFormatter"  # alias of DATE_FORMATTER
     TIMESTAMP_EXTRACTOR = "TimestampExtractor"
 
     # Filtering
@@ -111,6 +121,11 @@ class ProcessorType(Enum):
 
     # Computed columns
     CREATE_COLUMN_WITH_GREL = "CreateColumnWithGREL"
+    # ABS_COLUMN: pandas df.abs() has no native DSS Prepare processor — alias of
+    # CREATE_COLUMN_WITH_GREL. Recipe builders should populate the GREL
+    # expression as e.g. abs(val("col")). Kept for backward compat with code
+    # that referenced ProcessorType.ABS_COLUMN.
+    ABS_COLUMN = "CreateColumnWithGREL"
     FORMULA = "Formula"
     MULTI_COLUMN_FORMULA = "MultiColumnFormula"
     COLUMN_PSEUDO_ANONYMIZER = "ColumnPseudoAnonymizer"
@@ -120,13 +135,16 @@ class ProcessorType(Enum):
     # Categorical
     MERGE_LONG_TAIL_VALUES = "LongTailGrouper"
     CATEGORICAL_ENCODER = "CategoricalEncoder"
-    ONE_HOT_ENCODER = "OneHotEncoder"  # No DSS Prepare equivalent: ML preprocessing only, use CATEGORICAL_ENCODER
-    LABEL_ENCODER = "LabelEncoder"  # No DSS Prepare equivalent: ML preprocessing only, use CATEGORICAL_ENCODER
-    ORDINAL_ENCODER = "OrdinalEncoder"  # No DSS Prepare equivalent: ML preprocessing only, use CATEGORICAL_ENCODER
-    TARGET_ENCODER = "TargetEncoder"  # No DSS Prepare equivalent: ML preprocessing only
-    LEAVE_ONE_OUT_ENCODER = "LeaveOneOutEncoder"  # No DSS Prepare equivalent: ML preprocessing only
-    WOE_ENCODER = "WOEEncoder"  # No DSS Prepare equivalent: ML preprocessing only
-    FEATURE_HASHER = "FeatureHasher"  # No DSS Prepare equivalent: ML preprocessing only
+    # The following are sklearn / ML-preprocessing names without a native DSS
+    # Prepare processor. Aliased to CATEGORICAL_ENCODER so emitted recipe JSON
+    # imports cleanly into DSS. Backward-compat kept for existing user code.
+    ONE_HOT_ENCODER = "CategoricalEncoder"
+    LABEL_ENCODER = "CategoricalEncoder"
+    ORDINAL_ENCODER = "CategoricalEncoder"
+    TARGET_ENCODER = "CategoricalEncoder"
+    LEAVE_ONE_OUT_ENCODER = "CategoricalEncoder"
+    WOE_ENCODER = "CategoricalEncoder"
+    FEATURE_HASHER = "CategoricalEncoder"
 
     # Geographic
     GEO_POINT_CREATOR = "GeoPointCreator"

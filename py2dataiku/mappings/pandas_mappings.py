@@ -52,13 +52,16 @@ class PandasMapper:
         "astype": ProcessorType.TYPE_SETTER,
         "to_datetime": ProcessorType.DATE_PARSER,
         "round": ProcessorType.ROUND_COLUMN,
-        "abs": ProcessorType.ABS_COLUMN,
+        # df.abs() has no native DSS Prepare processor — emit through GREL.
+        "abs": ProcessorType.CREATE_COLUMN_WITH_GREL,
         "clip": ProcessorType.CLIP_COLUMN,
         "map": ProcessorType.TRANSLATE_VALUES,
         "explode": ProcessorType.UNFOLD,
         "combine_first": ProcessorType.COALESCE,
         "interpolate": ProcessorType.FILL_EMPTY_WITH_PREVIOUS_NEXT,
-        "get_dummies": ProcessorType.ONE_HOT_ENCODER,
+        # pd.get_dummies() -> CategoricalEncoder (one-hot mode); ONE_HOT_ENCODER
+        # is now an alias of CATEGORICAL_ENCODER.
+        "get_dummies": ProcessorType.CATEGORICAL_ENCODER,
         "cut": ProcessorType.BINNER,
         "qcut": ProcessorType.BINNER,
     }

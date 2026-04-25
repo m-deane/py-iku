@@ -605,7 +605,9 @@ class CodeAnalyzer:
                 target_dataframe=target,
                 parameters={"operation": "abs"},
                 source_line=self.current_line,
-                suggested_processor="AbsColumn",
+                # df.abs() has no native DSS Prepare processor — route through
+                # CreateColumnWithGREL with an abs() expression downstream.
+                suggested_processor="CreateColumnWithGREL",
             )
         )
 
@@ -2115,8 +2117,10 @@ class CodeAnalyzer:
                 target_dataframe=target,
                 parameters={"operation": "ABS"},
                 source_line=self.current_line,
-                suggested_processor="AbsColumn",
-                notes=["np.abs() -> Prepare recipe AbsColumn processor"],
+                # np.abs has no native DSS Prepare processor; CreateColumnWithGREL
+                # with an abs() expression is the canonical DSS workaround.
+                suggested_processor="CreateColumnWithGREL",
+                notes=["np.abs() -> Prepare recipe CreateColumnWithGREL with abs() expression"],
             )
         )
 

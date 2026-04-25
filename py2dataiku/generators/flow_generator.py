@@ -843,10 +843,19 @@ class FlowGenerator(BaseFlowGenerator):
         column = trans.columns[0] if trans.columns else "unknown"
         method = trans.parameters.get("method", "")
 
+        # df.abs() has no native DSS Prepare processor — route through GREL
+        # (matches the LLM path; was previously emitting a phantom AbsColumn
+        # processor type that DSS would reject on import).
+        if method == "abs":
+            return PrepareStep.create_column_grel(
+                column=column,
+                expression=f'abs(val("{column}"))',
+                source_line=trans.source_line,
+            )
+
         # Map common numeric methods to processor types
         numeric_method_map = {
             "round": ProcessorType.ROUND_COLUMN,
-            "abs": ProcessorType.ABS_COLUMN,
             "clip": ProcessorType.CLIP_COLUMN,
         }
 

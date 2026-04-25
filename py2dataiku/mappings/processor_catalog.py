@@ -343,14 +343,6 @@ class ProcessorCatalog:
             optional_params=[],
             example_params={"column": "value", "mode": "ZSCORE"},
         ),
-        "AbsColumn": ProcessorInfo(
-            name="AbsColumn",
-            category="Numeric Operations",
-            description="Compute absolute value of a column",
-            required_params=["column"],
-            optional_params=[],
-            example_params={"column": "balance"},
-        ),
         "NumberClipping": ProcessorInfo(
             name="NumberClipping",
             category="Numeric Operations",
@@ -359,70 +351,13 @@ class ProcessorCatalog:
             optional_params=["min", "max"],
             example_params={"column": "score", "min": 0, "max": 100},
         ),
-        "Discretizer": ProcessorInfo(
-            name="Discretizer",
-            category="Numeric Operations",
-            description="Discretize continuous values into bins",
-            required_params=["column", "bins"],
-            optional_params=["labels"],
-            example_params={"column": "age", "bins": 5},
-        ),
-        "QuantileTransformer": ProcessorInfo(
-            name="QuantileTransformer",
-            category="Numeric Operations",
-            description="Transform features to follow a uniform or normal distribution",
-            required_params=["column"],
-            optional_params=["outputDistribution"],
-            example_params={"column": "value", "outputDistribution": "uniform"},
-        ),
-        "RobustScaler": ProcessorInfo(
-            name="RobustScaler",
-            category="Numeric Operations",
-            description="Scale using statistics robust to outliers",
-            required_params=["column"],
-            optional_params=[],
-            example_params={"column": "income"},
-        ),
-        "MinMaxScaler": ProcessorInfo(
-            name="MinMaxScaler",
-            category="Numeric Operations",
-            description="Scale features to a given range (0-1 by default)",
-            required_params=["column"],
-            optional_params=["min", "max"],
-            example_params={"column": "value", "min": 0, "max": 1},
-        ),
-        "StandardScaler": ProcessorInfo(
-            name="StandardScaler",
-            category="Numeric Operations",
-            description="Standardize features by removing mean and scaling to unit variance",
-            required_params=["column"],
-            optional_params=[],
-            example_params={"column": "feature"},
-        ),
-        "LogTransformer": ProcessorInfo(
-            name="LogTransformer",
-            category="Numeric Operations",
-            description="Apply logarithmic transformation",
-            required_params=["column"],
-            optional_params=["base"],
-            example_params={"column": "value", "base": "natural"},
-        ),
-        "PowerTransformer": ProcessorInfo(
-            name="PowerTransformer",
-            category="Numeric Operations",
-            description="Apply power transformation (Yeo-Johnson or Box-Cox)",
-            required_params=["column"],
-            optional_params=["method"],
-            example_params={"column": "value", "method": "yeo-johnson"},
-        ),
-        "BoxCoxTransformer": ProcessorInfo(
-            name="BoxCoxTransformer",
-            category="Numeric Operations",
-            description="Apply Box-Cox power transformation",
-            required_params=["column"],
-            optional_params=["lambda"],
-            example_params={"column": "value"},
-        ),
+        # Note: AbsColumn, Discretizer, QuantileTransformer, RobustScaler,
+        # MinMaxScaler, StandardScaler, LogTransformer, PowerTransformer,
+        # BoxCoxTransformer are NOT real DSS Prepare processors — they are
+        # sklearn / pandas helper names. ProcessorType aliases each to a
+        # canonical DSS processor (CreateColumnWithGREL / Binner /
+        # MeasureNormalize / NumericalTransformer) so emitted JSON is valid.
+        # The catalog intentionally lists ONLY real DSS processors.
         # Type conversion
         "TypeSetter": ProcessorInfo(
             name="TypeSetter",
@@ -448,30 +383,9 @@ class ProcessorCatalog:
             optional_params=[],
             example_params={"column": "date", "format": "yyyy-MM-dd"},
         ),
-        "BooleanConverter": ProcessorInfo(
-            name="BooleanConverter",
-            category="Type Conversion",
-            description="Convert values to boolean",
-            required_params=["column"],
-            optional_params=["trueValues", "falseValues"],
-            example_params={"column": "flag", "trueValues": ["yes", "1"]},
-        ),
-        "NumberToString": ProcessorInfo(
-            name="NumberToString",
-            category="Type Conversion",
-            description="Convert numeric values to strings",
-            required_params=["column"],
-            optional_params=["format"],
-            example_params={"column": "id"},
-        ),
-        "StringToNumber": ProcessorInfo(
-            name="StringToNumber",
-            category="Type Conversion",
-            description="Convert string values to numbers",
-            required_params=["column"],
-            optional_params=["decimalSeparator"],
-            example_params={"column": "amount"},
-        ),
+        # Note: BooleanConverter, NumberToString, StringToNumber are NOT real
+        # DSS Prepare processors — they are aliases of TypeSetter in
+        # ProcessorType. Emit a TypeSetter step with the desired target type.
         # Date/Time operations
         "DateComponentExtractor": ProcessorInfo(
             name="DateComponentExtractor",
@@ -790,62 +704,11 @@ class ProcessorCatalog:
             optional_params=["outputColumn"],
             example_params={"column": "color", "encoding": "ONE_HOT"},
         ),
-        "OneHotEncoder": ProcessorInfo(
-            name="OneHotEncoder",
-            category="Categorical",
-            description="One-hot encode categorical column",
-            required_params=["column"],
-            optional_params=["dropFirst"],
-            example_params={"column": "category"},
-        ),
-        "LabelEncoder": ProcessorInfo(
-            name="LabelEncoder",
-            category="Categorical",
-            description="Label encode categorical column to integers",
-            required_params=["column"],
-            optional_params=["outputColumn"],
-            example_params={"column": "status"},
-        ),
-        "OrdinalEncoder": ProcessorInfo(
-            name="OrdinalEncoder",
-            category="Categorical",
-            description="Ordinal encode categorical column with specified order",
-            required_params=["column", "order"],
-            optional_params=["outputColumn"],
-            example_params={"column": "size", "order": ["S", "M", "L", "XL"]},
-        ),
-        "TargetEncoder": ProcessorInfo(
-            name="TargetEncoder",
-            category="Categorical",
-            description="Encode categorical values based on target variable",
-            required_params=["column", "targetColumn"],
-            optional_params=["smoothing"],
-            example_params={"column": "city", "targetColumn": "price"},
-        ),
-        "LeaveOneOutEncoder": ProcessorInfo(
-            name="LeaveOneOutEncoder",
-            category="Categorical",
-            description="Leave-one-out target encoding",
-            required_params=["column", "targetColumn"],
-            optional_params=[],
-            example_params={"column": "category", "targetColumn": "outcome"},
-        ),
-        "WOEEncoder": ProcessorInfo(
-            name="WOEEncoder",
-            category="Categorical",
-            description="Weight of Evidence encoding for binary classification",
-            required_params=["column", "targetColumn"],
-            optional_params=[],
-            example_params={"column": "category", "targetColumn": "default"},
-        ),
-        "FeatureHasher": ProcessorInfo(
-            name="FeatureHasher",
-            category="Categorical",
-            description="Hash categorical features into a fixed-size space",
-            required_params=["column"],
-            optional_params=["nFeatures"],
-            example_params={"column": "category", "nFeatures": 32},
-        ),
+        # Note: OneHotEncoder, LabelEncoder, OrdinalEncoder, TargetEncoder,
+        # LeaveOneOutEncoder, WOEEncoder, FeatureHasher are NOT real DSS
+        # Prepare processors — they are sklearn names. ProcessorType aliases
+        # them all to CategoricalEncoder. Specify the encoding mode via the
+        # processor's "encoding" param (ONE_HOT, ORDINAL, etc.).
         # Geographic
         "GeoPointCreator": ProcessorInfo(
             name="GeoPointCreator",

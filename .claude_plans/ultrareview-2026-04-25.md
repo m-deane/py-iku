@@ -264,6 +264,66 @@ All 2291 tests still pass. 0 ruff violations.
 
 ---
 
+## Wave 6 — completed (phantom enum cleanup + DSS reference audit)
+
+### Phantom ProcessorType cleanup — DONE
+The 19 phantom processor types (sklearn class names, `AbsColumn`, etc.) had `.value` strings DSS does not recognize. Wave-6 aliased each phantom to its canonical DSS processor by sharing the canonical's `.value`:
+
+| Phantom | Canonical DSS Processor | DSS .value |
+|---|---|---|
+| `ABS_COLUMN` | `CREATE_COLUMN_WITH_GREL` | `"CreateColumnWithGREL"` |
+| `DISCRETIZER` | `BINNER` | `"Binner"` |
+| `QUANTILE_TRANSFORMER`, `LOG_TRANSFORMER`, `POWER_TRANSFORMER`, `BOX_COX_TRANSFORMER` | `NUMERICAL_TRANSFORMER` | `"NumericalTransformer"` |
+| `ROBUST_SCALER`, `MIN_MAX_SCALER`, `STANDARD_SCALER` | `NORMALIZER` | `"MeasureNormalize"` |
+| `BOOLEAN_CONVERTER`, `NUMBER_TO_STRING`, `STRING_TO_NUMBER` | `TYPE_SETTER` | `"TypeSetter"` |
+| `ONE_HOT_ENCODER`, `LABEL_ENCODER`, `ORDINAL_ENCODER`, `TARGET_ENCODER`, `LEAVE_ONE_OUT_ENCODER`, `WOE_ENCODER`, `FEATURE_HASHER` | `CATEGORICAL_ENCODER` | `"CategoricalEncoder"` |
+
+In Python's `Enum`, members sharing a value become aliases — so `ProcessorType.ABS_COLUMN is ProcessorType.CREATE_COLUMN_WITH_GREL` is `True`, and emitted recipe JSON uses the canonical DSS name. User code referring to `ProcessorType.ABS_COLUMN` continues to work.
+
+### Phantom AggregationFunction cleanup — DONE
+- `MEAN` → alias of `AVG` (DSS uses `AVG`)
+- `NUNIQUE` → alias of `COUNTD` (DSS uses `COUNTD`)
+- `STD` → alias of `STDDEV` (DSS uses `STDDEV`)
+- `VARIANCE` → alias of `VAR` (DSS uses `VAR`)
+
+### Enum aliasing collisions resolved — DONE
+- Reordered `COLUMNS_SELECTOR` to be declared *before* `COLUMN_DELETER` so `ProcessorType("ColumnsSelector")` resolves to the canonical `COLUMNS_SELECTOR` (was `COLUMN_DELETER`).
+- Documented `DATETIME_FORMATTER` → `DATE_FORMATTER` and `CONCAT_COLUMNS` → `COLUMNS_CONCATENATOR` aliases inline.
+
+### ProcessorCatalog cleanup — DONE
+Removed 19 phantom catalog entries (AbsColumn, Discretizer, sklearn class names) and replaced with explanatory comments pointing users at the canonical processor. `catalog.list_processors()` now returns only real DSS Prepare processors.
+
+### Other reference enums audited — clean
+- `RecipeType` (37 members) — no aliases, no phantoms
+- `SamplingMethod` — clean (Python names `RANDOM`/`RANDOM_FIXED` map to DSS `RANDOM_FIXED_NB`/`RANDOM_FIXED_RATIO`)
+- `JoinType` — clean
+- `WindowFunctionType` — clean (23 members)
+- `JoinConditionType` — uses canonical DSS short codes (`GT`, `GTE`, `LT`, `LTE`, `EQ`, `NE`)
+- `StringTransformerMode`, `NumericalTransformerMode` — clean
+
+### Rule-based abs handler — DONE
+Updated `_numeric_transform_to_prepare_step` to route `df.abs()` through `PrepareStep.create_column_grel(column, expression='abs(val("col"))')` directly, matching the LLM path. Also updated `_handle_abs` and `_handle_numpy_abs` to set `suggested_processor="CreateColumnWithGREL"` (was `"AbsColumn"`).
+
+### `pandas_mappings.PROCESSOR_MAPPINGS` updated — DONE
+- `"abs"` → `CREATE_COLUMN_WITH_GREL` (was `ABS_COLUMN`)
+- `"get_dummies"` → `CATEGORICAL_ENCODER` (was `ONE_HOT_ENCODER`)
+
+### Smoke test
+Real-world script with `df.abs()`, `df.drop()`, `df.str.upper()`, `pd.cut()`, `pd.get_dummies()` produces emitted JSON containing **zero** phantom processor or aggregation names.
+
+### Test results — cumulative
+
+| Metric | Baseline | Wave-1 | Wave-2 | Wave-3 | Wave-4 | Wave-5 | Wave-6 | Delta |
+|---|---|---|---|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | 2283 | 2291 | 2291 | 2306 | +87 |
+| Tests failing | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| New regression tests | — | +39 | +53 | +64 | +72 | +72 | +87 | +87 |
+
+15 new wave-6 tests: each phantom processor's alias verified; pandas-style aggregation aliases verified; canonical resolution for `ColumnsSelector`/`DateFormatter`; phantom catalog leak guard; canonical-processor-still-present guard; abs-routes-through-GREL end-to-end test.
+
+---
+
 ## Items deferred to future waves (low priority)
 
 1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim) or `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` (current) is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`.
