@@ -32,8 +32,9 @@ isort py2dataiku/ tests/                 # sort imports
 mypy py2dataiku/                         # type check
 
 # CLI
-py2dataiku <file.py>                     # convert a file (rule-based)
-py2dataiku <file.py> --llm anthropic     # convert with LLM
+py2dataiku script.py                     # convert a file (rule-based; bare-file form auto-routes to convert)
+py2dataiku script.py --llm               # convert with LLM (default provider: anthropic)
+py2dataiku convert script.py --llm --provider openai   # explicit provider
 ```
 
 ## Architecture
@@ -57,7 +58,7 @@ Both `FlowGenerator` and `LLMFlowGenerator` extend `BaseFlowGenerator` (ABC), wh
 
 ### Core Models
 
-- `DataikuFlow` — main output container. Has a `graph` property returning a `FlowGraph` DAG (topological sort, cycle detection, subgraph discovery). Supports round-trip serialization (`to_dict`/`from_dict`, `to_json`/`from_json`, `to_yaml`/`from_yaml`), iteration protocol, and Jupyter `_repr_svg_()`.
+- `DataikuFlow` — main output container. Has a `graph` property returning a `FlowGraph` DAG (topological sort, cycle detection, subgraph discovery). Supports round-trip serialization (`to_dict`/`from_dict`, `to_json`/`from_json`, `to_yaml`/`from_yaml`) plus `flow.save(path)` / `DataikuFlow.load(path)` with format auto-detect from extension. Renders inline in Classic Jupyter (`_repr_svg_`) and JupyterLab/VS Code (`_repr_mimebundle_`).
 - `DataikuRecipe` — a single recipe node. `RecipeType` enum has 37 types. Settings use composition: `RecipeSettings` ABC with 12 typed subclasses (`PrepareSettings`, `GroupingSettings`, `JoinSettings`, etc.) composed into `recipe.settings`.
 - `DataikuDataset` — input/output datasets. `DatasetType` and `DatasetConnectionType` enums.
 - `PrepareStep` — a step within a PREPARE recipe. `ProcessorType` enum has 122 types.

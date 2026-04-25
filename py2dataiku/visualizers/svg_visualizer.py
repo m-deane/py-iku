@@ -5,6 +5,7 @@ Generates scalable vector graphics that match the Dataiku DSS interface.
 """
 
 from typing import Optional
+from xml.sax.saxutils import escape as _xml_escape
 
 from py2dataiku.visualizers.base import FlowVisualizer
 from py2dataiku.visualizers.icons import RecipeIcons
@@ -142,7 +143,7 @@ class SVGVisualizer(FlowVisualizer):
                 fill = ZONE_FILLS[i % len(ZONE_FILLS)]
                 border = ZONE_BORDERS[i % len(ZONE_BORDERS)]
                 zone_parts.append(f'''  <text x="12" y="{22 + i * 30}" font-family="Arial,Helvetica,sans-serif"
-        font-size="11" font-weight="bold" fill="{border}">{zone.name}</text>''')
+        font-size="11" font-weight="bold" fill="{border}">{_xml_escape(zone.name)}</text>''')
                 continue
 
             # Compute bounding box
@@ -160,7 +161,7 @@ class SVGVisualizer(FlowVisualizer):
         fill="{fill}" fill-opacity="0.15" stroke="{border}" stroke-width="1.5"
         stroke-dasharray="6,3"/>
   <text x="{min_x + 12}" y="{min_y + 22}" font-family="Arial,Helvetica,sans-serif"
-        font-size="11" font-weight="bold" fill="{border}">{zone.name}</text>''')
+        font-size="11" font-weight="bold" fill="{border}">{_xml_escape(zone.name)}</text>''')
 
         return "\n".join(zone_parts)
 
@@ -206,11 +207,11 @@ class SVGVisualizer(FlowVisualizer):
           font-family="{self.theme.font_family}"
           font-size="{self.theme.dataset_font_size}"
           font-weight="500"
-          fill="{text_color}">{label}</text>
+          fill="{text_color}">{_xml_escape(label)}</text>
     <text x="32" y="{pos.height/2 + 12}"
           font-family="{self.theme.font_family}"
           font-size="{self.theme.dataset_font_size - 3}"
-          fill="{text_color}" opacity="0.7">{type_label}</text>
+          fill="{text_color}" opacity="0.7">{_xml_escape(type_label)}</text>
   </g>'''
 
     def _draw_recipe(self, pos: NodePosition) -> str:
@@ -236,19 +237,19 @@ class SVGVisualizer(FlowVisualizer):
           font-family="{self.theme.font_family}"
           font-size="{self.theme.icon_font_size}"
           fill="{text_color}"
-          filter="url(#text-shadow)">{icon}</text>
+          filter="url(#text-shadow)">{_xml_escape(icon)}</text>
     <text x="{pos.width/2}" y="{pos.height/2 + 10}"
           text-anchor="middle"
           font-family="{self.theme.font_family}"
           font-size="{self.theme.recipe_font_size}"
           font-weight="600"
           fill="{text_color}"
-          filter="url(#text-shadow)">{label}</text>
+          filter="url(#text-shadow)">{_xml_escape(label)}</text>
     <text x="{pos.width/2}" y="{pos.height/2 + 22}"
           text-anchor="middle"
           font-family="{self.theme.font_family}"
           font-size="{self.theme.recipe_font_size - 2}"
-          fill="{text_color}" opacity="0.7">{details}</text>
+          fill="{text_color}" opacity="0.7">{_xml_escape(details)}</text>
   </g>'''
 
     def _draw_connection(self, source: NodePosition, target: NodePosition) -> str:

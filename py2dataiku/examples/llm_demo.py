@@ -177,11 +177,21 @@ high_value.to_csv('high_value_customers.csv')
     if provider_name == "mock":
         provider = MockProvider(responses={"python": MOCK_RESPONSE})
     else:
+        from py2dataiku.exceptions import ConfigurationError
         try:
             provider = get_provider(provider_name)
-        except ValueError as e:
-            print(f"Error: {e}")
-            print("Set the appropriate API key environment variable and try again.")
+        except ConfigurationError as e:
+            # Missing API key — graceful fallback to the rule-based path so
+            # the user still gets a working demo even without a real LLM key.
+            print(f"LLM not available: {e}")
+            print()
+            print("Falling back to rule-based analysis (use convert() for this path)...")
+            print("-" * 70)
+            from py2dataiku import convert as _convert_rule_based
+            flow = _convert_rule_based(python_code)
+            print(flow.get_summary())
+            print()
+            print("(Set ANTHROPIC_API_KEY or OPENAI_API_KEY to see the LLM-based demo.)")
             return
 
     # Step 1: Analyze with LLM

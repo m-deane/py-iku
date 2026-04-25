@@ -80,14 +80,28 @@ flow.to_pdf("output.pdf")         # Requires cairosvg
 ### Serialization
 
 ```python
-# Export
+# Save / load — extension auto-detects format (recommended)
+flow.save("flow.json")             # JSON
+flow.save("flow.yaml")             # YAML
+flow.save("flow.svg")              # SVG visualization
+flow.save("flow.html")             # HTML
+flow.save("flow.png")              # PNG (via matplotlib)
+flow.save("flow.pdf")              # PDF
+flow.save("flow.puml")             # PlantUML
+flow.save("flow.txt")              # ASCII
+flow.save("flow.md")               # Mermaid
+
+DataikuFlow.load("flow.json")      # Auto-detect from .json/.yaml/.yml
+DataikuFlow.load("flow.yaml", format="json")  # Explicit override
+
+# Lower-level export (no I/O)
 flow.to_dict()                     # -> Dict[str, Any]
 flow.to_json(indent=2)             # -> str (JSON)
 flow.to_yaml()                     # -> str (YAML)
 flow.to_recipe_configs()           # -> List[Dict] (Dataiku API-compatible)
 flow.export_all("output_dir/")     # Export all artifacts to directory
 
-# Import (classmethods)
+# Lower-level import classmethods (string input)
 DataikuFlow.from_dict(data)        # -> DataikuFlow
 DataikuFlow.from_json(json_str)    # -> DataikuFlow
 DataikuFlow.from_yaml(yaml_str)    # -> DataikuFlow
@@ -99,7 +113,11 @@ DataikuFlow.from_yaml(yaml_str)    # -> DataikuFlow
 len(flow)                          # Number of recipes
 for recipe in flow:                # Iterate over recipes
     print(recipe.name)
-flow._repr_svg_()                  # Jupyter notebook inline display
+
+# Jupyter / JupyterLab / VS Code notebook inline rendering
+flow                               # Just typing the flow renders it inline
+flow._repr_svg_()                  # Classic Jupyter rich display
+flow._repr_mimebundle_()           # JupyterLab 3+ / VS Code rich display
 ```
 
 ### Zone Operations

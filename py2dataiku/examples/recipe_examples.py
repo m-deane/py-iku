@@ -568,13 +568,16 @@ pivot_table = pivot_table.reset_index()
 pivot_table.to_csv('sales_pivot.csv', index=False)
 """
 
-PIVOT_MELT_EXAMPLE = """
+# NOTE: pd.melt() is unpivot (wide-to-long). It maps to a PREPARE recipe with
+# the FOLD_MULTIPLE_COLUMNS processor — NOT a PIVOT recipe (which is long-to-wide).
+# This constant kept under the historical name MELT_EXAMPLE for clarity.
+MELT_EXAMPLE = """
 import pandas as pd
 
 # Load wide data
 wide_df = pd.read_csv('monthly_metrics.csv')
 
-# Melt (unpivot) from wide to long format
+# Melt (unpivot) from wide to long format -> PREPARE recipe with FOLD_MULTIPLE_COLUMNS
 long_df = pd.melt(
     wide_df,
     id_vars=['product_id', 'product_name'],
@@ -586,6 +589,9 @@ long_df = pd.melt(
 # Save output
 long_df.to_csv('monthly_metrics_long.csv', index=False)
 """
+
+# Backward-compat alias — the old name suggested this was a PIVOT recipe.
+PIVOT_MELT_EXAMPLE = MELT_EXAMPLE
 
 # -----------------------------------------------------------------------------
 # SAMPLING Recipe - Random sampling
@@ -980,6 +986,8 @@ RECIPE_EXAMPLES: dict[str, str] = {
     "top_n": TOP_N_EXAMPLE,
     "top_n_grouped": TOP_N_GROUPED_EXAMPLE,
     "pivot": PIVOT_EXAMPLE,
+    "melt": MELT_EXAMPLE,
+    # Backward-compat key — melt is a PREPARE recipe, not a PIVOT recipe
     "pivot_melt": PIVOT_MELT_EXAMPLE,
     "sampling": SAMPLING_EXAMPLE,
     "sampling_stratified": SAMPLING_STRATIFIED_EXAMPLE,
@@ -1084,11 +1092,20 @@ RECIPE_METADATA: dict[str, dict[str, Any]] = {
     },
     "pivot": {
         "name": "pivot",
-        "description": "Reshape data with pivot tables",
+        "description": "Reshape data from long to wide with pivot tables",
         "recipe_type": "PIVOT",
-        "pandas_operations": ["pivot_table", "melt"],
+        "pandas_operations": ["pivot", "pivot_table"],
         "complexity": "intermediate",
         "use_case": "Data reshaping for reporting"
+    },
+    "melt": {
+        "name": "melt",
+        "description": "Unpivot data from wide to long format",
+        "recipe_type": "PREPARE",
+        "pandas_operations": ["melt"],
+        "processors": ["FOLD_MULTIPLE_COLUMNS"],
+        "complexity": "intermediate",
+        "use_case": "Reshape time-series or categorical data for analysis"
     },
     "sampling": {
         "name": "sampling",

@@ -15,14 +15,14 @@ from py2dataiku import convert, convert_with_llm, convert_file, convert_file_wit
 Convert Python code to a Dataiku flow using rule-based AST analysis.
 
 ```python
-def convert(code: str, optimize: bool = True) -> DataikuFlow
+def convert(code: str | Path, optimize: bool = True) -> DataikuFlow
 ```
 
 **Parameters:**
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `code` | `str` | *required* | Python source code string |
+| `code` | `str \| pathlib.Path` | *required* | Either Python source code as a string, or a `pathlib.Path` to a `.py` file, or a string path ending in `.py`. When a path is detected, the file is read and converted. |
 | `optimize` | `bool` | `True` | Whether to optimize the flow (merge recipes, remove orphan datasets) |
 
 **Returns:** [`DataikuFlow`](models.md#dataikuflow) - The converted pipeline
@@ -30,8 +30,10 @@ def convert(code: str, optimize: bool = True) -> DataikuFlow
 **Example:**
 
 ```python
+from pathlib import Path
 from py2dataiku import convert
 
+# Inline code string
 flow = convert("""
 import pandas as pd
 df = pd.read_csv('sales.csv')
@@ -41,9 +43,17 @@ result = df.groupby('region').agg({'amount': 'sum'})
 result.to_csv('summary.csv')
 """)
 
+# Or pass a Path / .py path-string directly:
+flow = convert("script.py")
+flow = convert(Path("script.py"))
+
 print(flow.get_summary())
 # Datasets: 2 (1 input, 1 output)
 # Recipes: 2 (1 prepare, 1 grouping)
+
+# Save in any format — extension auto-detects:
+flow.save("flow.json")
+flow.save("flow.svg")
 ```
 
 **Notes:**
@@ -60,7 +70,7 @@ Convert Python code to a Dataiku flow using LLM-based semantic analysis.
 
 ```python
 def convert_with_llm(
-    code: str,
+    code: str | Path,
     provider: str = "anthropic",
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -73,7 +83,7 @@ def convert_with_llm(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `code` | `str` | *required* | Python source code string |
+| `code` | `str \| pathlib.Path` | *required* | Python source code, or a `pathlib.Path` / string path to a `.py` file (file is read for you) |
 | `provider` | `str` | `"anthropic"` | LLM provider: `"anthropic"` or `"openai"` |
 | `api_key` | `Optional[str]` | `None` | API key (uses `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` env var if not provided) |
 | `model` | `Optional[str]` | `None` | Model name (provider default if not specified) |
@@ -83,6 +93,7 @@ def convert_with_llm(
 **Returns:** [`DataikuFlow`](models.md#dataikuflow) - The converted pipeline
 
 **Raises:**
+- [`ConfigurationError`](exceptions.md#configurationerror) - If the provider's API key is missing (also catchable as `ValueError` for backward-compat)
 - [`ProviderError`](exceptions.md#providererror) - If LLM communication fails
 - [`LLMResponseParseError`](exceptions.md#llmresponseparseerror) - If LLM response cannot be parsed
 - [`ConversionError`](exceptions.md#conversionerror) - If flow generation fails

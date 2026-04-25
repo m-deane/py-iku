@@ -1804,3 +1804,81 @@ class TestFlowLoadClassmethod:
             assert "Unsupported" in str(e)
         else:
             raise AssertionError("Expected ValueError")
+
+
+# ===================================================================
+# Ultrareview wave-4: Phase 8 (docs + examples + SVG bug)
+# ===================================================================
+
+
+class TestSvgVisualizerEscapesNames:
+    """SVG visualizer must XML-escape user-provided strings (zone/dataset/recipe names)."""
+
+    def test_zone_name_with_ampersand_renders_valid_svg(self):
+        """The bug: '&' in a zone name produced invalid SVG (broken 05_master.ipynb)."""
+        from xml.dom import minidom
+        from py2dataiku.models.dataiku_flow import DataikuFlow, FlowZone
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+
+        flow = DataikuFlow(name="test")
+        flow.add_dataset(DataikuDataset(name="src", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="dst", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="r1",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["src"],
+            outputs=["dst"],
+        ))
+        # Zone names with the three special XML chars
+        flow.zones = [
+            FlowZone(name="ML Training & Scoring", datasets=["src", "dst"], recipes=["r1"]),
+        ]
+        svg = flow.visualize(format="svg")
+        # Must parse cleanly as XML
+        minidom.parseString(svg)
+        # The '&' must be escaped as '&amp;'
+        assert "&amp;" in svg
+        # The bare '&' followed by 'Scoring' should NOT appear unescaped
+        assert "& Scoring" not in svg
+
+    def test_zone_name_with_lt_gt_renders_valid_svg(self):
+        from xml.dom import minidom
+        from py2dataiku.models.dataiku_flow import DataikuFlow, FlowZone
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+        flow = DataikuFlow(name="t")
+        flow.add_dataset(DataikuDataset(name="src", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="dst", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(DataikuRecipe(
+            name="r",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["src"],
+            outputs=["dst"],
+        ))
+        flow.zones = [FlowZone(name="<weird> name", datasets=["src","dst"], recipes=["r"])]
+        svg = flow.visualize(format="svg")
+        minidom.parseString(svg)
+        assert "&lt;" in svg or "&gt;" in svg
+
+
+class TestMeltExampleClassification:
+    """recipe_examples.MELT_EXAMPLE must exist; metadata key 'melt' classifies as PREPARE."""
+
+    def test_melt_example_constant_exists(self):
+        from py2dataiku.examples import recipe_examples
+        assert hasattr(recipe_examples, "MELT_EXAMPLE")
+        # Backward-compat alias still works
+        assert recipe_examples.PIVOT_MELT_EXAMPLE is recipe_examples.MELT_EXAMPLE
+
+    def test_melt_metadata_says_prepare_recipe(self):
+        from py2dataiku.examples.recipe_examples import RECIPE_METADATA
+        assert "melt" in RECIPE_METADATA
+        meta = RECIPE_METADATA["melt"]
+        assert meta["recipe_type"] == "PREPARE"
+        assert "FOLD_MULTIPLE_COLUMNS" in meta.get("processors", [])
+
+    def test_pivot_metadata_no_longer_lists_melt(self):
+        from py2dataiku.examples.recipe_examples import RECIPE_METADATA
+        # melt was incorrectly listed under PIVOT before wave-4 fix
+        assert "melt" not in RECIPE_METADATA["pivot"]["pandas_operations"]

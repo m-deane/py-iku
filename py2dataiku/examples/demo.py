@@ -1,10 +1,18 @@
 """
 Demonstration of py2dataiku library converting Python pandas code
 to Dataiku DSS recipes and flow diagrams.
+
+Shows the recommended public-API surface (`convert`, `flow.save`,
+`DataikuFlow.load`) plus the lower-level building blocks.
 """
 
+import tempfile
+from pathlib import Path
+
+from py2dataiku import convert
 from py2dataiku.generators.diagram_generator import DiagramGenerator
 from py2dataiku.generators.flow_generator import FlowGenerator
+from py2dataiku.models.dataiku_flow import DataikuFlow
 from py2dataiku.parser.ast_analyzer import CodeAnalyzer
 
 
@@ -48,6 +56,14 @@ high_value.to_csv('high_value_customers.csv')
     print(python_code)
     print()
 
+    # ===================== One-liner via the public API =====================
+    print("ONE-LINER: from py2dataiku import convert; flow = convert(code)")
+    print("-" * 70)
+    flow_quick = convert(python_code, optimize=True)
+    print(flow_quick.get_summary())
+    print()
+
+    # ============== Lower-level breakdown for users who want internals =====
     # Step 1: Analyze the Python code
     print("STEP 1: Analyzing Python code...")
     print("-" * 70)
@@ -118,6 +134,19 @@ high_value.to_csv('high_value_customers.csv')
                 print(f"      Action: {rec.action}")
     else:
         print("  ✓ No optimization issues found")
+    print()
+
+    # Step 8: Round-trip serialization with flow.save() / DataikuFlow.load()
+    print("STEP 8: Round-trip with flow.save() / DataikuFlow.load()")
+    print("-" * 70)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        json_path = Path(tmpdir) / "flow.json"
+        yaml_path = Path(tmpdir) / "flow.yaml"
+        flow.save(str(json_path))   # auto-detects format from extension
+        flow.save(str(yaml_path))
+        loaded = DataikuFlow.load(str(json_path))
+        print(f"  Saved JSON ({json_path.stat().st_size} bytes) and YAML ({yaml_path.stat().st_size} bytes).")
+        print(f"  Reloaded flow has {len(loaded.recipes)} recipes (matches original: {len(loaded.recipes) == len(flow.recipes)}).")
     print()
 
     print("=" * 70)

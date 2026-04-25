@@ -180,7 +180,60 @@ Items 25–31. CLI bare-file, `convert()` Path support, flow.save, repr methods,
 
 ---
 
-## Items deferred to wave 4
+## Wave 4 — completed
+
+### Phase 8 (DSS readiness + docs + examples) — DONE
+
+**SVG visualizer XML escaping (P0 bug)**:
+- `svg_visualizer.py` did not XML-escape user-provided strings (zone names, dataset/recipe labels). A zone like `"ML Training & Scoring"` produced invalid SVG and broke `notebooks/05_master.ipynb` cell 90 with `xml.dom.expat.ExpatError`. Fixed by routing all user-string interpolations through `xml.sax.saxutils.escape`. Pre-existing bug, not a wave-1/2/3 regression — but wave-4 caught and fixed it.
+
+**Documentation**:
+- `docs/api/core-functions.md`: `convert()` and `convert_with_llm()` signatures now show `code: str | Path` (was `str` only). Examples show the new `convert("script.py")` and `convert(Path(...))` forms, plus `flow.save()`. `convert_with_llm()` Raises section now lists `ConfigurationError`.
+- `docs/api/models.md`: Serialization section now leads with `flow.save(path)` and `DataikuFlow.load(path)` (auto-detect format). Special Methods section now lists `_repr_mimebundle_()` for JupyterLab/VS Code compatibility.
+- `docs/index.md`: visualization-format count corrected from 6 to 8+ (added PNG/matplotlib + PDF).
+- `CLAUDE.md`: CLI example fixed (`--llm anthropic` would have failed because `--llm` is a boolean flag — replaced with `script.py --llm` and the explicit `convert script.py --llm --provider openai` form). DataikuFlow gotcha now mentions `flow.save()`/`DataikuFlow.load()` and `_repr_mimebundle_`.
+
+**Examples library**:
+- `examples/recipe_examples.py`: `PIVOT_MELT_EXAMPLE` was filed under PIVOT but melt is unpivot (PREPARE+FOLD_MULTIPLE_COLUMNS post-wave-1). Renamed to `MELT_EXAMPLE`, kept `PIVOT_MELT_EXAMPLE` as backward-compat alias, added new `"melt"` key in `RECIPE_EXAMPLES`, removed `"melt"` from `RECIPE_METADATA["pivot"]["pandas_operations"]`, added a new `"melt"` metadata entry pointing at PREPARE/FOLD_MULTIPLE_COLUMNS.
+- `examples/demo.py`: now opens with the one-line `convert(code)` form (the recommended public API), keeps the lower-level `CodeAnalyzer`/`FlowGenerator` walkthrough for users who want internals, and adds Step 8 demonstrating `flow.save()` / `DataikuFlow.load()` round-trip.
+- `examples/llm_demo.py`: catches `ConfigurationError` explicitly (was relying on the `ValueError` multi-inherit) and falls back to `convert(code)` rule-based when no API key is set, so the demo still produces a working flow instead of just printing an error.
+
+### Wave-4 deferred (low priority)
+- **Notebook outputs are stale on `02_numpy_operations.ipynb` and `03_advanced.ipynb`** — code passes but outputs reflect pre-wave-3 behavior (e.g. TOP_N as Python stub instead of TOP_N recipe). Re-execute and re-commit to refresh.
+- **`01_beginner.ipynb` / `02_intermediate.ipynb` quick-start drift** — neither shows `convert("script.py")` path-style usage, `flow.save()`, or the CLI bare-file form. Add 2-3 cells per notebook covering wave-3 ergonomics.
+- **`05_master.ipynb` cell 90** previously failed due to the SVG escape bug — now unblocked. Re-execute and re-commit.
+
+### Test results — cumulative
+
+| Metric | Baseline | Wave-1 | Wave-2 | Wave-3 | Wave-4 | Delta |
+|---|---|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | 2283 | 2291 | +72 |
+| Tests failing | 0 | 0 | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 | 0 | 0 |
+| New regression tests | — | +39 | +53 | +64 | +72 | +72 |
+| 120-recipe convert p50 | 320ms | — | 1.4ms | 1.4ms | 1.4ms | 230× |
+
+8 new wave-4 tests: SVG zone name with `&` parses cleanly; `<`/`>` likewise; `MELT_EXAMPLE` constant exists; backward-compat alias works; `RECIPE_METADATA["melt"]` says PREPARE; `RECIPE_METADATA["pivot"]` no longer lists melt as a pandas operation.
+
+---
+
+## Final summary
+
+Across 4 review waves and 4 fix phases, the ultrareview shipped:
+
+1. **LLM accuracy**: TOP_N/SAMPLING/PIVOT/UNPIVOT/ENCODE_CATEGORICAL/NORMALIZE_SCALE/GEO_OPERATION all now produce real DSS visual recipes (were Python stubs or unreachable).
+2. **Mapping correctness**: `delete_columns` now actually deletes, `nunique` uses canonical `COUNTD`, `melt` routes to PREPARE+FoldMultipleColumns; aggregation functions canonicalized via `AGG_MAPPINGS`.
+3. **Rule-based parity**: `STRING_TRANSFORM`, `COLUMN_CREATE`, multi-function `.agg()`, `pd.cut`/`pd.qcut`/`pd.get_dummies`, `df.assign(lambda)`, `rolling().agg()` chain detection all wired.
+4. **DSS-import readiness**: optimizer DAG rewriting on prepare merge; rolling chain no longer produces phantom GROUPING; JOIN/SORT settings emit DSS-canonical shape; SVG visualizer XML-escapes user strings.
+5. **Performance**: 230× speedup on 120-recipe inputs (dead-code O(N²) optimizer hot path removed).
+6. **Ergonomics**: `convert(Path)` polymorphism, `flow.save("path.ext")` + `DataikuFlow.load("path.ext")` auto-format, CLI bare-file form, `_repr_mimebundle_` for JupyterLab/VS Code, `ConfigurationError` typed exception with `ValueError` backward-compat.
+7. **Docs**: README quick-start, `docs/api/core-functions.md`, `docs/api/models.md`, `docs/index.md`, `CLAUDE.md`, `recipe_examples.py` metadata, `demo.py`, `llm_demo.py` all updated to match the post-wave-3 API.
+
+Cumulative: **+72 tests, 0 failures, 0 ruff violations, 230× faster on large inputs.**
+
+---
+
+## Items deferred to wave 5 (low priority)
 
 1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim) or `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` (current) is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`.
 2. **System prompt processor names** — `analyzer.py:42-50` references `ColumnDeleter`, `Normalizer`, `RegexpExtractor` which don't all match `ProcessorType` `.value`s. Auto-generate from the enum to prevent drift.
