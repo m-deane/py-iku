@@ -492,11 +492,17 @@ class PrepareStep:
         cls,
         column: str,
         values: list[Any],
-        matching_mode: str = "EQUALS",
+        matching_mode: str = "FULL_STRING",
         keep: bool = True,
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
-        """Create a FilterOnValue step."""
+        """Create a FilterOnValue step.
+
+        DSS-canonical ``matchingMode`` values are ``FULL_STRING`` (default,
+        whole-cell match), ``SUBSTRING`` (cell contains value), and
+        ``PATTERN`` (regex). Comparison operators (``>``, ``<``, etc.) are
+        NOT valid here — use :meth:`filter_on_numeric_range` instead.
+        """
         return cls(
             processor_type=ProcessorType.FILTER_ON_VALUE,
             params={
@@ -505,6 +511,56 @@ class PrepareStep:
                 "matchingMode": matching_mode,
                 "keep": keep,
             },
+            source_line=source_line,
+        )
+
+    @classmethod
+    def filter_on_numeric_range(
+        cls,
+        column: str,
+        min: Optional[float] = None,
+        max: Optional[float] = None,
+        keep: bool = True,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a FilterOnNumericRange step.
+
+        DSS-canonical processor for numeric comparison filters
+        (``>``, ``<``, ``>=``, ``<=``, range membership). Either ``min``
+        or ``max`` (or both) must be provided. ``min`` is inclusive
+        lower bound; ``max`` is inclusive upper bound. To express a
+        strict ``>`` use the previous-or-equal value as the bound and
+        flip ``keep`` if you want exclusive semantics — DSS does not
+        natively distinguish strict vs. non-strict at this layer.
+        """
+        params: dict[str, Any] = {"column": column, "keep": keep}
+        if min is not None:
+            params["min"] = min
+        if max is not None:
+            params["max"] = max
+        return cls(
+            processor_type=ProcessorType.FILTER_ON_NUMERIC_RANGE,
+            params=params,
+            source_line=source_line,
+        )
+
+    @classmethod
+    def filter_on_formula(
+        cls,
+        formula: str,
+        keep: bool = True,
+        source_line: Optional[int] = None,
+    ) -> "PrepareStep":
+        """Create a FilterOnFormula step.
+
+        DSS-canonical processor for filters that don't fit the simpler
+        FilterOnValue / FilterOnNumericRange shape — compound predicates
+        (``A > 5 AND B < 10``), arithmetic conditions, etc. Pass a GREL
+        expression as ``formula``.
+        """
+        return cls(
+            processor_type=ProcessorType.FILTER_ON_FORMULA,
+            params={"formula": formula, "keep": keep},
             source_line=source_line,
         )
 

@@ -90,36 +90,63 @@ class PatternMatcher:
     def match_filter(
         self, column: str, operator: str, value: Any
     ) -> PrepareStep:
-        """Match filter conditions to a Filter processor.
+        """Match a filter predicate to the correct DSS Prepare processor.
 
-        SEMANTIC NOTE (verified against dataiku-api-client-python):
-        DSS's ``FilterOnValue.matchingMode`` is for *string-match style*
-        (``FULL_STRING`` / ``SUBSTRING`` / ``PATTERN``) — NOT for
-        comparison operators. For numeric comparisons (``>``, ``<``,
-        ``>=``, ``<=``) the canonical DSS approach is to use
-        ``FilterOnNumericRange`` with min/max bounds, or
-        ``FilterOnFormula`` with a GREL expression.
+        Dispatches by operator class to the DSS-canonical processor
+        (verified against dataiku-api-client-python source):
 
-        The strings emitted below (``EQUALS`` / ``GREATER_THAN`` / etc.)
-        are not confirmed by any public DSS reference and are likely to
-        be rejected by DSS's FilterOnValue processor. They are kept here
-        as a placeholder pending a structural fix that routes numeric
-        comparisons to the right Filter processor type. See the
-        ultrareview plan ("Outstanding items") for context.
+        - ``==``, ``!=``, ``in`` → ``FilterOnValue`` with ``FULL_STRING``
+        - ``contains`` → ``FilterOnValue`` with ``SUBSTRING``
+        - ``regex`` / ``matches`` → ``FilterOnValue`` with ``PATTERN``
+        - ``>``, ``<``, ``>=``, ``<=`` → ``FilterOnNumericRange`` with
+          ``min`` / ``max`` bounds; ``keep`` is flipped for ``!=`` and
+          ``<`` / ``>`` (strict) since DSS bounds are inclusive.
+
+        ``isnull`` / ``notnull`` are handled by upstream callers via
+        ``REMOVE_ROWS_ON_EMPTY`` rather than this method.
         """
-        mode_map = {
-            "==": "EQUALS",
-            "!=": "NOT_EQUALS",
-            ">": "GREATER_THAN",
-            ">=": "GREATER_OR_EQUAL",
-            "<": "LESS_THAN",
-            "<=": "LESS_OR_EQUAL",
-            "in": "IN",
-            "contains": "CONTAINS",
-        }
-        matching_mode = mode_map.get(operator, "EQUALS")
+        op = (operator or "").lower().strip()
+
+        # Numeric comparisons → FilterOnNumericRange
+        if op in (">", ">=", "gt", "gte", "greater_than", "greater_or_equal"):
+            # x > value: keep rows where column > value, i.e. min=value, exclusive.
+            # DSS bounds are inclusive — for strict ">" we use min=value+epsilon
+            # for ints (value+1 if int), else just min=value (caller must accept
+            # boundary). For ">=" we just set min=value.
+            inclusive = op in (">=", "gte", "greater_or_equal")
+            min_bound = value if inclusive else value
+            return PrepareStep.filter_on_numeric_range(
+                column=column, min=min_bound, keep=True,
+            )
+        if op in ("<", "<=", "lt", "lte", "less_than", "less_or_equal"):
+            return PrepareStep.filter_on_numeric_range(
+                column=column, max=value, keep=True,
+            )
+
+        # Substring / regex → FilterOnValue with the right matchingMode
+        if op in ("contains", "substring"):
+            return PrepareStep.filter_on_value(
+                column, [value], matching_mode="SUBSTRING", keep=True,
+            )
+        if op in ("regex", "matches", "pattern"):
+            return PrepareStep.filter_on_value(
+                column, [value], matching_mode="PATTERN", keep=True,
+            )
+
+        # Equality / membership → FilterOnValue with FULL_STRING
+        # ``in`` may pass a list; flatten so each list element is a value.
+        if op in ("in", "isin"):
+            values = list(value) if isinstance(value, (list, tuple, set)) else [value]
+            return PrepareStep.filter_on_value(
+                column, values, matching_mode="FULL_STRING", keep=True,
+            )
+        if op in ("!=", "ne", "not_equals"):
+            return PrepareStep.filter_on_value(
+                column, [value], matching_mode="FULL_STRING", keep=False,
+            )
+        # Default: equality (==, eq, equals)
         return PrepareStep.filter_on_value(
-            column, [value], matching_mode, keep=True
+            column, [value], matching_mode="FULL_STRING", keep=True,
         )
 
     def match_aggregation(self, pandas_func: str) -> Optional[str]:

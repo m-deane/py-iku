@@ -378,13 +378,19 @@ class LLMFlowGenerator(BaseFlowGenerator):
                     result.append(prep_step)
 
         elif op == OperationType.FILTER:
+            # Route each filter condition to the DSS-canonical processor:
+            # numeric comparisons -> FilterOnNumericRange,
+            # equality / membership -> FilterOnValue + FULL_STRING,
+            # contains / regex -> FilterOnValue + SUBSTRING/PATTERN.
+            # See pattern_matcher.match_filter for the dispatch logic.
+            from py2dataiku.parser.pattern_matcher import PatternMatcher
+            _pm = PatternMatcher()
             for condition in step.filter_conditions:
                 result.append(
-                    PrepareStep.filter_on_value(
+                    _pm.match_filter(
                         column=condition.column,
-                        values=[condition.value],
-                        matching_mode=self._map_operator(condition.operator),
-                        keep=True,
+                        operator=condition.operator,
+                        value=condition.value,
                     )
                 )
 
@@ -557,21 +563,25 @@ class LLMFlowGenerator(BaseFlowGenerator):
         )
 
     def _map_operator(self, operator: str) -> str:
-        """Map filter operator to Dataiku matching mode."""
+        """Map filter operator to a DSS matchingMode (legacy / unused).
+
+        DEPRECATED: this method was used by the wave-1 LLM-path FILTER
+        routing, which emitted invalid matchingMode values for numeric
+        comparisons. Wave-8 routed all filter conditions through
+        :meth:`PatternMatcher.match_filter` which dispatches by operator
+        class to the correct DSS processor (FilterOnValue /
+        FilterOnNumericRange / FilterOnFormula). This method is kept for
+        backward-compat with any external caller that imported it
+        directly; new code should not use it.
+        """
         op_map = {
-            "equals": "EQUALS",
-            "not_equals": "NOT_EQUALS",
-            "greater_than": "GREATER_THAN",
-            "greater_or_equal": "GREATER_OR_EQUAL",
-            "less_than": "LESS_THAN",
-            "less_or_equal": "LESS_OR_EQUAL",
-            "contains": "CONTAINS",
-            "starts_with": "STARTS_WITH",
-            "ends_with": "ENDS_WITH",
-            "regex": "REGEX",
-            "in": "IN",
+            "equals": "FULL_STRING",
+            "not_equals": "FULL_STRING",
+            "contains": "SUBSTRING",
+            "regex": "PATTERN",
+            "in": "FULL_STRING",
         }
-        return op_map.get(operator.lower(), "EQUALS")
+        return op_map.get(operator.lower(), "FULL_STRING")
 
     def _create_grouping_recipe(
         self, step: DataStep, input_dataset: Optional[str]

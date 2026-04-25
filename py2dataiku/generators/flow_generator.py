@@ -601,10 +601,43 @@ class FlowGenerator(BaseFlowGenerator):
     def _create_split_recipe(
         self, trans: Transformation, input_dataset: Optional[str]
     ) -> str:
-        """Create a Split recipe and return output dataset name."""
+        """Create a Split recipe and return output dataset name.
+
+        When the AST analyzer's complementary-filter post-pass detected
+        a ``df[cond]`` / ``df[~cond]`` pair, ``trans.parameters`` carries
+        ``complementary_outputs=[positive_target, complement_target]``;
+        we emit ONE multi-output SPLIT recipe with both outputs (the DSS
+        canonical shape for partitioned filtering) instead of two
+        single-output SPLITs.
+        """
         self.recipe_counter += 1
 
         condition = trans.parameters.get("condition", "")
+        complement_outputs = trans.parameters.get("complementary_outputs")
+
+        if complement_outputs and len(complement_outputs) >= 2:
+            outputs = list(complement_outputs)
+            # Disambiguate any output that collides with the input name.
+            outputs = [
+                f"{name}_filtered" if name == input_dataset else name
+                for name in outputs
+            ]
+            recipe = DataikuRecipe(
+                name=f"split_{self.recipe_counter}",
+                recipe_type=RecipeType.SPLIT,
+                inputs=[input_dataset or ""],
+                outputs=outputs,
+                split_condition=condition,
+            )
+            recipe.source_lines = [trans.source_line] if trans.source_line else []
+            self.flow.add_recipe(recipe)
+            # Register both outputs in current_dataset so subsequent
+            # operations on either branch find them.
+            for original, registered in zip(complement_outputs, outputs):
+                if original:
+                    self.current_dataset[original] = registered
+            return outputs[0]
+
         output_name = f"{trans.target_dataframe or 'filtered'}"
 
         # C3 fix: prevent DAG cycle when output would equal input

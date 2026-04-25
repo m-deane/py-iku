@@ -73,185 +73,263 @@ class FlowOptimizer:
 
         return flow
 
+    def _find_merge_pair(
+        self,
+        flow: DataikuFlow,
+        is_eligible,
+        can_merge,
+    ):
+        """DAG-aware lookup of two mergeable recipes.
+
+        For each candidate ``recipe1`` (passed ``is_eligible``), find the
+        downstream recipe (matched on shared dataset, regardless of list
+        position) for which ``can_merge(recipe1, recipe2)`` returns True.
+        Refuses to merge when ``recipe1.outputs[0]`` is consumed by more
+        than one downstream recipe (fan-out makes the merge unsafe).
+
+        Returns ``(i, j, recipe1, recipe2)`` indices into ``flow.recipes``
+        or ``None`` if no merge candidate exists.
+        """
+        # Build an "input -> [recipes that consume it]" lookup once.
+        consumers: dict[str, list[int]] = {}
+        for idx, r in enumerate(flow.recipes):
+            for inp in r.inputs:
+                consumers.setdefault(inp, []).append(idx)
+
+        for i, recipe1 in enumerate(flow.recipes):
+            if not is_eligible(recipe1):
+                continue
+            if not recipe1.outputs:
+                continue
+            output_name = recipe1.outputs[0]
+            downstream_indices = consumers.get(output_name, [])
+            # Fan-out guard: only merge when exactly one downstream consumer.
+            if len(downstream_indices) != 1:
+                continue
+            j = downstream_indices[0]
+            if j == i:
+                continue
+            recipe2 = flow.recipes[j]
+            if not is_eligible(recipe2):
+                continue
+            # The downstream recipe must consume ONLY this dataset (otherwise
+            # merging would change its input set).
+            if recipe2.inputs != [output_name]:
+                continue
+            if can_merge(recipe1, recipe2):
+                return i, j, recipe1, recipe2
+        return None
+
     def _apply_merge_prepare_recipes(
         self, flow: DataikuFlow, result: OptimizationResult
     ) -> None:
-        """Find and merge consecutive Prepare recipes."""
-        changed = True
-        while changed:
-            changed = False
-            for i in range(len(flow.recipes) - 1):
-                recipe1 = flow.recipes[i]
-                recipe2 = flow.recipes[i + 1]
+        """Merge mergeable Prepare recipes anywhere in the DAG.
 
-                if not RecipeMerger.can_merge_prepare(recipe1, recipe2):
-                    continue
+        Was list-position based (only adjacent recipes considered).
+        Now scans the dependency graph: if a Prepare recipe's single
+        output is consumed by exactly one downstream Prepare recipe
+        whose only input is that output, the pair is merged — regardless
+        of where they sit in ``flow.recipes``. Fan-out (multiple
+        consumers of the intermediate) blocks the merge.
+        """
+        def is_prepare(r):
+            return r.recipe_type == RecipeType.PREPARE
 
-                # Merge
-                intermediate_ds = recipe1.outputs[0]
-                # Capture the original "first prepare" output name BEFORE merge
-                # so we can rewrite any downstream recipe that referenced it.
-                old_recipe1_output = recipe1.outputs[0] if recipe1.outputs else None
-                merged = RecipeMerger.merge_prepare_recipes([recipe1, recipe2])
-                new_output = merged.outputs[0] if merged.outputs else None
+        can_merge = RecipeMerger.can_merge_prepare
 
-                # Replace the two recipes with the merged one
-                flow.recipes[i] = merged
-                flow.recipes.pop(i + 1)
+        while True:
+            pair = self._find_merge_pair(flow, is_prepare, can_merge)
+            if pair is None:
+                break
+            i, j, recipe1, recipe2 = pair
 
-                # CRITICAL: rewrite downstream inputs to point to merged output.
-                # When recipe1 (output=A) and recipe2 (input=A, output=B) merge
-                # to (output=B), any recipe later in the list that references A
-                # must be redirected to B. Without this, the DAG breaks and
-                # DSS rejects the import with "input dataset not found".
-                if old_recipe1_output and new_output and old_recipe1_output != new_output:
-                    for downstream in flow.recipes[i + 1:]:
-                        downstream.inputs = [
-                            new_output if inp == old_recipe1_output else inp
-                            for inp in downstream.inputs
-                        ]
+            intermediate_ds = recipe1.outputs[0]
+            old_recipe1_output = recipe1.outputs[0]
+            merged = RecipeMerger.merge_prepare_recipes([recipe1, recipe2])
+            new_output = merged.outputs[0] if merged.outputs else None
 
-                result.recipes_merged += 1
-                result.log.append(
-                    f"Merged '{recipe1.name}' + '{recipe2.name}' -> '{merged.name}'"
+            # Replace recipe1 with the merged recipe; remove recipe2.
+            flow.recipes[i] = merged
+            # Remove recipe2 by index. After pop, indices > j shift down by 1
+            # — that's fine because we restart the scan immediately.
+            flow.recipes.pop(j)
+
+            # Rewrite any downstream recipe that referenced the absorbed
+            # intermediate name to point at the merged output.
+            if old_recipe1_output and new_output and old_recipe1_output != new_output:
+                for downstream in flow.recipes:
+                    if downstream is merged:
+                        continue
+                    downstream.inputs = [
+                        new_output if inp == old_recipe1_output else inp
+                        for inp in downstream.inputs
+                    ]
+
+            result.recipes_merged += 1
+            result.log.append(
+                f"Merged '{recipe1.name}' + '{recipe2.name}' -> '{merged.name}'"
+            )
+
+            # Drop the now-orphaned intermediate dataset, if any.
+            ds = flow.get_dataset(intermediate_ds)
+            if ds is not None:
+                still_referenced = any(
+                    intermediate_ds in r.inputs or intermediate_ds in r.outputs
+                    for r in flow.recipes
                 )
-
-                # Mark intermediate dataset for removal
-                # (it's no longer needed between the two recipes)
-                ds = flow.get_dataset(intermediate_ds)
-                if ds is not None:
-                    # Check no other recipe references this dataset
-                    still_referenced = False
-                    for r in flow.recipes:
-                        if intermediate_ds in r.inputs or intermediate_ds in r.outputs:
-                            still_referenced = True
-                            break
-                    if not still_referenced:
-                        flow.datasets = [
-                            d for d in flow.datasets if d.name != intermediate_ds
-                        ]
-                        result.datasets_removed += 1
-                        result.log.append(
-                            f"Removed intermediate dataset '{intermediate_ds}'"
-                        )
-
-                changed = True
-                break  # Restart scan from beginning
+                if not still_referenced:
+                    flow.datasets = [
+                        d for d in flow.datasets if d.name != intermediate_ds
+                    ]
+                    result.datasets_removed += 1
+                    result.log.append(
+                        f"Removed intermediate dataset '{intermediate_ds}'"
+                    )
 
     def _apply_merge_window_recipes(
         self, flow: DataikuFlow, result: OptimizationResult
     ) -> None:
-        """Find and merge consecutive Window recipes on the same input.
+        """Merge mergeable Window recipes anywhere in the DAG.
 
-        Two consecutive WINDOW recipes can be merged when they share the
-        same input dataset and the same partition_columns / order_columns —
-        a real DSS engineer would author them as ONE Window recipe with
-        multiple aggregations rather than two recipes that each scan the
-        same partition.
+        Two WINDOW recipes can be merged when they share the same input
+        dataset (chained or sibling) AND the same partition_columns
+        AND the same order_columns. Now DAG-aware (was list-position
+        based): a WINDOW separated from its merge candidate by an
+        unrelated PREPARE/JOIN/etc. is still detected.
+
+        For chained WINDOW pairs (recipe1.outputs[0] == recipe2.inputs[0])
+        we additionally enforce the fan-out guard — recipe1's output
+        must have exactly one consumer (recipe2). Sibling WINDOW pairs
+        (same recipe1.inputs[0] as recipe2.inputs[0]) don't have this
+        constraint since the shared input keeps its identity after merge.
         """
+        # Build "input -> [consumer indices]" once per pass; recomputed
+        # after each merge since indices shift.
+        def _consumers(flow_obj: DataikuFlow) -> dict[str, list[int]]:
+            c: dict[str, list[int]] = {}
+            for idx, r in enumerate(flow_obj.recipes):
+                for inp in r.inputs:
+                    c.setdefault(inp, []).append(idx)
+            return c
+
         changed = True
         while changed:
             changed = False
-            for i in range(len(flow.recipes) - 1):
+            consumers = _consumers(flow)
+            window_indices = [
+                i for i, r in enumerate(flow.recipes)
+                if r.recipe_type == RecipeType.WINDOW
+            ]
+            merge_pair = None
+            for i in window_indices:
                 recipe1 = flow.recipes[i]
-                recipe2 = flow.recipes[i + 1]
-
-                if recipe1.recipe_type != RecipeType.WINDOW:
+                if not recipe1.outputs or not recipe1.inputs:
                     continue
-                if recipe2.recipe_type != RecipeType.WINDOW:
-                    continue
-                if not recipe1.outputs or not recipe2.inputs:
-                    continue
-
-                # Both must consume the same input dataset. We model this
-                # as recipe2.inputs[0] == recipe1.outputs[0] OR they
-                # literally share the same input dataset.
-                same_chain = recipe1.outputs[0] == recipe2.inputs[0]
-                same_input = (
-                    bool(recipe1.inputs)
-                    and bool(recipe2.inputs)
-                    and recipe1.inputs[0] == recipe2.inputs[0]
-                )
-                if not (same_chain or same_input):
-                    continue
-
-                # Partition / order columns must match — different windows
-                # cannot share a single Window recipe definition.
-                if recipe1.partition_columns != recipe2.partition_columns:
-                    continue
-                if recipe1.order_columns != recipe2.order_columns:
-                    continue
-
-                old_recipe1_output = recipe1.outputs[0] if recipe1.outputs else None
-                new_output = recipe2.outputs[0] if recipe2.outputs else None
-
-                # Build the merged recipe: union of aggregations, output is
-                # recipe2.outputs (downstream consumers look there).
-                merged = DataikuRecipe(
-                    name=f"window_merged_{recipe1.name}",
-                    recipe_type=RecipeType.WINDOW,
-                    inputs=list(recipe1.inputs),
-                    outputs=list(recipe2.outputs),
-                    partition_columns=list(recipe1.partition_columns),
-                    order_columns=list(recipe1.order_columns),
-                    window_aggregations=(
-                        list(recipe1.window_aggregations)
-                        + list(recipe2.window_aggregations)
-                    ),
-                    source_lines=list(recipe1.source_lines) + list(recipe2.source_lines),
-                    notes=list(recipe1.notes) + list(recipe2.notes),
-                )
-
-                flow.recipes[i] = merged
-                flow.recipes.pop(i + 1)
-
-                # CRITICAL: rewrite downstream inputs so any recipe later
-                # in the list that referenced the dropped intermediate
-                # output gets redirected to the merged output. Mirrors the
-                # wave-3 prepare-merger DAG-rewrite fix.
-                if (
-                    old_recipe1_output
-                    and new_output
-                    and old_recipe1_output != new_output
-                ):
-                    for downstream in flow.recipes[i + 1:]:
-                        downstream.inputs = [
-                            new_output if inp == old_recipe1_output else inp
-                            for inp in downstream.inputs
-                        ]
-
-                result.recipes_merged += 1
-                result.log.append(
-                    f"Merged WINDOW '{recipe1.name}' + '{recipe2.name}' "
-                    f"-> '{merged.name}'"
-                )
-
-                # Remove the now-unreferenced intermediate dataset, if any.
-                if (
-                    same_chain
-                    and old_recipe1_output
-                    and old_recipe1_output != new_output
-                ):
-                    intermediate_ds = old_recipe1_output
-                    still_referenced = False
-                    for r in flow.recipes:
+                # Try to find a downstream WINDOW (chained merge candidate)
+                # with exactly-one fan-out from recipe1.
+                output_name = recipe1.outputs[0]
+                downstream = consumers.get(output_name, [])
+                if len(downstream) == 1:
+                    j = downstream[0]
+                    if j != i and flow.recipes[j].recipe_type == RecipeType.WINDOW:
+                        recipe2 = flow.recipes[j]
                         if (
-                            intermediate_ds in r.inputs
-                            or intermediate_ds in r.outputs
+                            recipe2.inputs == [output_name]
+                            and recipe1.partition_columns == recipe2.partition_columns
+                            and recipe1.order_columns == recipe2.order_columns
                         ):
-                            still_referenced = True
+                            merge_pair = (i, j, recipe1, recipe2, True)  # True = chained
                             break
-                    if not still_referenced:
-                        flow.datasets = [
-                            d for d in flow.datasets if d.name != intermediate_ds
-                        ]
-                        result.datasets_removed += 1
-                        result.log.append(
-                            f"Removed intermediate dataset '{intermediate_ds}'"
-                        )
+                # Otherwise try a sibling WINDOW (same input dataset).
+                if recipe1.inputs:
+                    input_name = recipe1.inputs[0]
+                    siblings = consumers.get(input_name, [])
+                    for k in siblings:
+                        if k <= i:  # only look forward to avoid duplicate pairs
+                            continue
+                        recipe2 = flow.recipes[k]
+                        if recipe2.recipe_type != RecipeType.WINDOW:
+                            continue
+                        if (
+                            recipe2.inputs[:1] == [input_name]
+                            and recipe1.partition_columns == recipe2.partition_columns
+                            and recipe1.order_columns == recipe2.order_columns
+                        ):
+                            merge_pair = (i, k, recipe1, recipe2, False)  # False = sibling
+                            break
+                    if merge_pair is not None:
+                        break
 
-                changed = True
-                break  # Restart scan from beginning
+            if merge_pair is None:
+                break
+
+            i, j, recipe1, recipe2, same_chain = merge_pair
+
+            old_recipe1_output = recipe1.outputs[0] if recipe1.outputs else None
+            new_output = recipe2.outputs[0] if recipe2.outputs else None
+
+            # Build the merged recipe: union of aggregations, output is
+            # recipe2.outputs (downstream consumers look there).
+            merged = DataikuRecipe(
+                name=f"window_merged_{recipe1.name}",
+                recipe_type=RecipeType.WINDOW,
+                inputs=list(recipe1.inputs),
+                outputs=list(recipe2.outputs),
+                partition_columns=list(recipe1.partition_columns),
+                order_columns=list(recipe1.order_columns),
+                window_aggregations=(
+                    list(recipe1.window_aggregations)
+                    + list(recipe2.window_aggregations)
+                ),
+                source_lines=list(recipe1.source_lines) + list(recipe2.source_lines),
+                notes=list(recipe1.notes) + list(recipe2.notes),
+            )
+
+            flow.recipes[i] = merged
+            flow.recipes.pop(j)
+
+            # Rewrite any downstream recipe that referenced the absorbed
+            # intermediate output so it points at the merged output.
+            if (
+                old_recipe1_output
+                and new_output
+                and old_recipe1_output != new_output
+            ):
+                for downstream in flow.recipes:
+                    if downstream is merged:
+                        continue
+                    downstream.inputs = [
+                        new_output if inp == old_recipe1_output else inp
+                        for inp in downstream.inputs
+                    ]
+
+            result.recipes_merged += 1
+            result.log.append(
+                f"Merged WINDOW '{recipe1.name}' + '{recipe2.name}' "
+                f"-> '{merged.name}'"
+            )
+
+            # Remove the now-unreferenced intermediate dataset, if any.
+            if (
+                same_chain
+                and old_recipe1_output
+                and old_recipe1_output != new_output
+            ):
+                intermediate_ds = old_recipe1_output
+                still_referenced = any(
+                    intermediate_ds in r.inputs or intermediate_ds in r.outputs
+                    for r in flow.recipes
+                )
+                if not still_referenced:
+                    flow.datasets = [
+                        d for d in flow.datasets if d.name != intermediate_ds
+                    ]
+                    result.datasets_removed += 1
+                    result.log.append(
+                        f"Removed intermediate dataset '{intermediate_ds}'"
+                    )
+
+            changed = True
 
     def _apply_remove_orphan_datasets(
         self, flow: DataikuFlow, result: OptimizationResult

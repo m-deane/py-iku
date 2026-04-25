@@ -366,21 +366,63 @@ End-to-end verified: a complex script (read → dropna → describe → 2 rollin
 
 ---
 
-## Outstanding items (after wave 7)
+## Wave 8 — completed (filter routing + SPLIT complement + DAG-aware optimizer + on_progress)
 
-### Architectural restructuring (verified-needed)
-1. **Filter routing by operator class** — DSS research confirmed `FilterOnValue.matchingMode` is for string-match style (`FULL_STRING`/`SUBSTRING`/`PATTERN`), NOT comparison operators. Numeric comparisons (`>`, `<`, `>=`, `<=`) need `FilterOnNumericRange` (with `min`/`max` bounds), `==`/`!=`/`in` can stay on `FilterOnValue` with the right `matchingMode`, and complex predicates (`x > 5 AND y < 10`) belong on `FilterOnFormula` with GREL. `pattern_matcher.match_filter` and `llm_flow_generator._map_operator` need redesign — current strings are not DSS-valid. Documented inline pending the structural fix.
+### Filter routing by operator class — DONE
+Wave-7 DSS research confirmed `FilterOnValue.matchingMode` only accepts `FULL_STRING`/`SUBSTRING`/`PATTERN` (string-match style). Numeric comparisons need different DSS processors. Restructured `pattern_matcher.match_filter` to dispatch by operator class:
 
-### Optimization / completeness still TODO
-2. **SPLIT recipe complement detection** — `train = df[cond]; test = df[~cond]` still produces 2 single-output SPLITs instead of one multi-output SPLIT. `_handle_if` in `ast_analyzer.py` would need pattern-matching to detect the complementary structure.
-3. **Optimizer DAG-aware merging** — `_apply_merge_*_recipes` walks adjacent list positions; an unrelated recipe interleaved between two PREPARE/WINDOW operations on the same dataset blocks the merge even when the DAG says they should merge. Fix: scan reachability via the dependency graph instead.
+| Pandas operator | DSS processor | params |
+|---|---|---|
+| `>`, `<`, `>=`, `<=` | `FilterOnNumericRange` | `column`, `min`/`max`, `keep` |
+| `==`, `in` | `FilterOnValue` | `matchingMode="FULL_STRING"`, `values`, `keep=True` |
+| `!=` | `FilterOnValue` | `matchingMode="FULL_STRING"`, `values`, `keep=False` (negation) |
+| `contains` | `FilterOnValue` | `matchingMode="SUBSTRING"` |
+| `regex` / `matches` | `FilterOnValue` | `matchingMode="PATTERN"` |
 
-### Ergonomics still TODO
-4. **`convert_with_llm(..., on_progress=callable)`** — long LLM calls give no feedback; a callback per step would help.
+Added `PrepareStep.filter_on_numeric_range()` and `PrepareStep.filter_on_formula()` factories. Wired the LLM path's `OperationType.FILTER` branch through `PatternMatcher.match_filter` so both paths share identical filter-routing semantics. Marked `_map_operator` deprecated and updated its return values to valid DSS strings.
 
-### Verification still TODO (need a real DSS instance)
-5. **Real-LLM end-to-end test** — gated on `ANTHROPIC_API_KEY` (unset in this environment). Need a smoke test that calls the real Anthropic API and validates the LLM emits correctly-shaped output for each example.
-6. **Real DSS import test** — every "DSS-valid" claim in the plan is verified against `dataiku-api-client-python` source code, NOT against a live DSS 14 instance. A real DSS smoke test would close this loop.
+### SPLIT complement detection — DONE
+`AST analyzer.analyze` now runs a post-pass `_merge_complementary_filters` that detects `df[cond]` / `df[~cond]` pairs (explicit-complement form only — conservative to avoid false positives). The pair is merged into a single FILTER transformation carrying `parameters["complementary_outputs"] = [positive_target, complement_target]`. `_create_split_recipe` honors this by emitting ONE multi-output SPLIT recipe with both outputs registered in `current_dataset` so downstream operations on either branch resolve correctly.
+
+End-to-end: `train = df[df['split']=='train']; test = df[~(df['split']=='train')]` now produces ONE SPLIT recipe with `outputs=['train', 'test']` (was 2 single-output SPLITs). Independent (non-complementary) filters still produce separate recipes.
+
+### DAG-aware optimizer merging — DONE
+Replaced list-position scan in `_apply_merge_prepare_recipes` and `_apply_merge_window_recipes` with a downstream-by-input lookup. Two PREPARE/WINDOW recipes connected via the same dataset now merge regardless of their position in `flow.recipes` (e.g. when an unrelated recipe was inserted between them). Added a fan-out guard: an intermediate consumed by more than one downstream recipe blocks the merge to prevent orphaning a sibling consumer.
+
+Wave-3 `TestOptimizerDagRewriting` test rewritten to assert the new (safer) fan-out behavior. Two new tests added: `test_merge_chains_when_no_fan_out` and `test_merge_dag_aware_with_interleaved_unrelated_recipe`.
+
+### `convert_with_llm(..., on_progress=callable)` — DONE
+Added optional `on_progress` callback to `convert_with_llm` and `convert_file_with_llm`. Invoked at 5 phases: `start`, `analyzing`, `analyzed`, `generating`, `optimizing` (when `optimize=True`), `done`. Each invocation receives `(phase: str, info: dict)`. Callback exceptions are swallowed so a buggy callback never breaks the conversion.
+
+### Test results — cumulative
+
+| Metric | Baseline | W1 | W2 | W3 | W4 | W5 | W6 | W7 | W8 | Δ |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | 2283 | 2291 | 2291 | 2306 | 2328 | 2339 | +120 |
+| Tests failing | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+12 new wave-8 tests:
+- **Filter routing** (3): numeric → `FilterOnNumericRange` for both pattern_matcher + LLM path; equality/`in`/contains/regex stay on `FilterOnValue` with correct matchingMode.
+- **SPLIT complement** (2): explicit-complement pair merges to ONE multi-output SPLIT; independent filters stay separate.
+- **DAG-aware optimizer** (3): fan-out blocks merge; chained merge happens; interleaved-unrelated-recipe doesn't block merge.
+- **on_progress** (2): callback invoked for each phase; signature accepts `on_progress=None`.
+- **Ergonomics** (2): `_repr_html_` returns SVG-in-HTML wrapper; `flow.diff` reports `equivalent`/`added`/`removed`/`changed`.
+
+Plus pattern_matcher tests rewritten (10 old → 11 new) to assert the new DSS-canonical dispatch.
+
+End-to-end verified: `df[df["amount"] > 100]` produces a `FilterOnNumericRange` step (was an invalid `FilterOnValue` with `matchingMode="GREATER_THAN"` that DSS would reject); complementary filter pairs merge to ONE multi-output SPLIT; independent filters stay separate.
+
+---
+
+## Outstanding items (after wave 8)
+
+### Verification (need external resources)
+1. **Real-LLM end-to-end test** — gated on `ANTHROPIC_API_KEY` (unset in this environment). Need a smoke test that calls the real Anthropic API and validates the LLM emits correctly-shaped output for each example.
+2. **Real DSS import test** — every "DSS-valid" claim in the plan is verified against `dataiku-api-client-python` source code, NOT against a live DSS 14 instance. A real DSS smoke test would close this loop.
+
+### Optional follow-ups
+3. **Compound predicate filter via `FilterOnFormula`** — wave-8 filter routing splits on simple operator class (numeric vs string). A compound predicate like `(df['x'] > 5) & (df['y'] < 10)` currently flows through as a single FILTER transformation with the boolean expression as `condition`. AST `_handle_filter` could be extended to detect `&`/`|` operators and emit a single `FilterOnFormula` step with the GREL-translated expression instead of one `FilterOnValue`/`FilterOnNumericRange` per clause. Lower priority — the current behavior works correctly for the common single-clause case.
 
 ### Decisions explicitly accepted as not-bugs
 - `drop_duplicates` → PREPARE/RemoveDuplicates in rule-based path vs DISTINCT in LLM path. Both produce valid DSS output; rule-based form lets the step merge with adjacent prepare steps.

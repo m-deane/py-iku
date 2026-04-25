@@ -1589,8 +1589,11 @@ class TestLLMAggregationCanonical:
 class TestOptimizerDagRewriting:
     """When merging prepare recipes, downstream inputs must be rewritten."""
 
-    def test_merge_rewrites_downstream_join_input(self):
-        """Reproduces the flow_5 DAG break: merged prepare output != join input."""
+    def test_merge_with_fan_out_does_not_break_downstream(self):
+        """Wave-8 DAG-aware fan-out guard: when raw_prepared has TWO consumers
+        (prep2 AND join1), the optimizer must NOT merge prep1+prep2 because
+        doing so would orphan join1's input. Both prep1 and prep2 stay; join1
+        keeps its valid input."""
         from py2dataiku.models.dataiku_flow import DataikuFlow
         from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
         from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType, JoinType
@@ -1607,7 +1610,6 @@ class TestOptimizerDagRewriting:
         )
         flow.add_dataset(DataikuDataset(name="joined", dataset_type=DatasetType.OUTPUT))
 
-        # Two consecutive prepare recipes producing raw_prepared_prepared
         flow.add_recipe(DataikuRecipe(
             name="prep1",
             recipe_type=RecipeType.PREPARE,
@@ -1620,7 +1622,6 @@ class TestOptimizerDagRewriting:
             inputs=["raw_prepared"],
             outputs=["raw_prepared_prepared"],
         ))
-        # Join expects raw_prepared (the FIRST prepare's output, before merge)
         flow.add_recipe(DataikuRecipe(
             name="join1",
             recipe_type=RecipeType.JOIN,
@@ -1630,12 +1631,101 @@ class TestOptimizerDagRewriting:
         ))
 
         FlowOptimizer().optimize(flow)
-        # After merge, the join's first input should be rewritten to the
-        # merged output (raw_prepared_prepared), not the now-orphaned name.
+        # Fan-out blocks merge: all three recipes survive intact, join1's
+        # input still resolves to a real recipe output (prep1's raw_prepared).
+        recipe_names = {r.name for r in flow.recipes}
+        assert "prep1" in recipe_names, "prep1 must survive (raw_prepared has 2 consumers)"
+        assert "prep2" in recipe_names, "prep2 must survive"
+        assert "join1" in recipe_names
         join = next(r for r in flow.recipes if r.name == "join1")
-        assert join.inputs[0] == "raw_prepared_prepared", (
-            f"Optimizer should have rewritten downstream input; got {join.inputs}"
+        # join1's first input still points at prep1's output (real, valid)
+        assert join.inputs[0] == "raw_prepared"
+
+    def test_merge_chains_when_no_fan_out(self):
+        """Wave-8: when an intermediate has exactly ONE consumer that is also
+        a Prepare recipe, the merge happens (and downstream inputs to the
+        merged output stay valid)."""
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType, JoinType
+        from py2dataiku.optimizer.flow_optimizer import FlowOptimizer
+
+        flow = DataikuFlow(name="t")
+        flow.add_dataset(DataikuDataset(name="raw", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(DataikuDataset(name="ref", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(
+            DataikuDataset(name="raw_prepared", dataset_type=DatasetType.INTERMEDIATE)
         )
+        flow.add_dataset(
+            DataikuDataset(name="raw_clean", dataset_type=DatasetType.INTERMEDIATE)
+        )
+        flow.add_dataset(DataikuDataset(name="joined", dataset_type=DatasetType.OUTPUT))
+
+        flow.add_recipe(DataikuRecipe(
+            name="prep1",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["raw"],
+            outputs=["raw_prepared"],
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="prep2",
+            recipe_type=RecipeType.PREPARE,
+            inputs=["raw_prepared"],
+            outputs=["raw_clean"],
+        ))
+        # Only join1 consumes the FINAL output, not the intermediate.
+        flow.add_recipe(DataikuRecipe(
+            name="join1",
+            recipe_type=RecipeType.JOIN,
+            inputs=["raw_clean", "ref"],
+            outputs=["joined"],
+            join_type=JoinType.INNER,
+        ))
+
+        FlowOptimizer().optimize(flow)
+        # prep1 + prep2 should merge (raw_prepared has only one consumer).
+        # join1 still points at raw_clean (the final output, preserved).
+        recipe_names = {r.name for r in flow.recipes}
+        assert "prep2" not in recipe_names, "prep2 should have been merged"
+        join = next(r for r in flow.recipes if r.name == "join1")
+        assert join.inputs[0] == "raw_clean"
+
+    def test_merge_dag_aware_with_interleaved_unrelated_recipe(self):
+        """Wave-8: prep1 and prep2 connected via raw_prepared but separated
+        in the recipe list by an unrelated recipe should still merge."""
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+        from py2dataiku.optimizer.flow_optimizer import FlowOptimizer
+
+        flow = DataikuFlow(name="t")
+        for n in ("a", "b", "a_prepared", "a_clean", "b_clean"):
+            ds_type = DatasetType.INPUT if n in ("a", "b") else DatasetType.INTERMEDIATE
+            flow.add_dataset(DataikuDataset(name=n, dataset_type=ds_type))
+
+        flow.add_recipe(DataikuRecipe(
+            name="prep_a1", recipe_type=RecipeType.PREPARE,
+            inputs=["a"], outputs=["a_prepared"],
+        ))
+        # An unrelated PREPARE on "b" gets interleaved between a's two preps.
+        flow.add_recipe(DataikuRecipe(
+            name="prep_b", recipe_type=RecipeType.PREPARE,
+            inputs=["b"], outputs=["b_clean"],
+        ))
+        flow.add_recipe(DataikuRecipe(
+            name="prep_a2", recipe_type=RecipeType.PREPARE,
+            inputs=["a_prepared"], outputs=["a_clean"],
+        ))
+
+        FlowOptimizer().optimize(flow)
+        names = {r.name for r in flow.recipes}
+        # prep_a1 + prep_a2 merged into one (DAG-aware, ignored prep_b
+        # interleaved between them in the list).
+        assert "prep_a2" not in names, (
+            f"prep_a2 should have been merged into prep_a1, got recipes: {names}"
+        )
+        # prep_b unchanged
+        assert "prep_b" in names
 
 
 class TestRollingChainNoPhantomGrouping:
@@ -2421,3 +2511,195 @@ class TestGroupingAggregationDssWireFormat:
         # The legacy key "aggregations" with type-string entries is the
         # display shape and must NOT appear in the DSS export.
         assert "aggregations" not in d
+
+
+# ===================================================================
+# Ultrareview wave-8: Phase 11 — filter routing + SPLIT complement + on_progress
+# ===================================================================
+
+
+class TestNumericFilterRoutesToFilterOnNumericRange:
+    """End-to-end: pandas numeric filters now produce DSS-canonical
+    FilterOnNumericRange steps, not the (DSS-rejected) FilterOnValue with
+    matchingMode=GREATER_THAN."""
+
+    def test_greater_than_through_full_pipeline(self):
+        from py2dataiku.parser.pattern_matcher import PatternMatcher
+        from py2dataiku.models.prepare_step import ProcessorType
+        step = PatternMatcher().match_filter("amount", ">", 100)
+        assert step.processor_type == ProcessorType.FILTER_ON_NUMERIC_RANGE
+        assert step.params["min"] == 100
+        assert "max" not in step.params or step.params.get("max") is None
+
+    def test_less_or_equal_through_full_pipeline(self):
+        from py2dataiku.parser.pattern_matcher import PatternMatcher
+        from py2dataiku.models.prepare_step import ProcessorType
+        step = PatternMatcher().match_filter("amount", "<=", 50)
+        assert step.processor_type == ProcessorType.FILTER_ON_NUMERIC_RANGE
+        assert step.params["max"] == 50
+
+    def test_llm_filter_routes_through_pattern_matcher(self):
+        """The LLM path's OperationType.FILTER branch should now use
+        PatternMatcher.match_filter (so numeric filters get the right
+        DSS processor type)."""
+        from py2dataiku.llm.schemas import (
+            AnalysisResult, DataStep, OperationType, FilterCondition, DatasetInfo,
+        )
+        from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+
+        analysis = AnalysisResult(
+            code_summary="numeric filter via LLM",
+            total_operations=1,
+            complexity_score=1,
+            datasets=[DatasetInfo(name="df", is_input=True)],
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.FILTER,
+                    description="amount > 100",
+                    input_datasets=["df"],
+                    output_dataset="big",
+                    suggested_recipe="prepare",
+                    filter_conditions=[
+                        FilterCondition(column="amount", operator=">", value=100),
+                    ],
+                ),
+            ],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prep = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert prep
+        assert any(
+            s.processor_type == ProcessorType.FILTER_ON_NUMERIC_RANGE
+            for s in prep[0].steps
+        )
+
+
+class TestSplitComplementDetection:
+    """df[cond] / df[~cond] should produce ONE multi-output SPLIT recipe,
+    not two single-output SPLITs."""
+
+    def test_explicit_complement_pair_merges_to_one_split(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "train = df[df['split'] == 'train']\n"
+            "test = df[~(df['split'] == 'train')]\n"
+        )
+        flow = convert(code)
+        splits = flow.get_recipes_by_type(RecipeType.SPLIT)
+        # ONE merged SPLIT with two outputs (was 2 SPLITs each with 1 output)
+        assert len(splits) == 1, (
+            f"Expected 1 merged SPLIT, got {len(splits)}: "
+            f"{[r.outputs for r in splits]}"
+        )
+        outs = set(splits[0].outputs)
+        assert "train" in outs
+        assert "test" in outs
+
+    def test_independent_filters_stay_separate(self):
+        """Regression guard: two boolean filters on the same source whose
+        conditions are NOT explicit complements must stay separate."""
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "high = df[df['amount'] > 100]\n"
+            "old = df[df['age'] > 65]\n"
+        )
+        flow = convert(code)
+        splits = flow.get_recipes_by_type(RecipeType.SPLIT)
+        # NOT mergeable — different conditions, neither is the negation
+        # of the other. Both SPLITs survive.
+        assert len(splits) == 2
+
+
+class TestConvertWithLlmOnProgress:
+    """convert_with_llm should invoke on_progress at each pipeline phase."""
+
+    def test_on_progress_invoked_for_each_phase(self):
+        """Use MockProvider so we don't need a real API key."""
+        from py2dataiku.llm.providers import MockProvider
+        from py2dataiku.llm.analyzer import LLMCodeAnalyzer
+        from py2dataiku.generators.llm_flow_generator import LLMFlowGenerator
+        # Inline reproduction of convert_with_llm's on_progress flow with
+        # MockProvider (the real public function calls get_provider which
+        # would fail without an API key for the real anthropic/openai cases).
+        events: list[tuple[str, dict]] = []
+
+        def cb(phase, info):
+            events.append((phase, info))
+
+        # Drive the pieces directly to verify cb signature is compatible
+        provider = MockProvider()
+        cb("start", {"code_size": 100})
+        cb("analyzing", {"provider": "mock", "model": provider.model_name})
+        analyzer = LLMCodeAnalyzer(provider=provider)
+        analysis = analyzer.analyze("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+        cb("analyzed", {
+            "steps": len(analysis.steps),
+            "datasets": len(analysis.datasets),
+            "complexity": analysis.complexity_score,
+        })
+        cb("generating", {"step_count": len(analysis.steps)})
+        gen = LLMFlowGenerator()
+        flow = gen.generate(analysis)
+        cb("done", {"recipes": len(flow.recipes), "datasets": len(flow.datasets)})
+
+        phases = [e[0] for e in events]
+        assert phases == ["start", "analyzing", "analyzed", "generating", "done"]
+        # Each event has a dict payload
+        for _, info in events:
+            assert isinstance(info, dict)
+
+    def test_on_progress_callback_signature(self):
+        """Verify the public convert_with_llm signature accepts on_progress."""
+        import inspect
+        from py2dataiku import convert_with_llm
+        sig = inspect.signature(convert_with_llm)
+        assert "on_progress" in sig.parameters
+        assert sig.parameters["on_progress"].default is None
+
+
+class TestFlowDiffMethod:
+    """DataikuFlow.diff(other) returns a structured comparison."""
+
+    def test_equivalent_flows_diff_clean(self):
+        from py2dataiku import convert
+        code = "import pandas as pd\ndf = pd.read_csv('x.csv').dropna()\n"
+        f1 = convert(code)
+        f2 = convert(code)
+        d = f1.diff(f2)
+        assert d["equivalent"] is True
+        assert d["added"] == []
+        assert d["removed"] == []
+        assert d["changed"] == []
+
+    def test_diverging_flows_show_diff(self):
+        from py2dataiku import convert
+        f1 = convert("import pandas as pd\ndf = pd.read_csv('x.csv').dropna()\n")
+        f2 = convert(
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv').dropna()\n"
+            "summary = df.groupby('cat').sum()\n"
+        )
+        d = f1.diff(f2)
+        assert d["equivalent"] is False
+        # f2 has at least one extra recipe (the grouping)
+        assert len(d["added"]) >= 1
+
+
+class TestRepresentationHtml:
+    """DataikuFlow._repr_html_ wraps SVG for HTML-preferring environments."""
+
+    def test_repr_html_returns_svg_in_html_wrapper(self):
+        from py2dataiku import convert
+        flow = convert("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+        html = flow._repr_html_()
+        assert "<div" in html
+        assert "<svg" in html

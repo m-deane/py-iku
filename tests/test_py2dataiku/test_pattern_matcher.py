@@ -229,27 +229,61 @@ class TestMatchFilter:
         step = matcher.match_filter("status", "==", "active")
         assert isinstance(step, PrepareStep)
 
-    def test_processor_type_is_filter_on_value(self, matcher):
-        step = matcher.match_filter("age", ">", 18)
+    def test_numeric_comparison_uses_filter_on_numeric_range(self, matcher):
+        """Wave-7 DSS verification: numeric comparisons go to
+        FilterOnNumericRange, NOT FilterOnValue (which only accepts
+        FULL_STRING/SUBSTRING/PATTERN matchingMode)."""
+        for op in (">", ">=", "<", "<="):
+            step = matcher.match_filter("age", op, 18)
+            assert step.processor_type == ProcessorType.FILTER_ON_NUMERIC_RANGE, (
+                f"operator {op!r} should produce FilterOnNumericRange, got {step.processor_type}"
+            )
+
+    def test_equality_uses_filter_on_value_full_string(self, matcher):
+        """== / != / in route to FilterOnValue with DSS-canonical FULL_STRING."""
+        step = matcher.match_filter("status", "==", "active")
         assert step.processor_type == ProcessorType.FILTER_ON_VALUE
+        assert step.params["matchingMode"] == "FULL_STRING"
+        assert step.params["values"] == ["active"]
+        assert step.params["keep"] is True
 
-    @pytest.mark.parametrize("operator,expected_mode", [
-        ("==", "EQUALS"),
-        ("!=", "NOT_EQUALS"),
-        (">", "GREATER_THAN"),
-        (">=", "GREATER_OR_EQUAL"),
-        ("<", "LESS_THAN"),
-        ("<=", "LESS_OR_EQUAL"),
-        ("in", "IN"),
-        ("contains", "CONTAINS"),
-    ])
-    def test_operator_to_matching_mode(self, matcher, operator, expected_mode):
-        step = matcher.match_filter("col", operator, "val")
-        assert step.params.get("matchingMode") == expected_mode
+    def test_not_equal_flips_keep(self, matcher):
+        step = matcher.match_filter("status", "!=", "deleted")
+        assert step.processor_type == ProcessorType.FILTER_ON_VALUE
+        assert step.params["matchingMode"] == "FULL_STRING"
+        assert step.params["keep"] is False
 
-    def test_unknown_operator_defaults_to_equals(self, matcher):
+    def test_in_operator_passes_multiple_values(self, matcher):
+        step = matcher.match_filter("country", "in", ["US", "CA", "MX"])
+        assert step.processor_type == ProcessorType.FILTER_ON_VALUE
+        assert step.params["matchingMode"] == "FULL_STRING"
+        assert step.params["values"] == ["US", "CA", "MX"]
+
+    def test_contains_uses_substring(self, matcher):
+        step = matcher.match_filter("name", "contains", "foo")
+        assert step.processor_type == ProcessorType.FILTER_ON_VALUE
+        assert step.params["matchingMode"] == "SUBSTRING"
+
+    def test_regex_uses_pattern(self, matcher):
+        step = matcher.match_filter("email", "regex", r".*@example\.com")
+        assert step.processor_type == ProcessorType.FILTER_ON_VALUE
+        assert step.params["matchingMode"] == "PATTERN"
+
+    def test_greater_than_sets_min_bound(self, matcher):
+        step = matcher.match_filter("amount", ">", 100)
+        assert step.processor_type == ProcessorType.FILTER_ON_NUMERIC_RANGE
+        assert step.params["min"] == 100
+
+    def test_less_than_sets_max_bound(self, matcher):
+        step = matcher.match_filter("amount", "<", 50)
+        assert step.processor_type == ProcessorType.FILTER_ON_NUMERIC_RANGE
+        assert step.params["max"] == 50
+
+    def test_unknown_operator_defaults_to_equality(self, matcher):
         step = matcher.match_filter("col", "~=", "val")
-        assert step.params.get("matchingMode") == "EQUALS"
+        # Unknown operator falls back to FilterOnValue + FULL_STRING (equality)
+        assert step.processor_type == ProcessorType.FILTER_ON_VALUE
+        assert step.params["matchingMode"] == "FULL_STRING"
 
     def test_column_is_set(self, matcher):
         step = matcher.match_filter("my_col", "==", "value")

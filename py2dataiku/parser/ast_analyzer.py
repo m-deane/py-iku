@@ -101,7 +101,111 @@ class CodeAnalyzer:
                 f"Invalid Python syntax at line {e.lineno}: {e.msg}"
             ) from e
 
+        # Post-pass: detect complementary boolean filters and merge into a
+        # single FILTER transformation that the generator turns into a
+        # multi-output SPLIT recipe.
+        self._merge_complementary_filters()
+
         return self.transformations
+
+    def _merge_complementary_filters(self) -> None:
+        """Detect ``df[cond]`` / ``df[~cond]`` pairs and merge them.
+
+        Walks ``self.transformations`` looking for two consecutive FILTER
+        transformations on the same source DataFrame whose conditions are
+        explicit complements of each other (one wraps the other in a
+        unary ``not``). Replaces the pair with a single FILTER carrying
+        ``parameters["complementary_outputs"] = [target_a, target_b]`` so
+        the flow generator can emit ONE SPLIT recipe with two output
+        datasets — the canonical DSS shape for partitioned filtering.
+
+        Conservative: only matches the explicit ``~condition`` pattern.
+        Does NOT try to infer complementarity from value comparisons
+        (e.g. ``df[df.x > 5]`` and ``df[df.x <= 5]``) because that risks
+        false positives when the semantic complement isn't exact.
+        """
+        def _condition_text(trans: Transformation) -> str:
+            return (trans.parameters or {}).get("condition", "") or ""
+
+        def _is_complement(a_cond: str, b_cond: str) -> bool:
+            # Treat "~(X)" or "~X" as complement of "X" (and vice versa).
+            for x, y in ((a_cond, b_cond), (b_cond, a_cond)):
+                x_stripped = x.strip()
+                if x_stripped.startswith("~"):
+                    inner = x_stripped[1:].strip()
+                    if inner.startswith("(") and inner.endswith(")"):
+                        inner = inner[1:-1].strip()
+                    if inner == y.strip():
+                        return True
+            return False
+
+        merged_indices: set[int] = set()
+        new_transformations: list[Transformation] = []
+        for i, trans in enumerate(self.transformations):
+            if i in merged_indices:
+                continue
+            if trans.transformation_type != TransformationType.FILTER:
+                new_transformations.append(trans)
+                continue
+            # Look for a complementary FILTER later in the list with the
+            # same source dataframe and a complementary condition.
+            partner_idx = None
+            for j in range(i + 1, len(self.transformations)):
+                if j in merged_indices:
+                    continue
+                other = self.transformations[j]
+                if other.transformation_type != TransformationType.FILTER:
+                    continue
+                if other.source_dataframe != trans.source_dataframe:
+                    continue
+                if _is_complement(
+                    _condition_text(trans), _condition_text(other)
+                ):
+                    partner_idx = j
+                    break
+            if partner_idx is None:
+                new_transformations.append(trans)
+                continue
+            # Found a complementary pair. Build a merged FILTER that
+            # carries both target dataframe names. Use the non-negated
+            # condition as the SPLIT condition (so the first output is
+            # the "match" and the second is the "complement").
+            partner = self.transformations[partner_idx]
+            cond_a = _condition_text(trans)
+            cond_b = _condition_text(partner)
+            if cond_a.strip().startswith("~"):
+                positive_cond = cond_b
+                positive_target = partner.target_dataframe
+                complement_target = trans.target_dataframe
+            else:
+                positive_cond = cond_a
+                positive_target = trans.target_dataframe
+                complement_target = partner.target_dataframe
+
+            merged_params = dict(trans.parameters or {})
+            merged_params["condition"] = positive_cond
+            merged_params["complementary_outputs"] = [
+                positive_target,
+                complement_target,
+            ]
+            new_transformations.append(
+                Transformation(
+                    transformation_type=TransformationType.FILTER,
+                    source_dataframe=trans.source_dataframe,
+                    target_dataframe=positive_target,
+                    parameters=merged_params,
+                    source_line=trans.source_line,
+                    suggested_recipe="split",
+                    notes=(trans.notes or [])
+                    + [
+                        f"Complementary filter detected: {complement_target} "
+                        f"is the negation of {positive_target}"
+                    ],
+                )
+            )
+            merged_indices.add(partner_idx)
+
+        self.transformations = new_transformations
 
     def _visit_module(self, node: ast.Module) -> None:
         """Visit all statements in a module."""

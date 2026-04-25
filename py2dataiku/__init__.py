@@ -305,6 +305,7 @@ def convert_with_llm(
     model: Optional[str] = None,
     optimize: bool = True,
     flow_name: str = "converted_flow",
+    on_progress=None,
 ) -> DataikuFlow:
     """
     Convert Python code to a Dataiku flow using LLM-based analysis.
@@ -320,18 +321,22 @@ def convert_with_llm(
         model: Model name (uses provider default if not provided)
         optimize: Whether to optimize the flow
         flow_name: Name for the generated flow
+        on_progress: Optional callable invoked at each pipeline phase. Signature
+            ``on_progress(phase: str, info: dict) -> None``. Phases: ``"start"``
+            (info: ``{"code_size": int}``), ``"analyzing"`` (info: ``{"provider":
+            str, "model": str}``), ``"analyzed"`` (info: ``{"steps": int,
+            "datasets": int, "complexity": int}``), ``"generating"`` (info:
+            ``{"step_count": int}``), ``"optimizing"`` (info: ``{"recipe_count":
+            int}``), ``"done"`` (info: ``{"recipes": int, "datasets": int}``).
+            Use this to give users feedback during long LLM calls.
 
     Returns:
         DataikuFlow object representing the converted pipeline
 
     Example:
-        >>> flow = convert_with_llm('''
-        ... import pandas as pd
-        ... df = pd.read_csv('data.csv')
-        ... df = df.dropna()
-        ... result = df.groupby('category').agg({'amount': 'sum'})
-        ... ''')
-        >>> print(flow.get_summary())
+        >>> def show(phase, info):
+        ...     print(f"[{phase}] {info}")
+        >>> flow = convert_with_llm("script.py", on_progress=show)
     """
     from pathlib import Path as _Path
 
@@ -339,7 +344,7 @@ def convert_with_llm(
     if isinstance(code, _Path):
         return convert_file_with_llm(
             str(code), provider=provider, api_key=api_key, model=model,
-            optimize=optimize, flow_name=flow_name,
+            optimize=optimize, flow_name=flow_name, on_progress=on_progress,
         )
     if (
         isinstance(code, str)
@@ -349,20 +354,44 @@ def convert_with_llm(
     ):
         return convert_file_with_llm(
             code, provider=provider, api_key=api_key, model=model,
-            optimize=optimize, flow_name=flow_name,
+            optimize=optimize, flow_name=flow_name, on_progress=on_progress,
         )
+
+    def _emit(phase: str, info: dict) -> None:
+        if on_progress is None:
+            return
+        try:
+            on_progress(phase, info)
+        except Exception:
+            # Never let a callback exception break the conversion
+            pass
+
+    _emit("start", {"code_size": len(code) if isinstance(code, str) else 0})
 
     # Initialize LLM analyzer
     llm_provider = get_provider(provider, api_key, model)
-    analyzer = LLMCodeAnalyzer(provider=llm_provider)
+    _emit("analyzing", {"provider": provider, "model": llm_provider.model_name})
 
-    # Analyze code with LLM
+    analyzer = LLMCodeAnalyzer(provider=llm_provider)
     analysis = analyzer.analyze(code)
+    _emit("analyzed", {
+        "steps": len(analysis.steps),
+        "datasets": len(analysis.datasets),
+        "complexity": analysis.complexity_score,
+    })
 
     # Generate flow from analysis
+    _emit("generating", {"step_count": len(analysis.steps)})
     generator = LLMFlowGenerator()
     flow = generator.generate(analysis, flow_name=flow_name, optimize=optimize)
 
+    if optimize:
+        _emit("optimizing", {"recipe_count": len(flow.recipes)})
+
+    _emit("done", {
+        "recipes": len(flow.recipes),
+        "datasets": len(flow.datasets),
+    })
     return flow
 
 
@@ -391,6 +420,7 @@ def convert_file_with_llm(
     model: Optional[str] = None,
     optimize: bool = True,
     flow_name: Optional[str] = None,
+    on_progress=None,
 ) -> DataikuFlow:
     """
     Convert a Python file to a Dataiku flow using LLM-based analysis.
@@ -402,6 +432,7 @@ def convert_file_with_llm(
         model: Model name (uses provider default if not provided)
         optimize: Whether to optimize the flow
         flow_name: Name for the generated flow (defaults to filename)
+        on_progress: See ``convert_with_llm``.
 
     Returns:
         DataikuFlow object representing the converted pipeline
@@ -418,6 +449,7 @@ def convert_file_with_llm(
         model=model,
         optimize=optimize,
         flow_name=flow_name,
+        on_progress=on_progress,
     )
     flow.source_file = path
     return flow
