@@ -324,17 +324,27 @@ Real-world script with `df.abs()`, `df.drop()`, `df.str.upper()`, `pd.cut()`, `p
 
 ---
 
-## Items deferred to future waves (low priority)
+## Outstanding items (after wave 6)
 
-1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim) or `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` (current) is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`.
-2. **System prompt processor names** — `analyzer.py:42-50` references `ColumnDeleter`, `Normalizer`, `RegexpExtractor` which don't all match `ProcessorType` `.value`s. Auto-generate from the enum to prevent drift.
-3. **19 phantom processor types** still in `ProcessorType` (`AbsColumn`, sklearn classnames). These won't be emitted in normal use (we route around them), but they shouldn't be in the public enum — risk of misleading users.
-4. **Enum aliasing collisions**: `COLUMN_DELETER`/`COLUMNS_SELECTOR` and `DATE_FORMATTER`/`DATETIME_FORMATTER` round-trip incorrectly via `ProcessorType("ColumnsSelector")`.
-5. **3 phantom AggregationFunction values**: `MEAN`, `NUNIQUE`, `VARIANCE`. Mappings produce correct strings (`AVG`/`COUNTD`/`VAR`), but enum members exist that produce invalid strings.
-6. **N rolling/window ops → N WINDOW recipes** (no merge for window aggregations on the same input).
-7. **SPLIT recipe always single-output** — complement lost; complementary boolean filters never detected.
-8. **Optimizer is list-position based, not DAG-based** — interleaved unrelated recipes block PREPARE merging across the same dataset.
-9. **`_repr_html_` / `_repr_mimebundle_`** for JupyterLab/VS Code (only `_repr_svg_` exists today).
-10. **Real-LLM end-to-end test gated on `ANTHROPIC_API_KEY`** — the wave-1 LLM validator could only use `MockProvider`. Need a smoke test that exercises the actual analyzer prompt with a real model.
+### Correctness / verification items
+1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim, also matches `JoinConditionType` codes) or current `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`. Strong indirect evidence (matching JoinConditionType) suggests the short codes are correct.
+2. **GROUPING aggregation JSON shape** — DSS smoke tester (wave-3) flagged that emitted `aggregations` are `{column, type:"SUM"}` but DSS may expect `{column, type:"COLUMN", sum:true, avg:false, count:false, ...}` (pivot-style booleans, as in `GroupingSettings.to_dss_builder_args`). Currently only `_build_settings` for JOIN and SORT was made DSS-canonical; aggregation shape was not normalized. Worth verifying against an actual DSS instance.
+3. **System prompt processor names drift** — `analyzer.py:42-50` lists 13 processors, but a few (`ColumnDeleter`, `Normalizer`, `RegexpExtractor`) don't match `ProcessorType` `.value`s exactly. Auto-generate the prompt's processor list from the enum to prevent drift, and expand from 13 → all 122 (the LLM has no awareness of the other ~109 processors).
+4. **Real-LLM end-to-end test** — every LLM-path agent had to use `MockProvider` because no API key was set. Add a smoke test (skipped when `ANTHROPIC_API_KEY` unset) that calls the real Anthropic API and validates the LLM emits correctly-shaped `OperationType` for each example.
+
+### Optimization / completeness items
+5. **N rolling/window ops → N WINDOW recipes** — `df['x'].rolling(7).mean()` then `df['y'].rolling(7).sum()` produces 2 separate WINDOW recipes; a DSS engineer would build one WINDOW recipe with two aggregations. Optimizer doesn't merge WINDOW recipes (only PREPARE).
+6. **SPLIT recipe always single-output** — `train = df[df['x']=='a']; test = df[df['x']=='b']` produces 2 single-output SPLIT recipes; DSS expert would build one multi-output SPLIT. AST analyzer's `_handle_if` would need to detect the complementary-filter pattern.
+7. **Optimizer is list-position based** — `_apply_merge_prepare_recipes` only checks adjacent list positions, not DAG predecessors. Two PREPARE recipes connected via the same dataset but separated in the recipe list (e.g., by an unrelated JOIN inserted in the middle) won't be merged even though the DAG says they should be.
+8. **`df.describe()` / `df.info()`** — currently silently fall to UNKNOWN → Python recipe; could route to a `GENERATE_STATISTICS` recipe (the enum member already exists at `RecipeType.GENERATE_STATISTICS`).
+
+### Ergonomics / nice-to-have
+9. **`flow.diff(other)`** — useful for users iterating on a pipeline (run rule-based and LLM, compare).
+10. **`convert_with_llm(..., on_progress=callable)`** — long LLM calls give no feedback; a callback per step would help.
+11. **`_repr_html_`** as an alternative entry point for environments that prefer HTML over the SVG mime bundle.
+
+### Decisions explicitly accepted as not-bugs
+- `drop_duplicates` → PREPARE/RemoveDuplicates in rule-based path vs DISTINCT in LLM path. Both produce valid DSS output; rule-based form lets the step merge with adjacent prepare steps.
+- `SELECT_COLUMNS` emits both `keep:True` and `mode:keep`. Harmless (DSS reads whichever); legacy tests assert both.
 
 ---
