@@ -29,22 +29,33 @@ pip install py-iku[llm]  # includes anthropic and openai
 ```python
 from py2dataiku import convert, convert_with_llm
 
-# Rule-based conversion (fast, offline)
-code = '''
+# Rule-based conversion (fast, offline) — accepts a code string OR a .py path
+flow = convert("script.py")           # path-string
+flow = convert(Path("script.py"))     # pathlib.Path
+flow = convert("""                    # inline code
 import pandas as pd
-df = pd.read_csv('data.csv')
-df = df.dropna()
+df = pd.read_csv('data.csv').dropna()
 result = df.groupby('category').agg({'amount': 'sum'})
-'''
-flow = convert(code)
+""")
 
 # LLM-based conversion (more accurate, requires API key)
-flow = convert_with_llm(code, provider="anthropic")
+flow = convert_with_llm("script.py", provider="anthropic")
 
-# Visualize the flow
+# Save in any format — extension auto-detects (.json, .yaml, .svg, .html, .png, .pdf, .puml, .txt, .md)
+flow.save("flow.json")
+flow.save("flow.svg")
+
+# Or render directly
 print(flow.visualize(format="ascii"))
-svg_content = flow.visualize(format="svg")
-html_content = flow.visualize(format="html")
+flow                                  # renders inline in Jupyter / JupyterLab
+```
+
+CLI:
+
+```bash
+py2dataiku script.py                  # bare-file invocation (auto-routes to convert)
+py2dataiku script.py --llm            # use LLM (default provider: anthropic)
+py2dataiku convert script.py --provider openai
 ```
 
 ## Supported Conversions

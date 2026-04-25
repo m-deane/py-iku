@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from py2dataiku.exceptions import ConfigurationError
+
 _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*\n?(.*?)```", re.DOTALL)
 
 
@@ -66,9 +68,9 @@ class AnthropicProvider(LLMProvider):
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "Anthropic API key required. Set ANTHROPIC_API_KEY environment variable "
-                "or pass api_key parameter."
+                "or pass api_key parameter. (Or use the rule-based convert() instead.)"
             )
         self.model = model
         self.max_tokens = max_tokens
@@ -145,9 +147,9 @@ class OpenAIProvider(LLMProvider):
     ):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError(
+            raise ConfigurationError(
                 "OpenAI API key required. Set OPENAI_API_KEY environment variable "
-                "or pass api_key parameter."
+                "or pass api_key parameter. (Or use the rule-based convert() instead.)"
             )
         self.model = model
         self.max_tokens = max_tokens

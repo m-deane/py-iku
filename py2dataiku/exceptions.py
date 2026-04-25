@@ -29,5 +29,11 @@ class ExportError(Py2DataikuError):
     """Error during DSS project export."""
 
 
-class ConfigurationError(Py2DataikuError):
-    """Error in py2dataiku configuration."""
+class ConfigurationError(Py2DataikuError, ValueError):
+    """Error in py2dataiku configuration (e.g. missing API key, unknown provider).
+
+    Multi-inherits from ``ValueError`` so legacy callers using
+    ``except ValueError`` continue to work; new code should prefer
+    ``except Py2DataikuError`` or ``except ConfigurationError`` for
+    typed handling.
+    """

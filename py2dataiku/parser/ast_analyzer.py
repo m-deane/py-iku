@@ -332,6 +332,70 @@ class CodeAnalyzer:
                     )
                     return
 
+        # Detect rolling().agg-fn() chains and emit ONE WINDOW transformation
+        # (was: emitting empty WINDOW shell + phantom GROUPING from the .mean()).
+        # Same handling for expanding(), ewm() — all are window operations.
+        _WINDOW_OPS = {"rolling", "expanding", "ewm"}
+        if len(chain) >= 2:
+            for i in range(len(chain) - 1):
+                if (
+                    chain[i][0] in _WINDOW_OPS
+                    and chain[i + 1][0] in _SHORTHAND_AGG_METHODS
+                ):
+                    window_call = chain[i][1]
+                    agg_method = chain[i + 1][0]
+
+                    # Extract window size from rolling(window=N) or rolling(N)
+                    window_size = None
+                    if window_call.args and isinstance(window_call.args[0], ast.Constant):
+                        window_size = window_call.args[0].value
+                    for kw in window_call.keywords:
+                        if kw.arg == "window" and isinstance(kw.value, ast.Constant):
+                            window_size = kw.value.value
+
+                    # Map pandas agg method to DSS window function name
+                    window_func_map = {
+                        "sum": "SUM",
+                        "mean": "AVG",
+                        "count": "COUNT",
+                        "min": "MIN",
+                        "max": "MAX",
+                        "std": "STDDEV",
+                        "var": "VAR",
+                    }
+                    window_func = window_func_map.get(agg_method, agg_method.upper())
+
+                    # Walk to the chain's deepest node to detect a Subscript
+                    # like df["sales"] and extract the column name.
+                    column = ""
+                    deepest = node
+                    while isinstance(deepest, ast.Call) and isinstance(deepest.func, ast.Attribute):
+                        deepest = deepest.func.value
+                    if isinstance(deepest, ast.Subscript) and isinstance(deepest.slice, ast.Constant):
+                        column = str(deepest.slice.value)
+
+                    self.transformations.append(
+                        Transformation(
+                            transformation_type=TransformationType.ROLLING,
+                            source_dataframe=base_df,
+                            target_dataframe=target,
+                            columns=[column] if column else [],
+                            parameters={
+                                "method": agg_method,
+                                "window_function": window_func,
+                                "window": window_size,
+                                "column": column,
+                            },
+                            source_line=self.current_line,
+                            suggested_recipe="window",
+                            notes=[
+                                f"df.{chain[i][0]}({window_size or ''}).{agg_method}() "
+                                f"-> WINDOW recipe with {window_func}"
+                            ],
+                        )
+                    )
+                    return
+
         # Process each method in the chain
         current_df = base_df
         for i, (method_name, call_node) in enumerate(chain):

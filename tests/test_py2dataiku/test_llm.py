@@ -402,22 +402,28 @@ class TestGetProvider:
             get_provider("unknown_provider")
 
     def test_anthropic_requires_key(self):
-        """Test that Anthropic provider requires API key."""
+        """Test that Anthropic provider requires API key.
+
+        Raises ConfigurationError (a Py2DataikuError subclass) so users can
+        catch all library errors with a single except Py2DataikuError clause.
+        """
         import os
+        from py2dataiku.exceptions import ConfigurationError
         old_key = os.environ.pop("ANTHROPIC_API_KEY", None)
         try:
-            with pytest.raises(ValueError):
+            with pytest.raises(ConfigurationError):
                 get_provider("anthropic")
         finally:
             if old_key:
                 os.environ["ANTHROPIC_API_KEY"] = old_key
 
     def test_openai_requires_key(self):
-        """Test that OpenAI provider requires API key."""
+        """Test that OpenAI provider requires API key (raises ConfigurationError)."""
         import os
+        from py2dataiku.exceptions import ConfigurationError
         old_key = os.environ.pop("OPENAI_API_KEY", None)
         try:
-            with pytest.raises(ValueError):
+            with pytest.raises(ConfigurationError):
                 get_provider("openai")
         finally:
             if old_key:

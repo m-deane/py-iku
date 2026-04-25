@@ -460,7 +460,10 @@ class Py2Dataiku:
                 llm_provider = get_provider(provider, api_key, model)
                 self.analyzer = LLMCodeAnalyzer(provider=llm_provider)
                 self.flow_generator = LLMFlowGenerator()
-            except (ValueError, ImportError) as e:
+            except (ConfigurationError, ValueError, ImportError) as e:
+                # ConfigurationError = missing API key (typed) or unknown provider.
+                # ValueError = legacy unhandled-key paths (kept for backward-compat).
+                # ImportError = optional dependency (anthropic / openai) not installed.
                 warnings.warn(
                     f"Could not initialize LLM ({e}). Falling back to rule-based.",
                     stacklevel=2,

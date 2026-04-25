@@ -453,12 +453,39 @@ class DataikuRecipe:
                 "globalCount": False,
             }
         elif self.recipe_type == RecipeType.JOIN:
+            # Emit DSS-canonical shape: each join entry needs table indices,
+            # conditionsMode, conditions array (with column1/column2 specs),
+            # and outerJoinOnTheLeft. Without these DSS rejects the import.
+            joins = []
+            if self.join_keys:
+                conditions = []
+                for k in self.join_keys:
+                    conditions.append({
+                        "type": "EQ",
+                        "column1": {"name": k.left_column, "table": 0},
+                        "column2": {"name": k.right_column, "table": 1},
+                    })
+                joins.append({
+                    "table1": 0,
+                    "table2": 1,
+                    "conditionsMode": "AND",
+                    "joinType": self.join_type.value,
+                    "conditions": conditions,
+                    "outerJoinOnTheLeft": True,
+                })
             settings = {
                 "joinType": self.join_type.value,
-                "joins": [k.to_dict() for k in self.join_keys],
+                "joins": joins,
+                "selectedColumns": self.selected_columns or [],
+                "virtualInputs": [
+                    {"index": 0, "computedColumns": [], "preFilter": {}},
+                    {"index": 1, "computedColumns": [], "preFilter": {}},
+                ],
+                "postFilter": {},
+                "computedColumns": [],
+                "enableAutoCastInJoinConditions": False,
+                "limitOutputColumns": False,
             }
-            if self.selected_columns:
-                settings["selectedColumns"] = self.selected_columns
             return settings
         elif self.recipe_type == RecipeType.WINDOW:
             aggregations = []
@@ -485,8 +512,21 @@ class DataikuRecipe:
                 "condition": self.split_condition or "",
             }
         elif self.recipe_type == RecipeType.SORT:
+            # DSS sortColumns wants {column, ascending: bool}, not {order: "asc"/"desc"}.
+            normalized = []
+            for sc in self.sort_columns:
+                if not isinstance(sc, dict):
+                    continue
+                col = sc.get("column", "")
+                # Accept either the legacy "order" string or canonical "ascending" bool.
+                if "ascending" in sc:
+                    ascending = bool(sc["ascending"])
+                else:
+                    order_str = str(sc.get("order", "asc")).lower()
+                    ascending = order_str not in ("desc", "descending", "false")
+                normalized.append({"column": col, "ascending": ascending})
             return {
-                "sortColumns": self.sort_columns,
+                "sortColumns": normalized,
             }
         elif self.recipe_type == RecipeType.TOP_N:
             return {

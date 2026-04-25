@@ -150,7 +150,37 @@ Items 25–31. CLI bare-file, `convert()` Path support, flow.save, repr methods,
 
 ---
 
-## Items deferred to wave 3
+## Wave 3 — completed
+
+### Phase 7 (DSS readiness + API polish) — DONE
+
+**DSS-import readiness fixes** (raised import-ready estimate from ~10-20% to substantially higher):
+- **Optimizer DAG rewriting** on prepare merge — when 2 prepares merged, downstream recipe inputs that referenced the absorbed intermediate name are now rewritten to point to the merged output. Was producing broken DAGs (`join.inputs=["df_prepared"]` with no recipe outputting that name).
+- **`df["sales"].rolling(7).mean()` no longer produces phantom GROUPING + empty WINDOW shell.** Added `rolling().agg-fn()` chain detection to `_handle_method_chain` mirroring the existing `groupby().agg-fn()` detection. Emits ONE WINDOW transformation with proper window function (mean→AVG, etc.), window size, and column extracted from the deepest Subscript.
+- **JOIN `_build_settings`** now emits DSS-canonical shape: `joins[]` with `conditions[]` (each having `column1.{name,table:0}`/`column2.{name,table:1}`), `outerJoinOnTheLeft`, `virtualInputs`, `postFilter`. Was emitting only `{joinType, joins:[{left,right,matchType}]}` which DSS rejects.
+- **SORT `_build_settings`** now emits `sortColumns: [{column, ascending: bool}]`. Was emitting `{column, order: "DESC"}` (string), which DSS doesn't recognize. Accepts either input shape (legacy `order` string or canonical `ascending` boolean) and normalizes.
+
+**API polish**:
+- `DataikuFlow._repr_mimebundle_` added — JupyterLab 3+ / VS Code now show inline SVG instead of plain repr.
+- `DataikuFlow.load(path)` classmethod added — symmetric with `save()`, auto-detects format from extension.
+- `ConfigurationError` raised by providers (was bare `ValueError`) — multi-inherits from `ValueError` for backward-compat. `Py2Dataiku()` class now also catches `ConfigurationError` in its silent-fallback path.
+- README quick-start updated: shows `convert("script.py")` polymorphism, `flow.save("flow.svg")` auto-format, and the bare-CLI form.
+
+### Test results — cumulative
+
+| Metric | Baseline | Wave-1 | Wave-2 | Wave-3 | Delta |
+|---|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | 2283 | +64 |
+| Tests failing | 0 | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 | 0 |
+| New regression tests | — | +39 | +53 | +64 | +64 |
+| 120-recipe convert p50 | 320ms | — | 1.4ms | 1.4ms | 230× |
+
+11 new wave-3 tests: optimizer DAG rewriting, rolling chain emits no phantom GROUPING + extracts window size, JOIN/SORT DSS-canonical _build_settings shapes, _repr_mimebundle_, ConfigurationError, DataikuFlow.load round-trip + unsupported-format guard.
+
+---
+
+## Items deferred to wave 4
 
 1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim) or `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` (current) is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`.
 2. **System prompt processor names** — `analyzer.py:42-50` references `ColumnDeleter`, `Normalizer`, `RegexpExtractor` which don't all match `ProcessorType` `.value`s. Auto-generate from the enum to prevent drift.

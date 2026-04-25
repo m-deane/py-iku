@@ -88,11 +88,27 @@ class FlowOptimizer:
 
                 # Merge
                 intermediate_ds = recipe1.outputs[0]
+                # Capture the original "first prepare" output name BEFORE merge
+                # so we can rewrite any downstream recipe that referenced it.
+                old_recipe1_output = recipe1.outputs[0] if recipe1.outputs else None
                 merged = RecipeMerger.merge_prepare_recipes([recipe1, recipe2])
+                new_output = merged.outputs[0] if merged.outputs else None
 
                 # Replace the two recipes with the merged one
                 flow.recipes[i] = merged
                 flow.recipes.pop(i + 1)
+
+                # CRITICAL: rewrite downstream inputs to point to merged output.
+                # When recipe1 (output=A) and recipe2 (input=A, output=B) merge
+                # to (output=B), any recipe later in the list that references A
+                # must be redirected to B. Without this, the DAG breaks and
+                # DSS rejects the import with "input dataset not found".
+                if old_recipe1_output and new_output and old_recipe1_output != new_output:
+                    for downstream in flow.recipes[i + 1:]:
+                        downstream.inputs = [
+                            new_output if inp == old_recipe1_output else inp
+                            for inp in downstream.inputs
+                        ]
 
                 result.recipes_merged += 1
                 result.log.append(

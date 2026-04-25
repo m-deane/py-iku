@@ -723,11 +723,55 @@ class DataikuFlow:
         return iter(self.recipes)
 
     def _repr_svg_(self) -> str:
-        """SVG representation for Jupyter notebook rendering."""
+        """SVG representation for Jupyter notebook rendering (Classic)."""
         return self.visualize(format="svg")
+
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        """MIME bundle for JupyterLab 3+ / VS Code notebook rendering.
+
+        Classic Jupyter calls _repr_svg_ directly, but JupyterLab and many
+        modern frontends only call _repr_mimebundle_; without this they
+        fall back to the plain repr string and the user assumes the
+        library doesn't render flows.
+        """
+        try:
+            svg = self._repr_svg_()
+        except Exception:
+            return {"text/plain": repr(self)}
+        return {
+            "image/svg+xml": svg,
+            "text/plain": repr(self),
+        }
 
     def __repr__(self) -> str:
         return (
             f"DataikuFlow(name='{self.name}', "
             f"datasets={len(self.datasets)}, recipes={len(self.recipes)})"
+        )
+
+    @classmethod
+    def load(cls, path: str, format: Optional[str] = None) -> "DataikuFlow":
+        """Load a flow from a file, auto-detecting format from the extension.
+
+        Symmetric with :meth:`save`. Supported extensions: ``.json``, ``.yaml``,
+        ``.yml``.
+
+        Args:
+            path: Source file path.
+            format: Optional format override (``"json"`` or ``"yaml"``).
+        """
+        from pathlib import Path as _Path
+
+        target = _Path(path)
+        if format is None:
+            ext = target.suffix.lower().lstrip(".")
+            format = "yaml" if ext == "yml" else ext
+
+        if format == "json":
+            return cls.from_json(target.read_text())
+        if format == "yaml":
+            return cls.from_yaml(target.read_text())
+        raise ValueError(
+            f"Unsupported load format '{format}'. Use 'json' or 'yaml' "
+            f"(or pass a path with .json/.yaml/.yml extension)."
         )
