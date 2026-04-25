@@ -324,24 +324,63 @@ Real-world script with `df.abs()`, `df.drop()`, `df.str.upper()`, `pd.cut()`, `p
 
 ---
 
-## Outstanding items (after wave 6)
+## Wave 7 — completed (DSS verification + completeness + ergonomics)
 
-### Correctness / verification items
-1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim, also matches `JoinConditionType` codes) or current `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`. Strong indirect evidence (matching JoinConditionType) suggests the short codes are correct.
-2. **GROUPING aggregation JSON shape** — DSS smoke tester (wave-3) flagged that emitted `aggregations` are `{column, type:"SUM"}` but DSS may expect `{column, type:"COLUMN", sum:true, avg:false, count:false, ...}` (pivot-style booleans, as in `GroupingSettings.to_dss_builder_args`). Currently only `_build_settings` for JOIN and SORT was made DSS-canonical; aggregation shape was not normalized. Worth verifying against an actual DSS instance.
-3. **System prompt processor names drift** — `analyzer.py:42-50` lists 13 processors, but a few (`ColumnDeleter`, `Normalizer`, `RegexpExtractor`) don't match `ProcessorType` `.value`s exactly. Auto-generate the prompt's processor list from the enum to prevent drift, and expand from 13 → all 122 (the LLM has no awareness of the other ~109 processors).
-4. **Real-LLM end-to-end test** — every LLM-path agent had to use `MockProvider` because no API key was set. Add a smoke test (skipped when `ANTHROPIC_API_KEY` unset) that calls the real Anthropic API and validates the LLM emits correctly-shaped `OperationType` for each example.
+### DSS API verification — DONE (research)
+A research agent traced two unverified items against authoritative sources:
 
-### Optimization / completeness items
-5. **N rolling/window ops → N WINDOW recipes** — `df['x'].rolling(7).mean()` then `df['y'].rolling(7).sum()` produces 2 separate WINDOW recipes; a DSS engineer would build one WINDOW recipe with two aggregations. Optimizer doesn't merge WINDOW recipes (only PREPARE).
-6. **SPLIT recipe always single-output** — `train = df[df['x']=='a']; test = df[df['x']=='b']` produces 2 single-output SPLIT recipes; DSS expert would build one multi-output SPLIT. AST analyzer's `_handle_if` would need to detect the complementary-filter pattern.
-7. **Optimizer is list-position based** — `_apply_merge_prepare_recipes` only checks adjacent list positions, not DAG predecessors. Two PREPARE recipes connected via the same dataset but separated in the recipe list (e.g., by an unrelated JOIN inserted in the middle) won't be merged even though the DAG says they should be.
-8. **`df.describe()` / `df.info()`** — currently silently fall to UNKNOWN → Python recipe; could route to a `GENERATE_STATISTICS` recipe (the enum member already exists at `RecipeType.GENERATE_STATISTICS`).
+**Q2: GROUPING aggregation JSON shape** — HIGH confidence verdict from 3 authoritative sources (`dataiku-api-client-python` source, official developer guide, DSS 7.0 REST API docs): DSS expects a `"values"` array of boolean-flag entries: `{column, type:"COLUMN", sum:bool, avg:bool, count:bool, countDistinct:bool, min:bool, max:bool, stddev:bool, concat:bool}`. The wave-3 smoke tester was correct.
 
-### Ergonomics / nice-to-have
-9. **`flow.diff(other)`** — useful for users iterating on a pipeline (run rule-based and LLM, compare).
-10. **`convert_with_llm(..., on_progress=callable)`** — long LLM calls give no feedback; a callback per step would help.
-11. **`_repr_html_`** as an alternative entry point for environments that prefer HTML over the SVG mime bundle.
+**Applied fix**: Added `Aggregation.to_dss_dict()` returning the canonical boolean-flag shape (with pandas-alias normalization: `MEAN`→`avg`, `NUNIQUE`/`COUNTD`→`countDistinct`, `STD`→`stddev`). `_build_settings()` for GROUPING now emits `"values": [...]` instead of `"aggregations": [...]`. `to_dict()` left unchanged for round-trip compat.
+
+**Q1: FilterOnValue matchingMode** — INCONCLUSIVE on the surface, but research uncovered a deeper architectural finding: DSS's `FilterOnValue.matchingMode` only accepts `FULL_STRING` / `SUBSTRING` / `PATTERN` (string-match style, not comparison operators). Numeric comparisons (`>`, `<`, `>=`, `<=`) belong on `FilterOnNumericRange` or `FilterOnFormula`, not `FilterOnValue`. py-iku's current `EQUALS`/`GREATER_THAN` strings are semantically wrong, but neither the auditor's claim (`GT`/`GTE`) nor the current verbose form is supported by any public DSS reference for this specific field.
+
+**Applied fix**: Added a clear inline docstring at `pattern_matcher.match_filter` explaining the semantic mismatch and pointing at the correct architectural fix (route comparisons to `FilterOnNumericRange`/`FilterOnFormula`). Did NOT change the strings — neither candidate is verified, and the structural restructuring (splitting filter routing by operator class) is a larger fix that needs its own design pass.
+
+### LLM system prompt auto-generation — DONE
+Refactored `analyzer.py` to auto-generate the processor list from `ProcessorCatalog.PROCESSORS` (now post-wave-6, only contains real DSS processors). The prompt grew from 13 listed processors to 89 canonical names across 17 categories — the LLM now has full vocabulary and can never hallucinate phantom names. 8 new tests guard category coverage, deterministic ordering, and absence of phantom names.
+
+### WINDOW recipe merger — DONE
+Added `_apply_merge_window_recipes` to `FlowOptimizer` (mirrors the existing prepare merger). Two consecutive WINDOW recipes merge when they share the same input dataset AND identical `partition_columns` AND identical `order_columns`. Aggregations are concatenated. Same DAG-rewrite pattern as the prepare merger keeps downstream inputs valid.
+
+End-to-end test: `df['x'].rolling(7).mean()` followed by `df['x'].rolling(7).sum()` now produces ONE WINDOW recipe with 2 aggregations (was 2 separate WINDOW recipes).
+
+### `df.describe()` / `df.info()` → GENERATE_STATISTICS — DONE
+Added `TransformationType.STATISTICS` and `OperationType.STATISTICS`, plus handlers in both rule-based and LLM paths. `df.describe()` and `df.info()` now produce a `RecipeType.GENERATE_STATISTICS` recipe instead of falling to a Python recipe. The recipe references the input dataset and registers a separate output dataset for the statistics report.
+
+### Ergonomics — DONE
+- `DataikuFlow._repr_html_()` added — for environments that prefer HTML over the SVG mime bundle. Returns the SVG wrapped in a minimal HTML container.
+- `DataikuFlow.diff(other)` added — returns a structured dict of recipe additions/removals/changes plus dataset diffs and an `equivalent` boolean. Useful for comparing rule-based vs LLM output on the same code.
+
+### Test results — cumulative
+
+| Metric | Baseline | W1 | W2 | W3 | W4 | W5 | W6 | W7 | Δ |
+|---|---|---|---|---|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | 2283 | 2291 | 2291 | 2306 | 2328 | +109 |
+| Tests failing | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+22 new wave-7 tests covering: GROUPING `to_dss_dict` boolean flags, pandas alias normalization, `_build_settings` emits `values[]` (not `aggregations[]`), WINDOW recipe merging, partition-mismatch non-merge, downstream-input rewriting, `df.describe()`/`df.info()` → STATISTICS, system prompt auto-generation determinism + canonical name presence + phantom name absence.
+
+End-to-end verified: a complex script (read → dropna → describe → 2 rolling ops → groupby with multi-fn agg) produces 4 visual recipes (PREPARE + GENERATE_STATISTICS + ONE merged WINDOW + GROUPING with DSS-canonical `values[]`).
+
+---
+
+## Outstanding items (after wave 7)
+
+### Architectural restructuring (verified-needed)
+1. **Filter routing by operator class** — DSS research confirmed `FilterOnValue.matchingMode` is for string-match style (`FULL_STRING`/`SUBSTRING`/`PATTERN`), NOT comparison operators. Numeric comparisons (`>`, `<`, `>=`, `<=`) need `FilterOnNumericRange` (with `min`/`max` bounds), `==`/`!=`/`in` can stay on `FilterOnValue` with the right `matchingMode`, and complex predicates (`x > 5 AND y < 10`) belong on `FilterOnFormula` with GREL. `pattern_matcher.match_filter` and `llm_flow_generator._map_operator` need redesign — current strings are not DSS-valid. Documented inline pending the structural fix.
+
+### Optimization / completeness still TODO
+2. **SPLIT recipe complement detection** — `train = df[cond]; test = df[~cond]` still produces 2 single-output SPLITs instead of one multi-output SPLIT. `_handle_if` in `ast_analyzer.py` would need pattern-matching to detect the complementary structure.
+3. **Optimizer DAG-aware merging** — `_apply_merge_*_recipes` walks adjacent list positions; an unrelated recipe interleaved between two PREPARE/WINDOW operations on the same dataset blocks the merge even when the DAG says they should merge. Fix: scan reachability via the dependency graph instead.
+
+### Ergonomics still TODO
+4. **`convert_with_llm(..., on_progress=callable)`** — long LLM calls give no feedback; a callback per step would help.
+
+### Verification still TODO (need a real DSS instance)
+5. **Real-LLM end-to-end test** — gated on `ANTHROPIC_API_KEY` (unset in this environment). Need a smoke test that calls the real Anthropic API and validates the LLM emits correctly-shaped output for each example.
+6. **Real DSS import test** — every "DSS-valid" claim in the plan is verified against `dataiku-api-client-python` source code, NOT against a live DSS 14 instance. A real DSS smoke test would close this loop.
 
 ### Decisions explicitly accepted as not-bugs
 - `drop_duplicates` → PREPARE/RemoveDuplicates in rule-based path vs DISTINCT in LLM path. Both produce valid DSS output; rule-based form lets the step merge with adjacent prepare steps.

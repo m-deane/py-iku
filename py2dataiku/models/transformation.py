@@ -61,6 +61,9 @@ class TransformationType(Enum):
     TRANSFORM = "transform"
     FIT_TRANSFORM = "fit_transform"
 
+    # Statistics / data profiling
+    STATISTICS = "statistics"
+
     # Custom/unknown
     CUSTOM_FUNCTION = "custom_function"
     UNKNOWN = "unknown"

@@ -6,9 +6,47 @@ from typing import Optional
 from py2dataiku.exceptions import LLMResponseParseError
 from py2dataiku.llm.providers import LLMProvider, get_provider
 from py2dataiku.llm.schemas import AnalysisResult, DataStep, OperationType
+from py2dataiku.mappings.processor_catalog import ProcessorCatalog
 
-# System prompt for code analysis
-ANALYSIS_SYSTEM_PROMPT = """You are an expert data engineer specializing in Python data processing and Dataiku DSS.
+
+def _build_processor_catalog_section() -> str:
+    """
+    Auto-generate the processor catalog section of the system prompt
+    from ``ProcessorCatalog.PROCESSORS``.
+
+    Output is grouped by category and deterministically sorted (categories
+    sorted alphabetically; processors within a category sorted by canonical
+    ``ProcessorInfo.name``). Only canonical processor names + 1-line
+    descriptions are emitted to keep the prompt compact.
+
+    Each registry key maps to a ``ProcessorInfo``. Some keys are aliases
+    (e.g. ``ColumnsSelector_delete`` maps to canonical name
+    ``ColumnsSelector``) so we de-duplicate by the ``info.name`` field
+    within each category.
+    """
+    by_category: dict[str, dict[str, str]] = {}
+    for info in ProcessorCatalog.PROCESSORS.values():
+        # De-duplicate aliased entries (different keys, same canonical name).
+        # First occurrence wins; if any later entry shares the canonical
+        # name, we keep the existing description (they describe the same
+        # processor in DSS).
+        bucket = by_category.setdefault(info.category, {})
+        if info.name not in bucket:
+            bucket[info.name] = info.description
+
+    lines: list[str] = ["Dataiku Prepare Recipe Processors (grouped by category):"]
+    for category in sorted(by_category):
+        lines.append("")
+        lines.append(f"{category}:")
+        for name in sorted(by_category[category]):
+            description = by_category[category][name]
+            lines.append(f"- {name}: {description}")
+    return "\n".join(lines)
+
+
+def _build_analysis_system_prompt() -> str:
+    """Construct the LLM system prompt with an auto-generated processor catalog."""
+    return f"""You are an expert data engineer specializing in Python data processing and Dataiku DSS.
 
 Your task is to analyze Python code that performs data manipulations (using pandas, numpy, etc.) and break it down into discrete data processing steps.
 
@@ -34,22 +72,14 @@ Dataiku Recipe Types:
 - sampling: Random sampling
 - python: Complex operations requiring custom code
 
-Dataiku Prepare Recipe Processors:
-- FillEmptyWithValue: Fill nulls with a constant
-- RemoveRowsOnEmpty: Drop rows with nulls
-- ColumnRenamer: Rename columns
-- ColumnDeleter: Drop columns
-- StringTransformer: String operations (upper, lower, trim)
-- TypeSetter: Change column data types
-- DateParser: Parse string to date
-- FilterOnValue: Filter rows by value
-- CreateColumnWithGREL: Create computed column
-- Binner: Bin numeric values
-- Normalizer: Normalize/standardize values
-- RegexpExtractor: Extract with regex
-- RemoveDuplicates: Deduplicate rows
+{_build_processor_catalog_section()}
 
-Be precise and thorough. Extract ALL operations, even implicit ones."""
+Be precise and thorough. Extract ALL operations, even implicit ones. Use only the canonical processor names listed above when populating ``suggested_processors``."""
+
+
+# System prompt for code analysis. Built once at import time from the
+# ProcessorCatalog so the prompt cannot drift away from the actual code.
+ANALYSIS_SYSTEM_PROMPT = _build_analysis_system_prompt()
 
 
 def get_analysis_prompt(code: str) -> str:
@@ -261,6 +291,7 @@ class LLMCodeAnalyzer:
             OperationType.ENCODE_CATEGORICAL: "prepare",
             OperationType.NORMALIZE_SCALE: "prepare",
             OperationType.GEO_OPERATION: "prepare",
+            OperationType.STATISTICS: "generate_statistics",
             OperationType.CUSTOM_FUNCTION: "python",
             OperationType.UNKNOWN: "python",
         }

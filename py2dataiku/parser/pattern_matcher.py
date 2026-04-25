@@ -90,8 +90,23 @@ class PatternMatcher:
     def match_filter(
         self, column: str, operator: str, value: Any
     ) -> PrepareStep:
-        """Match filter conditions to FilterOnValue processor."""
-        # Map operators to matching modes
+        """Match filter conditions to a Filter processor.
+
+        SEMANTIC NOTE (verified against dataiku-api-client-python):
+        DSS's ``FilterOnValue.matchingMode`` is for *string-match style*
+        (``FULL_STRING`` / ``SUBSTRING`` / ``PATTERN``) — NOT for
+        comparison operators. For numeric comparisons (``>``, ``<``,
+        ``>=``, ``<=``) the canonical DSS approach is to use
+        ``FilterOnNumericRange`` with min/max bounds, or
+        ``FilterOnFormula`` with a GREL expression.
+
+        The strings emitted below (``EQUALS`` / ``GREATER_THAN`` / etc.)
+        are not confirmed by any public DSS reference and are likely to
+        be rejected by DSS's FilterOnValue processor. They are kept here
+        as a placeholder pending a structural fix that routes numeric
+        comparisons to the right Filter processor type. See the
+        ultrareview plan ("Outstanding items") for context.
+        """
         mode_map = {
             "==": "EQUALS",
             "!=": "NOT_EQUALS",

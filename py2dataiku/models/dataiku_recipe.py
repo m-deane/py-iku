@@ -234,10 +234,60 @@ class Aggregation:
     output_column: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
+        """Display / round-trip dict.
+
+        Note: this shape (``{column, type:"SUM"}``) is convenient for
+        round-trip serialization through ``DataikuRecipe.from_dict`` /
+        ``to_dict`` but is NOT the DSS wire format. For DSS API export
+        use :meth:`to_dss_dict` instead — that's what ``_build_settings``
+        calls when emitting GROUPING recipe payloads.
+        """
         result = {
             "column": self.column,
             "type": self.function.upper(),
         }
+        if self.output_column:
+            result["outputColumn"] = self.output_column
+        return result
+
+    # DSS Grouping recipe ``values`` entries use boolean flags rather than a
+    # single type string, per the official dataiku-api-client-python
+    # GroupingRecipeSettings.set_column_aggregations API. Each aggregation
+    # entry has flags for sum/avg/count/min/max/stddev/concat/countDistinct.
+    _AGG_FLAG_NAMES = ("sum", "avg", "count", "min", "max", "stddev", "concat")
+    _COUNT_DISTINCT_ALIASES = ("COUNTD", "NUNIQUE", "COUNT_DISTINCT", "COUNTDISTINCT")
+    _MEAN_ALIASES = ("MEAN", "AVG")
+    _STD_ALIASES = ("STD", "STDDEV")
+    _VAR_ALIASES = ("VAR", "VARIANCE")
+
+    def to_dss_dict(self) -> dict[str, Any]:
+        """DSS-canonical wire shape for a GROUPING recipe ``values[]`` entry.
+
+        Returns a dict with ``column``, ``type`` (DSS schema type — defaults
+        to ``"COLUMN"``), one boolean per supported aggregation flag, and
+        ``countDistinct`` for COUNTD/NUNIQUE. This matches what
+        ``GroupingRecipeSettings.set_column_aggregations()`` builds in
+        the official dataiku-api-client-python library.
+        """
+        func = (self.function or "").upper()
+        # Normalize pandas-style aliases to canonical DSS flag names.
+        if func in self._MEAN_ALIASES:
+            canonical = "avg"
+        elif func in self._STD_ALIASES:
+            canonical = "stddev"
+        elif func in self._VAR_ALIASES:
+            # DSS Grouping has no native variance flag — fall back to stddev.
+            canonical = "stddev"
+        else:
+            canonical = func.lower()
+
+        result: dict[str, Any] = {
+            "column": self.column,
+            "type": "COLUMN",
+        }
+        for flag in self._AGG_FLAG_NAMES:
+            result[flag] = canonical == flag
+        result["countDistinct"] = func in self._COUNT_DISTINCT_ALIASES
         if self.output_column:
             result["outputColumn"] = self.output_column
         return result
@@ -455,9 +505,14 @@ class DataikuRecipe:
                 "steps": [s.to_json() for s in self.steps],
             }
         elif self.recipe_type == RecipeType.GROUPING:
+            # DSS expects a "values" array of boolean-flag aggregation entries
+            # (verified against dataiku-api-client-python
+            # GroupingRecipeSettings.set_column_aggregations). The legacy
+            # "aggregations" key with type-string entries is what to_dict()
+            # returns for round-trip / display, but DSS rejects that shape.
             return {
                 "keys": [{"column": k} for k in self.group_keys],
-                "aggregations": [a.to_dict() for a in self.aggregations],
+                "values": [a.to_dss_dict() for a in self.aggregations],
                 "globalCount": False,
             }
         elif self.recipe_type == RecipeType.JOIN:

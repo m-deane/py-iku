@@ -60,6 +60,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         OperationType.ENCODE_CATEGORICAL: "prepare",
         OperationType.NORMALIZE_SCALE: "prepare",
         OperationType.GEO_OPERATION: "prepare",
+        OperationType.STATISTICS: "generate_statistics",
     }
 
     def __init__(self):
@@ -232,6 +233,17 @@ class LLMFlowGenerator(BaseFlowGenerator):
                     prepare_steps_buffer = []
 
                 current_input = self._create_pivot_recipe(step, current_input)
+
+            elif suggested == "generate_statistics":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                # Statistics is a profiling side-output: it does NOT
+                # advance the working dataset for subsequent steps.
+                self._create_statistics_recipe(step, current_input)
 
             elif suggested == "python":
                 if prepare_steps_buffer:
@@ -772,6 +784,31 @@ class LLMFlowGenerator(BaseFlowGenerator):
 
         if step.reasoning:
             recipe.notes.append(step.reasoning)
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_statistics_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Generate Statistics recipe (df.describe / df.info)."""
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"statistics_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        recipe = DataikuRecipe(
+            name=f"statistics_{self.recipe_counter}",
+            recipe_type=RecipeType.GENERATE_STATISTICS,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+        )
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
+
+        if not self.flow.get_dataset(output_name):
+            self.flow.add_dataset(
+                DataikuDataset(name=output_name, dataset_type=DatasetType.OUTPUT)
+            )
 
         self.flow.add_recipe(recipe)
         return output_name

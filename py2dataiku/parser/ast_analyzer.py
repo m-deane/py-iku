@@ -61,6 +61,8 @@ class CodeAnalyzer:
         "rank": "_handle_rank",
         "nunique": "_handle_nunique",
         "interpolate": "_handle_interpolate",
+        "describe": "_handle_describe",
+        "info": "_handle_info",
     }
 
     def __init__(self):
@@ -1475,6 +1477,38 @@ class CodeAnalyzer:
             )
         )
 
+    def _handle_describe(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle describe() calls -> GENERATE_STATISTICS recipe."""
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.STATISTICS,
+                source_dataframe=df,
+                # describe()/info() are profiling reports — do NOT carry over
+                # `target` because callers often write `df.describe()` for
+                # logging without rebinding `df`. Treating it as an
+                # in-place mutation of `df` would break downstream chains.
+                target_dataframe=target if target and target != df else None,
+                parameters={"method": "describe"},
+                source_line=self.current_line,
+                suggested_recipe="generate_statistics",
+                notes=["df.describe() -> GENERATE_STATISTICS recipe"],
+            )
+        )
+
+    def _handle_info(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle info() calls -> GENERATE_STATISTICS recipe."""
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.STATISTICS,
+                source_dataframe=df,
+                target_dataframe=target if target and target != df else None,
+                parameters={"method": "info"},
+                source_line=self.current_line,
+                suggested_recipe="generate_statistics",
+                notes=["df.info() -> GENERATE_STATISTICS recipe"],
+            )
+        )
+
     def _handle_filter(self, node: ast.Subscript, target: str) -> None:
         """Handle filtering/selection operations like df[condition] or df[['col1','col2']]."""
         df_name = self._get_name(node.value)
@@ -1639,6 +1673,16 @@ class CodeAnalyzer:
                             source_line=self.current_line,
                         )
                     )
+                # Profiling/statistics expressions like `df.describe()` /
+                # `df.info()` are commonly written as bare statements (not
+                # assigned to a variable). Route them through the standard
+                # method-handler dispatch so they emit a STATISTICS
+                # transformation -> GENERATE_STATISTICS recipe.
+                elif method in ("describe", "info"):
+                    df_name = self._get_name(func.value)
+                    handler = self._method_handlers.get(method)
+                    if handler:
+                        handler(df_name, node.value, df_name)
 
     def _handle_if(self, node: ast.If) -> None:
         """Handle if statements."""

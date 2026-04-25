@@ -59,6 +59,9 @@ class OperationType(Enum):
     # Geographic
     GEO_OPERATION = "geo_operation"
 
+    # Statistics / data profiling
+    STATISTICS = "statistics"
+
     # Custom/Complex
     CUSTOM_FUNCTION = "custom_function"
     UNKNOWN = "unknown"

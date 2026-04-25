@@ -2050,3 +2050,374 @@ class TestProcessorCatalogNoLongerListsPhantoms:
             assert catalog.get_processor(canonical) is not None, (
                 f"Canonical processor {canonical} missing from catalog"
             )
+
+
+# ---------------------------------------------------------------------------
+# Wave-N: Merge consecutive WINDOW recipes on the same input
+# ---------------------------------------------------------------------------
+
+class TestMergeConsecutiveWindowRecipes:
+    """Two WINDOW recipes on the same input + same partition/order should
+    collapse into one WINDOW recipe with both aggregations."""
+
+    def _make_window_recipe(self, name, inputs, outputs, aggs,
+                            partition=None, order=None):
+        from py2dataiku.models.dataiku_recipe import DataikuRecipe, RecipeType
+        return DataikuRecipe(
+            name=name,
+            recipe_type=RecipeType.WINDOW,
+            inputs=list(inputs),
+            outputs=list(outputs),
+            window_aggregations=list(aggs),
+            partition_columns=list(partition or []),
+            order_columns=list(order or []),
+        )
+
+    def test_two_chained_window_recipes_merge_into_one(self):
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.optimizer.flow_optimizer import FlowOptimizer
+
+        flow = DataikuFlow(name="two_windows")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(
+            DataikuDataset(name="intermediate", dataset_type=DatasetType.INTERMEDIATE)
+        )
+        flow.add_dataset(DataikuDataset(name="output", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(
+            self._make_window_recipe(
+                "window_1",
+                inputs=["input"],
+                outputs=["intermediate"],
+                aggs=[{"column": "sales", "type": "AVG", "windowSize": 7}],
+                partition=["region"],
+                order=["date"],
+            )
+        )
+        flow.add_recipe(
+            self._make_window_recipe(
+                "window_2",
+                inputs=["intermediate"],
+                outputs=["output"],
+                aggs=[{"column": "sales", "type": "SUM", "windowSize": 7}],
+                partition=["region"],
+                order=["date"],
+            )
+        )
+
+        FlowOptimizer().optimize(flow, apply=True)
+
+        windows = [r for r in flow.recipes if r.recipe_type == RecipeType.WINDOW]
+        assert len(windows) == 1, "Two consecutive WINDOW recipes should merge"
+        assert windows[0].outputs == ["output"]
+        assert len(windows[0].window_aggregations) == 2
+        agg_types = {agg["type"] for agg in windows[0].window_aggregations}
+        assert agg_types == {"AVG", "SUM"}
+
+    def test_window_recipes_with_different_partitions_not_merged(self):
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.optimizer.flow_optimizer import FlowOptimizer
+
+        flow = DataikuFlow(name="diff_partitions")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(
+            DataikuDataset(name="intermediate", dataset_type=DatasetType.INTERMEDIATE)
+        )
+        flow.add_dataset(DataikuDataset(name="output", dataset_type=DatasetType.OUTPUT))
+        flow.add_recipe(
+            self._make_window_recipe(
+                "window_1",
+                inputs=["input"],
+                outputs=["intermediate"],
+                aggs=[{"column": "sales", "type": "AVG"}],
+                partition=["region"],
+                order=["date"],
+            )
+        )
+        flow.add_recipe(
+            self._make_window_recipe(
+                "window_2",
+                inputs=["intermediate"],
+                outputs=["output"],
+                aggs=[{"column": "sales", "type": "SUM"}],
+                partition=["country"],   # DIFFERENT partition
+                order=["date"],
+            )
+        )
+
+        FlowOptimizer().optimize(flow, apply=True)
+
+        windows = [r for r in flow.recipes if r.recipe_type == RecipeType.WINDOW]
+        assert len(windows) == 2, (
+            "WINDOW recipes with different partition_columns must stay separate"
+        )
+
+    def test_downstream_inputs_rewritten_when_windows_merge(self):
+        """When window_1->intermediate, window_2->output get merged, any
+        downstream recipe that pointed at 'intermediate' should be redirected
+        to 'output' (the merged recipe's output)."""
+        from py2dataiku.models.dataiku_dataset import DataikuDataset, DatasetType
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+        from py2dataiku.models.dataiku_recipe import (
+            DataikuRecipe,
+            RecipeType,
+        )
+        from py2dataiku.optimizer.flow_optimizer import FlowOptimizer
+
+        flow = DataikuFlow(name="window_with_downstream")
+        flow.add_dataset(DataikuDataset(name="input", dataset_type=DatasetType.INPUT))
+        flow.add_dataset(
+            DataikuDataset(name="intermediate", dataset_type=DatasetType.INTERMEDIATE)
+        )
+        flow.add_dataset(
+            DataikuDataset(name="windowed", dataset_type=DatasetType.INTERMEDIATE)
+        )
+        flow.add_dataset(DataikuDataset(name="final", dataset_type=DatasetType.OUTPUT))
+
+        flow.add_recipe(
+            self._make_window_recipe(
+                "window_1",
+                inputs=["input"],
+                outputs=["intermediate"],
+                aggs=[{"column": "sales", "type": "AVG"}],
+                partition=["region"],
+                order=["date"],
+            )
+        )
+        flow.add_recipe(
+            self._make_window_recipe(
+                "window_2",
+                inputs=["intermediate"],
+                outputs=["windowed"],
+                aggs=[{"column": "sales", "type": "SUM"}],
+                partition=["region"],
+                order=["date"],
+            )
+        )
+        # A downstream consumer (initially) consumes the merged window output.
+        flow.add_recipe(
+            DataikuRecipe(
+                name="downstream_sort",
+                recipe_type=RecipeType.SORT,
+                inputs=["windowed"],
+                outputs=["final"],
+            )
+        )
+
+        FlowOptimizer().optimize(flow, apply=True)
+
+        windows = [r for r in flow.recipes if r.recipe_type == RecipeType.WINDOW]
+        assert len(windows) == 1
+        # The downstream sort recipe must now consume the merged WINDOW's
+        # output, NOT the dropped intermediate dataset.
+        sort = next(r for r in flow.recipes if r.name == "downstream_sort")
+        assert sort.inputs == ["windowed"], (
+            "Downstream recipe inputs must point at the surviving WINDOW output"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Wave-N: df.describe() / df.info() -> GENERATE_STATISTICS recipe
+# ---------------------------------------------------------------------------
+
+class TestDescribeInfoStatistics:
+    """`df.describe()` and `df.info()` should map to a GENERATE_STATISTICS
+    recipe — not fall through to a generic Python recipe."""
+
+    def test_describe_emits_statistics_transformation(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df.describe()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        types = _types(transformations)
+        assert TransformationType.STATISTICS in types
+
+    def test_info_emits_statistics_transformation(self):
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df.info()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        types = _types(transformations)
+        assert TransformationType.STATISTICS in types
+
+    def test_describe_produces_generate_statistics_recipe(self):
+        from py2dataiku.generators.flow_generator import FlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df.describe()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        flow = FlowGenerator().generate(transformations, optimize=False)
+
+        stats = [
+            r for r in flow.recipes
+            if r.recipe_type == RecipeType.GENERATE_STATISTICS
+        ]
+        pythons = [r for r in flow.recipes if r.recipe_type == RecipeType.PYTHON]
+        assert len(stats) == 1, (
+            "df.describe() must emit exactly one GENERATE_STATISTICS recipe"
+        )
+        assert not pythons, "df.describe() must NOT fall back to a Python recipe"
+
+    def test_info_produces_generate_statistics_recipe(self):
+        from py2dataiku.generators.flow_generator import FlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df.info()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        flow = FlowGenerator().generate(transformations, optimize=False)
+
+        stats = [
+            r for r in flow.recipes
+            if r.recipe_type == RecipeType.GENERATE_STATISTICS
+        ]
+        pythons = [r for r in flow.recipes if r.recipe_type == RecipeType.PYTHON]
+        assert len(stats) == 1
+        assert not pythons
+
+    def test_statistics_recipe_references_input_dataset(self):
+        from py2dataiku.generators.flow_generator import FlowGenerator
+        from py2dataiku.models.dataiku_recipe import RecipeType
+
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('data.csv')\n"
+            "df.describe()\n"
+        )
+        analyzer = CodeAnalyzer()
+        transformations = analyzer.analyze(code)
+        flow = FlowGenerator().generate(transformations, optimize=False)
+
+        stats = [
+            r for r in flow.recipes
+            if r.recipe_type == RecipeType.GENERATE_STATISTICS
+        ]
+        assert stats and stats[0].inputs, "Recipe must declare an input"
+        # The input should be a registered dataset in the flow.
+        input_name = stats[0].inputs[0]
+        assert flow.get_dataset(input_name) is not None, (
+            f"Statistics recipe input '{input_name}' is not a registered dataset"
+        )
+
+
+# ===================================================================
+# Ultrareview wave-7: Phase 10 — DSS-canonical aggregation shape
+# ===================================================================
+
+
+class TestGroupingAggregationDssWireFormat:
+    """DSS Grouping recipe expects {column, type:"COLUMN", sum:bool, avg:bool,
+    count:bool, countDistinct:bool, ...} in a "values" array — verified against
+    dataiku-api-client-python.
+
+    See ultrareview-2026-04-25.md "Outstanding items" Q2 for sources.
+    """
+
+    def test_aggregation_to_dss_dict_uses_boolean_flags(self):
+        from py2dataiku.models.dataiku_recipe import Aggregation
+        agg = Aggregation(column="amount", function="SUM")
+        d = agg.to_dss_dict()
+        assert d["column"] == "amount"
+        assert d["type"] == "COLUMN"
+        assert d["sum"] is True
+        assert d["avg"] is False
+        assert d["count"] is False
+        assert d["countDistinct"] is False
+
+    def test_aggregation_to_dss_dict_avg_flag(self):
+        from py2dataiku.models.dataiku_recipe import Aggregation
+        agg = Aggregation(column="rev", function="AVG")
+        d = agg.to_dss_dict()
+        assert d["avg"] is True
+        assert d["sum"] is False
+
+    def test_aggregation_to_dss_dict_normalizes_pandas_aliases(self):
+        """pandas-style names (MEAN, STD, NUNIQUE, COUNTD) must normalize."""
+        from py2dataiku.models.dataiku_recipe import Aggregation
+        # MEAN -> avg (DSS canonical)
+        d = Aggregation(column="x", function="MEAN").to_dss_dict()
+        assert d["avg"] is True
+        # NUNIQUE -> countDistinct
+        d = Aggregation(column="user_id", function="NUNIQUE").to_dss_dict()
+        assert d["countDistinct"] is True
+        # COUNTD -> countDistinct
+        d = Aggregation(column="user_id", function="COUNTD").to_dss_dict()
+        assert d["countDistinct"] is True
+        # STD -> stddev
+        d = Aggregation(column="x", function="STD").to_dss_dict()
+        assert d["stddev"] is True
+
+    def test_aggregation_to_dict_unchanged_for_round_trip(self):
+        """to_dict still returns the legacy {column, type:"SUM"} shape so
+        round-trip through DataikuRecipe.from_dict keeps working."""
+        from py2dataiku.models.dataiku_recipe import Aggregation
+        d = Aggregation(column="amount", function="SUM").to_dict()
+        assert d == {"column": "amount", "type": "SUM"}
+
+    def test_grouping_build_settings_emits_values_with_boolean_flags(self):
+        """The DSS-export path (_build_settings) must emit "values" array
+        with boolean-flag entries, NOT the legacy "aggregations" with type strings."""
+        from py2dataiku.models.dataiku_recipe import (
+            Aggregation, DataikuRecipe, RecipeType,
+        )
+        recipe = DataikuRecipe(
+            name="g",
+            recipe_type=RecipeType.GROUPING,
+            inputs=["df"],
+            outputs=["grouped"],
+            group_keys=["category"],
+            aggregations=[
+                Aggregation(column="amount", function="SUM"),
+                Aggregation(column="user_id", function="NUNIQUE"),
+            ],
+        )
+        d = recipe._build_settings()
+        # DSS canonical key is "values", not "aggregations"
+        assert "values" in d
+        assert len(d["values"]) == 2
+        # First entry: SUM
+        v0 = d["values"][0]
+        assert v0["column"] == "amount"
+        assert v0["type"] == "COLUMN"
+        assert v0["sum"] is True
+        # Second entry: NUNIQUE -> countDistinct
+        v1 = d["values"][1]
+        assert v1["column"] == "user_id"
+        assert v1["countDistinct"] is True
+        # Keys are wrapped in dicts (DSS shape)
+        assert d["keys"] == [{"column": "category"}]
+
+    def test_grouping_build_settings_emits_no_legacy_aggregations_key(self):
+        from py2dataiku.models.dataiku_recipe import (
+            Aggregation, DataikuRecipe, RecipeType,
+        )
+        recipe = DataikuRecipe(
+            name="g",
+            recipe_type=RecipeType.GROUPING,
+            inputs=["df"],
+            outputs=["grouped"],
+            group_keys=["c"],
+            aggregations=[Aggregation(column="x", function="SUM")],
+        )
+        d = recipe._build_settings()
+        # The legacy key "aggregations" with type-string entries is the
+        # display shape and must NOT appear in the DSS export.
+        assert "aggregations" not in d

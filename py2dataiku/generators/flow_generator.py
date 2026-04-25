@@ -238,6 +238,19 @@ class FlowGenerator(BaseFlowGenerator):
                 if step:
                     prepare_steps.append(step)
 
+            elif trans.transformation_type == TransformationType.STATISTICS:
+                if prepare_steps and current_input:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps
+                    )
+                    prepare_steps = []
+
+                # Statistics recipes don't replace the working dataset:
+                # `df.describe()` is a profiling operation; downstream code
+                # still operates on the original `df`. So we add the recipe
+                # but leave current_input untouched.
+                self._create_statistics_recipe(trans, current_input)
+
             elif trans.transformation_type == TransformationType.WRITE_DATA:
                 # Flush prepare steps
                 if prepare_steps and current_input:
@@ -678,6 +691,39 @@ class FlowGenerator(BaseFlowGenerator):
             window_aggregations=window_aggs,
         )
         recipe.source_lines = [trans.source_line] if trans.source_line else []
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_statistics_recipe(
+        self, trans: Transformation, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Generate Statistics recipe.
+
+        Maps `df.describe()` / `df.info()` to DSS's native
+        GENERATE_STATISTICS recipe rather than falling through to a
+        generic Python recipe.
+        """
+        self.recipe_counter += 1
+
+        method = trans.parameters.get("method", "describe")
+        output_name = f"{input_dataset or 'data'}_statistics_{self.recipe_counter}"
+
+        recipe = DataikuRecipe(
+            name=f"statistics_{self.recipe_counter}",
+            recipe_type=RecipeType.GENERATE_STATISTICS,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            notes=[f"df.{method}() -> GENERATE_STATISTICS recipe"],
+        )
+        recipe.source_lines = [trans.source_line] if trans.source_line else []
+
+        # Register an output dataset so downstream consumers / serialization
+        # don't dangle on an unknown name.
+        if not self.flow.get_dataset(output_name):
+            self.flow.add_dataset(
+                DataikuDataset(name=output_name, dataset_type=DatasetType.OUTPUT)
+            )
 
         self.flow.add_recipe(recipe)
         return output_name

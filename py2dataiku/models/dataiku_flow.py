@@ -726,6 +726,20 @@ class DataikuFlow:
         """SVG representation for Jupyter notebook rendering (Classic)."""
         return self.visualize(format="svg")
 
+    def _repr_html_(self) -> str:
+        """HTML representation for environments that prefer HTML over SVG.
+
+        Some notebook frontends and reporting tools display HTML reprs
+        differently (e.g. wrapped in their own container, scrollable,
+        with additional metadata). For those, return the SVG inline
+        wrapped in a minimal HTML fragment.
+        """
+        try:
+            svg = self.visualize(format="svg")
+        except Exception:
+            return f"<pre>{repr(self)}</pre>"
+        return f'<div class="py-iku-flow">{svg}</div>'
+
     def _repr_mimebundle_(self, include=None, exclude=None):
         """MIME bundle for JupyterLab 3+ / VS Code notebook rendering.
 
@@ -775,3 +789,76 @@ class DataikuFlow:
             f"Unsupported load format '{format}'. Use 'json' or 'yaml' "
             f"(or pass a path with .json/.yaml/.yml extension)."
         )
+
+    def diff(self, other: "DataikuFlow") -> dict[str, Any]:
+        """Compute a structural diff against another flow.
+
+        Useful when comparing two conversions of the same script (e.g. the
+        rule-based output vs an LLM output) to see exactly what changed.
+
+        The diff is recipe-name-keyed and reports:
+
+        - ``added``: recipes present in ``other`` but not in ``self``
+        - ``removed``: recipes present in ``self`` but not in ``other``
+        - ``changed``: recipes present in both but whose ``recipe_type``,
+          ``inputs``, or ``outputs`` differ. Each entry has ``self`` and
+          ``other`` keys with the relevant fields for inspection.
+        - ``dataset_added`` / ``dataset_removed``: datasets present in only
+          one flow
+        - ``equivalent``: ``True`` if both flows have the same recipes (by
+          name + type + inputs + outputs) and same dataset set
+
+        Args:
+            other: The flow to compare against.
+
+        Returns:
+            A dict describing the differences.
+        """
+        self_recipes = {r.name: r for r in self.recipes}
+        other_recipes = {r.name: r for r in other.recipes}
+        self_datasets = {d.name for d in self.datasets}
+        other_datasets = {d.name for d in other.datasets}
+
+        added = sorted(other_recipes.keys() - self_recipes.keys())
+        removed = sorted(self_recipes.keys() - other_recipes.keys())
+
+        changed: list[dict[str, Any]] = []
+        for name in sorted(self_recipes.keys() & other_recipes.keys()):
+            a = self_recipes[name]
+            b = other_recipes[name]
+            if (
+                a.recipe_type != b.recipe_type
+                or a.inputs != b.inputs
+                or a.outputs != b.outputs
+            ):
+                changed.append({
+                    "name": name,
+                    "self": {
+                        "type": a.recipe_type.value,
+                        "inputs": list(a.inputs),
+                        "outputs": list(a.outputs),
+                    },
+                    "other": {
+                        "type": b.recipe_type.value,
+                        "inputs": list(b.inputs),
+                        "outputs": list(b.outputs),
+                    },
+                })
+
+        return {
+            "added": [
+                {"name": n, "type": other_recipes[n].recipe_type.value}
+                for n in added
+            ],
+            "removed": [
+                {"name": n, "type": self_recipes[n].recipe_type.value}
+                for n in removed
+            ],
+            "changed": changed,
+            "dataset_added": sorted(other_datasets - self_datasets),
+            "dataset_removed": sorted(self_datasets - other_datasets),
+            "equivalent": (
+                not added and not removed and not changed
+                and self_datasets == other_datasets
+            ),
+        }
