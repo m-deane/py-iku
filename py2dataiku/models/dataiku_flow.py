@@ -531,6 +531,61 @@ class DataikuFlow:
 
         return "\n".join(lines)
 
+    def save(self, path: str, format: Optional[str] = None) -> None:
+        """Save the flow to a file, auto-detecting format from the extension.
+
+        Supported extensions: .json, .yaml/.yml, .svg, .html, .png, .pdf,
+        .puml/.plantuml, .txt (ASCII), .md/.mermaid.
+
+        Args:
+            path: Output file path. Format is detected from the extension
+                  unless ``format`` is explicitly provided.
+            format: Optional format override (e.g. "json", "svg", "html").
+        """
+        from pathlib import Path as _Path
+
+        target = _Path(path)
+        if format is None:
+            ext = target.suffix.lower().lstrip(".")
+            format = {
+                "yml": "yaml",
+                "puml": "plantuml",
+                "txt": "ascii",
+                "md": "mermaid",
+            }.get(ext, ext)
+
+        if not format:
+            raise ValueError(
+                f"Could not detect format from path '{path}' — "
+                "pass format='json'|'yaml'|'svg'|'html'|'png'|'pdf'|... explicitly"
+            )
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        if format == "json":
+            target.write_text(self.to_json())
+        elif format == "yaml":
+            target.write_text(self.to_yaml())
+        elif format == "svg":
+            self.to_svg(str(target))
+        elif format == "html":
+            self.to_html(str(target))
+        elif format == "plantuml":
+            self.to_plantuml(str(target))
+        elif format == "png":
+            self.to_png(str(target))
+        elif format == "pdf":
+            self.to_pdf(str(target))
+        elif format == "ascii":
+            target.write_text(self.to_ascii())
+        elif format == "mermaid":
+            target.write_text(self.visualize(format="mermaid"))
+        else:
+            raise ValueError(
+                f"Unsupported format '{format}'. Use one of: "
+                "json, yaml, svg, html, png, pdf, plantuml, ascii, mermaid"
+            )
+
     def export_all(self, directory: str) -> None:
         """Export all flow artifacts to a directory."""
         import os

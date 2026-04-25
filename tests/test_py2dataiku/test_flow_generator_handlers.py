@@ -328,7 +328,9 @@ class TestHeadTailSamplingHandler:
         assert sampling_recipes[0].sampling_method == SamplingMethod.LAST_ROWS
         assert sampling_recipes[0].sample_size == 50
 
-    def test_sample_with_n_creates_random_fixed(self):
+    def test_sample_with_n_creates_random_fixed_nb(self):
+        # n=200 is a fixed-row-count random sample.
+        # In DSS this is RANDOM_FIXED_NB (SamplingMethod.RANDOM in the enum).
         gen = FlowGenerator()
         transformations = [
             make_read_transform(),
@@ -343,10 +345,13 @@ class TestHeadTailSamplingHandler:
         flow = gen.generate(transformations, optimize=False)
         sampling_recipes = flow.get_recipes_by_type(RecipeType.SAMPLING)
         assert len(sampling_recipes) == 1
-        assert sampling_recipes[0].sampling_method == SamplingMethod.RANDOM_FIXED
+        assert sampling_recipes[0].sampling_method == SamplingMethod.RANDOM
         assert sampling_recipes[0].sample_size == 200
 
-    def test_sample_with_frac_creates_random(self):
+    def test_sample_with_frac_creates_random_fixed_ratio(self):
+        # frac=0.1 is a fixed-fraction random sample.
+        # In DSS this is RANDOM_FIXED_RATIO (SamplingMethod.RANDOM_FIXED in enum).
+        # The fraction is converted to a percentage (0-100).
         gen = FlowGenerator()
         transformations = [
             make_read_transform(),
@@ -361,8 +366,8 @@ class TestHeadTailSamplingHandler:
         flow = gen.generate(transformations, optimize=False)
         sampling_recipes = flow.get_recipes_by_type(RecipeType.SAMPLING)
         assert len(sampling_recipes) == 1
-        assert sampling_recipes[0].sampling_method == SamplingMethod.RANDOM
-        assert sampling_recipes[0].sample_size is None
+        assert sampling_recipes[0].sampling_method == SamplingMethod.RANDOM_FIXED
+        assert sampling_recipes[0].sample_size == 10  # 0.1 -> 10%
 
     def test_head_flushes_pending_prepare_steps(self):
         gen = FlowGenerator()

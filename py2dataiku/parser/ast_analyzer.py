@@ -1,7 +1,7 @@
 """Python AST analysis for extracting data transformations."""
 
 import ast
-from typing import Optional
+from typing import Any, Optional
 
 from py2dataiku.exceptions import InvalidPythonCodeError
 from py2dataiku.mappings.pandas_mappings import PandasMapper
@@ -926,7 +926,11 @@ class CodeAnalyzer:
         )
 
     def _handle_melt(self, df: str, node: ast.Call, target: str) -> None:
-        """Handle melt() calls."""
+        """Handle melt() calls.
+
+        Melt is unpivot (wide-to-long); it maps to a PREPARE recipe with the
+        FOLD_MULTIPLE_COLUMNS processor, not PIVOT (which is long-to-wide).
+        """
         self.transformations.append(
             Transformation(
                 transformation_type=TransformationType.MELT,
@@ -934,8 +938,9 @@ class CodeAnalyzer:
                 target_dataframe=target,
                 parameters={},
                 source_line=self.current_line,
-                suggested_recipe="pivot",
-                notes=["Melt is unpivot operation"],
+                suggested_recipe="prepare",
+                suggested_processor="FoldMultipleColumns",
+                notes=["df.melt() -> PREPARE recipe with FOLD_MULTIPLE_COLUMNS"],
             )
         )
 
@@ -1308,16 +1313,16 @@ class CodeAnalyzer:
         )
 
     def _handle_nunique(self, df: str, node: ast.Call, target: str) -> None:
-        """Handle nunique() calls -> Grouping recipe with COUNTDISTINCT."""
+        """Handle nunique() calls -> Grouping recipe with COUNTD (DSS canonical name)."""
         self.transformations.append(
             Transformation(
                 transformation_type=TransformationType.GROUPBY,
                 source_dataframe=df,
                 target_dataframe=target,
-                parameters={"aggregation": "COUNTDISTINCT"},
+                parameters={"aggregation": PandasMapper.AGG_MAPPINGS.get("nunique", "COUNTD")},
                 source_line=self.current_line,
                 suggested_recipe="grouping",
-                notes=["df.nunique() -> Grouping recipe with COUNTDISTINCT"],
+                notes=["df.nunique() -> Grouping recipe with COUNTD"],
             )
         )
 
@@ -1470,13 +1475,32 @@ class CodeAnalyzer:
             return [node.id]
         return []
 
-    def _get_dict_value(self, node: ast.expr) -> dict[str, str]:
-        """Extract a dict value from an AST node."""
+    def _get_dict_value(self, node: ast.expr) -> dict[str, Any]:
+        """Extract a dict value from an AST node.
+
+        Handles three value shapes commonly produced by pandas .agg():
+        - scalar: ``{"col": "sum"}`` -> ``{"col": "sum"}``
+        - list of functions: ``{"col": ["sum", "mean"]}`` -> ``{"col": ["sum","mean"]}``
+        - tuple of functions: ``{"col": ("sum", "mean")}`` -> same
+
+        Lists/tuples are preserved so downstream consumers can expand them
+        into multiple aggregations on the same column.
+        """
         if isinstance(node, ast.Dict):
-            result = {}
+            result: dict[str, Any] = {}
             for k, v in zip(node.keys, node.values):
-                if isinstance(k, ast.Constant) and isinstance(v, ast.Constant):
-                    result[str(k.value)] = str(v.value)
+                if not isinstance(k, ast.Constant):
+                    continue
+                key = str(k.value)
+                if isinstance(v, ast.Constant):
+                    result[key] = str(v.value)
+                elif isinstance(v, (ast.List, ast.Tuple)):
+                    funcs = []
+                    for elt in v.elts:
+                        if isinstance(elt, ast.Constant):
+                            funcs.append(str(elt.value))
+                    if funcs:
+                        result[key] = funcs
             return result
         return {}
 

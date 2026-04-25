@@ -57,6 +57,9 @@ class LLMFlowGenerator(BaseFlowGenerator):
         OperationType.CAST_TYPE: "prepare",
         OperationType.PARSE_DATE: "prepare",
         OperationType.SPLIT_COLUMN: "prepare",
+        OperationType.ENCODE_CATEGORICAL: "prepare",
+        OperationType.NORMALIZE_SCALE: "prepare",
+        OperationType.GEO_OPERATION: "prepare",
     }
 
     def __init__(self):
@@ -203,13 +206,54 @@ class LLMFlowGenerator(BaseFlowGenerator):
 
                 current_input = self._create_window_recipe(step, current_input)
 
-            elif suggested in ("python", "topn", "sampling", "pivot"):
+            elif suggested == "topn":
                 if prepare_steps_buffer:
                     current_input = self._create_prepare_recipe(
                         current_input, prepare_steps_buffer
                     )
                     prepare_steps_buffer = []
 
+                current_input = self._create_topn_recipe(step, current_input)
+
+            elif suggested == "sampling":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                current_input = self._create_sampling_recipe(step, current_input)
+
+            elif suggested == "pivot":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                current_input = self._create_pivot_recipe(step, current_input)
+
+            elif suggested == "python":
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                current_input = self._create_python_recipe(step, current_input)
+
+            else:
+                # Unknown recipe hint — warn and fall back to Python
+                if prepare_steps_buffer:
+                    current_input = self._create_prepare_recipe(
+                        current_input, prepare_steps_buffer
+                    )
+                    prepare_steps_buffer = []
+
+                self.flow.warnings.append(
+                    f"Unknown suggested_recipe '{step.suggested_recipe}' for step "
+                    f"{step.step_number} ({step.operation.value}); falling back to Python recipe"
+                )
                 current_input = self._create_python_recipe(step, current_input)
 
             # Update dataset map
@@ -260,7 +304,19 @@ class LLMFlowGenerator(BaseFlowGenerator):
     ) -> str:
         """Create a Prepare recipe from multiple steps."""
         self.recipe_counter += 1
-        output_name = f"{input_dataset or 'data'}_prepared_{self.recipe_counter}"
+
+        # Prefer the LLM-declared output dataset of the LAST step in the buffer
+        # (the buffer's final intent). Fall back to a generated name.
+        declared_output: Optional[str] = None
+        for step in reversed(steps):
+            if step.output_dataset:
+                declared_output = step.output_dataset
+                break
+
+        if declared_output:
+            output_name = self._sanitize_name(declared_output)
+        else:
+            output_name = f"{input_dataset or 'data'}_prepared_{self.recipe_counter}"
 
         prepare_steps = []
         for step in steps:
@@ -338,7 +394,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
                 result.append(
                     PrepareStep(
                         processor_type=ProcessorType.COLUMNS_SELECTOR,
-                        params={"columns": step.columns, "keep": True},
+                        params={"columns": step.columns, "keep": True, "mode": "keep"},
                     )
                 )
 
@@ -379,6 +435,66 @@ class LLMFlowGenerator(BaseFlowGenerator):
         elif op == OperationType.UNPIVOT:
             if step.columns:
                 result.append(PrepareStep.fold_multiple_columns(columns=step.columns))
+
+        elif op == OperationType.ENCODE_CATEGORICAL:
+            for col in step.columns or [t.column for t in step.column_transforms]:
+                if col:
+                    result.append(
+                        PrepareStep(
+                            processor_type=ProcessorType.CATEGORICAL_ENCODER,
+                            params={"column": col},
+                        )
+                    )
+
+        elif op == OperationType.NORMALIZE_SCALE:
+            # Pick mode from transform parameters; default to MIN_MAX
+            for transform in step.column_transforms:
+                params = transform.parameters or {}
+                mode_hint = (params.get("mode") or transform.operation or "min_max").lower()
+                if mode_hint in ("zscore", "z_score", "standard", "standard_scaler"):
+                    mode = "ZSCORE"
+                elif mode_hint in ("robust", "robust_scaler"):
+                    mode = "ROBUST"
+                else:
+                    mode = "MIN_MAX"
+                result.append(
+                    PrepareStep(
+                        processor_type=ProcessorType.NORMALIZER,
+                        params={"column": transform.column, "mode": mode},
+                    )
+                )
+            # Fallback when LLM only set step.columns
+            if not step.column_transforms:
+                for col in step.columns:
+                    result.append(
+                        PrepareStep(
+                            processor_type=ProcessorType.NORMALIZER,
+                            params={"column": col, "mode": "MIN_MAX"},
+                        )
+                    )
+
+        elif op == OperationType.GEO_OPERATION:
+            for transform in step.column_transforms:
+                params = transform.parameters or {}
+                op_hint = (params.get("operation") or transform.operation or "").lower()
+                if "point" in op_hint or "create_point" in op_hint:
+                    result.append(
+                        PrepareStep(
+                            processor_type=ProcessorType.GEO_POINT_CREATOR,
+                            params={
+                                "lat_column": params.get("lat") or "",
+                                "lon_column": params.get("lon") or "",
+                                "output_column": transform.output_column or "geopoint",
+                            },
+                        )
+                    )
+                else:
+                    result.append(
+                        PrepareStep(
+                            processor_type=ProcessorType.GEO_ENCODER,
+                            params={"column": transform.column},
+                        )
+                    )
 
         # Use suggested processors from LLM if available
         if not result and step.suggested_processors:
@@ -619,13 +735,176 @@ class LLMFlowGenerator(BaseFlowGenerator):
         output_name = step.output_dataset or f"windowed_{self.recipe_counter}"
         output_name = self._sanitize_name(output_name)
 
+        # Convert sort_columns ({"column", "order"}) into ordering strings
+        order_columns = [sc.get("column", "") for sc in step.sort_columns if sc.get("column")]
+
+        # Build window_aggregations from step.aggregations
+        window_aggregations = [
+            {
+                "column": agg.column,
+                "type": agg.function.upper(),
+                "outputColumn": agg.output_column or f"{agg.function}_{agg.column}",
+            }
+            for agg in step.aggregations
+        ]
+
         recipe = DataikuRecipe(
             name=f"window_{self.recipe_counter}",
             recipe_type=RecipeType.WINDOW,
             inputs=[input_dataset or ""],
             outputs=[output_name],
             partition_columns=step.group_by_columns,
+            order_columns=order_columns,
+            window_aggregations=window_aggregations,
         )
+
+        if not window_aggregations:
+            self.flow.warnings.append(
+                f"Window step {step.step_number} has no aggregations; "
+                "the WINDOW recipe will produce no output columns"
+            )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_topn_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Top-N recipe (df.nlargest / df.nsmallest)."""
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"topn_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        # Pick ranking column: prefer first sort_columns entry, else first column
+        ranking_column = None
+        sort_columns: list[dict[str, str]] = []
+        if step.sort_columns:
+            ranking_column = step.sort_columns[0].get("column")
+            sort_columns = step.sort_columns
+        elif step.columns:
+            ranking_column = step.columns[0]
+            sort_columns = [{"column": ranking_column, "order": "desc"}]
+
+        # n: prefer aggregation-style param, fall back to int in columns/parameters
+        top_n = 10
+        for transform in step.column_transforms:
+            n_param = transform.parameters.get("n") or transform.parameters.get("top_n")
+            if isinstance(n_param, int):
+                top_n = n_param
+                break
+
+        recipe = DataikuRecipe(
+            name=f"topn_{self.recipe_counter}",
+            recipe_type=RecipeType.TOP_N,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            top_n=top_n,
+            ranking_column=ranking_column,
+            sort_columns=sort_columns,
+        )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_sampling_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Sampling recipe (df.sample / df.head / df.tail)."""
+        from py2dataiku.models.dataiku_recipe import SamplingMethod
+
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"sampled_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        # Determine sampling method and size from column_transforms parameters
+        method = SamplingMethod.RANDOM
+        sample_size: Optional[int] = None
+        for transform in step.column_transforms:
+            params = transform.parameters or {}
+            method_hint = (params.get("method") or transform.operation or "").lower()
+            if method_hint in ("head", "first", "first_rows"):
+                method = SamplingMethod.FIRST_ROWS
+            elif method_hint in ("tail", "last", "last_rows"):
+                method = SamplingMethod.LAST_ROWS
+            elif method_hint in ("stratified",):
+                method = SamplingMethod.STRATIFIED
+            n = params.get("n") or params.get("size")
+            frac = params.get("frac") or params.get("fraction")
+            if isinstance(n, int):
+                sample_size = n
+            elif isinstance(frac, (int, float)):
+                method = SamplingMethod.RANDOM_FIXED
+                sample_size = int(frac * 100) if frac <= 1 else int(frac)
+            break
+
+        recipe = DataikuRecipe(
+            name=f"sampling_{self.recipe_counter}",
+            recipe_type=RecipeType.SAMPLING,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            sampling_method=method,
+            sample_size=sample_size,
+        )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
+
+        self.flow.add_recipe(recipe)
+        return output_name
+
+    def _create_pivot_recipe(
+        self, step: DataStep, input_dataset: Optional[str]
+    ) -> str:
+        """Create a Pivot recipe (df.pivot / df.pivot_table)."""
+        from py2dataiku.models.recipe_settings import PivotSettings
+
+        self.recipe_counter += 1
+        output_name = step.output_dataset or f"pivoted_{self.recipe_counter}"
+        output_name = self._sanitize_name(output_name)
+
+        # Extract pivot configuration from the step
+        # group_by_columns -> row index columns
+        # First aggregation -> value/aggregation
+        # First column in `columns` (other than index/value) -> pivot column
+        row_columns = list(step.group_by_columns)
+        column_column = ""
+        value_column = ""
+        aggregation = "SUM"
+
+        if step.aggregations:
+            first_agg = step.aggregations[0]
+            value_column = first_agg.column
+            aggregation = first_agg.function.upper()
+
+        # Pick the pivot (column-spreading) column from `columns` excluding rows/values
+        for col in step.columns:
+            if col not in row_columns and col != value_column:
+                column_column = col
+                break
+
+        settings = PivotSettings(
+            row_columns=row_columns,
+            column_column=column_column,
+            value_column=value_column,
+            aggregation=aggregation,
+        )
+
+        recipe = DataikuRecipe(
+            name=f"pivot_{self.recipe_counter}",
+            recipe_type=RecipeType.PIVOT,
+            inputs=[input_dataset or ""],
+            outputs=[output_name],
+            settings=settings,
+        )
+
+        if step.reasoning:
+            recipe.notes.append(step.reasoning)
 
         self.flow.add_recipe(recipe)
         return output_name

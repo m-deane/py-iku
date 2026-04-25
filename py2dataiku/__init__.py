@@ -260,7 +260,7 @@ __all__ = [
 ]
 
 
-def convert(code: str, optimize: bool = True) -> DataikuFlow:
+def convert(code, optimize: bool = True) -> DataikuFlow:
     """
     Convert Python code to a Dataiku flow using rule-based analysis.
 
@@ -268,12 +268,27 @@ def convert(code: str, optimize: bool = True) -> DataikuFlow:
     For better results, use convert_with_llm() instead.
 
     Args:
-        code: Python source code string
+        code: Either a Python source code string, a ``pathlib.Path`` to a
+              ``.py`` file, or a string ending in ``.py`` that exists on disk.
+              When given a path, the file is read and converted.
         optimize: Whether to optimize the flow (merge recipes, reorder steps)
 
     Returns:
         DataikuFlow object representing the converted pipeline
     """
+    from pathlib import Path as _Path
+
+    # Polymorphic input: accept Path objects or path-strings to .py files
+    if isinstance(code, _Path):
+        return convert_file(str(code), optimize=optimize)
+    if (
+        isinstance(code, str)
+        and code.endswith(".py")
+        and "\n" not in code
+        and _Path(code).is_file()
+    ):
+        return convert_file(code, optimize=optimize)
+
     analyzer = CodeAnalyzer()
     transformations = analyzer.analyze(code)
 
@@ -284,7 +299,7 @@ def convert(code: str, optimize: bool = True) -> DataikuFlow:
 
 
 def convert_with_llm(
-    code: str,
+    code,
     provider: str = "anthropic",
     api_key: Optional[str] = None,
     model: Optional[str] = None,
@@ -298,7 +313,8 @@ def convert_with_llm(
     and produces more accurate mappings, especially for complex code.
 
     Args:
-        code: Python source code string
+        code: Either a Python source code string or a ``pathlib.Path``/string
+              path to a ``.py`` file (file is read for you).
         provider: LLM provider ("anthropic", "openai")
         api_key: API key (uses environment variable if not provided)
         model: Model name (uses provider default if not provided)
@@ -317,6 +333,25 @@ def convert_with_llm(
         ... ''')
         >>> print(flow.get_summary())
     """
+    from pathlib import Path as _Path
+
+    # Polymorphic input: accept Path objects or path-strings to .py files
+    if isinstance(code, _Path):
+        return convert_file_with_llm(
+            str(code), provider=provider, api_key=api_key, model=model,
+            optimize=optimize, flow_name=flow_name,
+        )
+    if (
+        isinstance(code, str)
+        and code.endswith(".py")
+        and "\n" not in code
+        and _Path(code).is_file()
+    ):
+        return convert_file_with_llm(
+            code, provider=provider, api_key=api_key, model=model,
+            optimize=optimize, flow_name=flow_name,
+        )
+
     # Initialize LLM analyzer
     llm_provider = get_provider(provider, api_key, model)
     analyzer = LLMCodeAnalyzer(provider=llm_provider)

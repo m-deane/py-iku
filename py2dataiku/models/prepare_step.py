@@ -412,10 +412,15 @@ class PrepareStep:
         columns: list[str],
         source_line: Optional[int] = None,
     ) -> "PrepareStep":
-        """Create a ColumnDeleter step."""
+        """Create a ColumnDeleter step.
+
+        DSS uses the ColumnsSelector processor with keep=False / mode=remove to
+        delete columns. Without these flags, the processor defaults to KEEP
+        and silently inverts the user's intent.
+        """
         return cls(
             processor_type=ProcessorType.COLUMN_DELETER,
-            params={"columns": columns},
+            params={"columns": columns, "keep": False, "mode": "remove"},
             source_line=source_line,
         )
 

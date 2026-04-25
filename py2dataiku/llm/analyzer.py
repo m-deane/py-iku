@@ -251,12 +251,16 @@ class LLMCodeAnalyzer:
             OperationType.JOIN: "join",
             OperationType.UNION: "stack",
             OperationType.PIVOT: "pivot",
-            OperationType.UNPIVOT: "pivot",
+            OperationType.UNPIVOT: "prepare",  # FOLD_MULTIPLE_COLUMNS in PREPARE
             OperationType.SORT: "sort",
             OperationType.TOP_N: "topn",
             OperationType.SAMPLE: "sampling",
             OperationType.CAST_TYPE: "prepare",
             OperationType.PARSE_DATE: "prepare",
+            OperationType.SPLIT_COLUMN: "prepare",
+            OperationType.ENCODE_CATEGORICAL: "prepare",
+            OperationType.NORMALIZE_SCALE: "prepare",
+            OperationType.GEO_OPERATION: "prepare",
             OperationType.CUSTOM_FUNCTION: "python",
             OperationType.UNKNOWN: "python",
         }

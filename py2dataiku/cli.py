@@ -599,8 +599,23 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 def main(argv=None) -> int:
     """Main entry point for the CLI."""
+    import os
+    import sys as _sys
+
     parser = create_parser()
-    args = parser.parse_args(argv)
+
+    # Convenience: ``py2dataiku script.py [flags]`` with no subcommand
+    # is a shorthand for ``py2dataiku convert script.py [flags]``.
+    raw_argv = list(argv) if argv is not None else _sys.argv[1:]
+    if (
+        raw_argv
+        and not raw_argv[0].startswith("-")
+        and raw_argv[0] not in {"convert", "visualize", "viz", "analyze", "export"}
+        and (raw_argv[0].endswith(".py") or os.path.isfile(raw_argv[0]))
+    ):
+        raw_argv = ["convert"] + raw_argv
+
+    args = parser.parse_args(raw_argv)
 
     if args.command is None:
         parser.print_help()

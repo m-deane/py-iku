@@ -586,17 +586,20 @@ class TestOperationToRecipeFallback:
         flow = self._single_step_flow(OperationType.WINDOW_FUNCTION)
         assert len(flow.get_recipes_by_type(RecipeType.WINDOW)) == 1
 
-    def test_top_n_produces_python_recipe(self):
+    def test_top_n_produces_topn_recipe(self):
         flow = self._single_step_flow(OperationType.TOP_N)
-        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.TOP_N)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 0
 
-    def test_sample_produces_python_recipe(self):
+    def test_sample_produces_sampling_recipe(self):
         flow = self._single_step_flow(OperationType.SAMPLE)
-        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.SAMPLING)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 0
 
-    def test_pivot_produces_python_recipe(self):
+    def test_pivot_produces_pivot_recipe(self):
         flow = self._single_step_flow(OperationType.PIVOT)
-        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.PIVOT)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 0
 
     def test_fill_missing_produces_prepare_recipe(self):
         flow = self._single_step_flow(
@@ -1426,7 +1429,7 @@ class TestCreatePythonRecipe:
         # Reasoning appended to notes
         assert any("custom ML logic" in n for n in recipe.notes)
 
-    def test_python_recipe_for_top_n_operation(self):
+    def test_topn_recipe_emitted_for_top_n_operation(self):
         analysis = _make_analysis(
             steps=[
                 DataStep(
@@ -1440,7 +1443,8 @@ class TestCreatePythonRecipe:
             ],
         )
         flow = LLMFlowGenerator().generate(analysis)
-        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.TOP_N)) == 1
+        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 0
 
 
 class TestPrepareBufferFlushing:
@@ -2236,3 +2240,490 @@ class TestNewPrepareStepHandlers:
         prepare_recipes = flow.get_recipes_by_type(RecipeType.PREPARE)
         assert len(prepare_recipes) >= 1
         assert len(prepare_recipes[0].steps) == 1
+
+
+# ===================================================================
+# Ultrareview wave-1 fixes: P0 LLM accuracy regression suite
+# ===================================================================
+
+
+class TestTopNRecipeGeneration:
+    """TOP_N operation must produce a real DSS TOP_N recipe, not a Python stub."""
+
+    def test_topn_emits_topn_recipe(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.TOP_N,
+                    description="Top 5 by sales",
+                    input_datasets=["df"],
+                    output_dataset="top5",
+                    suggested_recipe="topn",
+                    sort_columns=[{"column": "sales", "order": "desc"}],
+                    column_transforms=[
+                        ColumnTransform(column="sales", operation="nlargest", parameters={"n": 5})
+                    ],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        topn_recipes = flow.get_recipes_by_type(RecipeType.TOP_N)
+        assert len(topn_recipes) == 1
+        assert flow.get_recipes_by_type(RecipeType.PYTHON) == []
+
+    def test_topn_extracts_n_from_column_transform(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.TOP_N,
+                    description="Top 25",
+                    input_datasets=["df"],
+                    output_dataset="top25",
+                    suggested_recipe="topn",
+                    sort_columns=[{"column": "rev", "order": "desc"}],
+                    column_transforms=[
+                        ColumnTransform(column="rev", operation="nlargest", parameters={"n": 25})
+                    ],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipe = flow.get_recipes_by_type(RecipeType.TOP_N)[0]
+        assert recipe.top_n == 25
+        assert recipe.ranking_column == "rev"
+
+    def test_topn_default_n_when_unspecified(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.TOP_N,
+                    description="Top default",
+                    input_datasets=["df"],
+                    output_dataset="topn",
+                    suggested_recipe="topn",
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipe = flow.get_recipes_by_type(RecipeType.TOP_N)[0]
+        assert recipe.top_n == 10  # default
+
+
+class TestSamplingRecipeGeneration:
+    """SAMPLE operation must produce a real DSS SAMPLING recipe."""
+
+    def test_sample_emits_sampling_recipe(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.SAMPLE,
+                    description="Random sample",
+                    input_datasets=["df"],
+                    output_dataset="sampled",
+                    suggested_recipe="sampling",
+                    column_transforms=[
+                        ColumnTransform(column="*", operation="sample", parameters={"n": 1000})
+                    ],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipes = flow.get_recipes_by_type(RecipeType.SAMPLING)
+        assert len(recipes) == 1
+        assert flow.get_recipes_by_type(RecipeType.PYTHON) == []
+        assert recipes[0].sample_size == 1000
+
+    def test_sample_with_frac_uses_random_fixed_ratio(self):
+        from py2dataiku.models.dataiku_recipe import SamplingMethod
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.SAMPLE,
+                    description="Sample 20%",
+                    input_datasets=["df"],
+                    output_dataset="sampled",
+                    suggested_recipe="sampling",
+                    column_transforms=[
+                        ColumnTransform(column="*", operation="sample", parameters={"frac": 0.2})
+                    ],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipe = flow.get_recipes_by_type(RecipeType.SAMPLING)[0]
+        assert recipe.sampling_method == SamplingMethod.RANDOM_FIXED
+
+
+class TestPivotRecipeGeneration:
+    """PIVOT operation must produce a real DSS PIVOT recipe with populated settings."""
+
+    def test_pivot_emits_pivot_recipe(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.PIVOT,
+                    description="Pivot sales by region",
+                    input_datasets=["sales"],
+                    output_dataset="pivoted",
+                    suggested_recipe="pivot",
+                    group_by_columns=["product"],
+                    columns=["product", "region", "amount"],
+                    aggregations=[Aggregation("amount", "sum", "total_amount")],
+                )
+            ],
+            datasets=[DatasetInfo(name="sales", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipes = flow.get_recipes_by_type(RecipeType.PIVOT)
+        assert len(recipes) == 1
+        assert flow.get_recipes_by_type(RecipeType.PYTHON) == []
+
+    def test_pivot_settings_populated_from_step(self):
+        from py2dataiku.models.recipe_settings import PivotSettings
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.PIVOT,
+                    description="Pivot",
+                    input_datasets=["sales"],
+                    output_dataset="pivoted",
+                    suggested_recipe="pivot",
+                    group_by_columns=["product"],
+                    columns=["product", "region", "amount"],
+                    aggregations=[Aggregation("amount", "sum")],
+                )
+            ],
+            datasets=[DatasetInfo(name="sales", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipe = flow.get_recipes_by_type(RecipeType.PIVOT)[0]
+        assert isinstance(recipe.settings, PivotSettings)
+        assert recipe.settings.row_columns == ["product"]
+        assert recipe.settings.column_column == "region"
+        assert recipe.settings.value_column == "amount"
+        assert recipe.settings.aggregation == "SUM"
+
+
+class TestUnpivotRoutingFix:
+    """UNPIVOT must route to PREPARE+FOLD_MULTIPLE_COLUMNS (was silently routing to PIVOT->Python)."""
+
+    def test_unpivot_with_blank_suggested_recipe_routes_to_prepare(self):
+        # Drive _post_process / _infer_recipe directly. Build a step with no
+        # suggested_recipe and confirm _infer_recipe fills in "prepare"
+        # (the bug had it filling in "pivot" -> Python stub).
+        analyzer = LLMCodeAnalyzer(provider=MockProvider())
+        result = AnalysisResult(
+            code_summary="unpivot",
+            total_operations=1,
+            complexity_score=1,
+            datasets=[DatasetInfo(name="wide", is_input=True)],
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.UNPIVOT,
+                    description="Unpivot quarters",
+                    input_datasets=["wide"],
+                    output_dataset="long",
+                    columns=["q1", "q2", "q3", "q4"],
+                )
+            ],
+        )
+        result = analyzer._post_process(result)
+        assert result.steps[0].suggested_recipe == "prepare"
+        flow = LLMFlowGenerator().generate(result)
+        assert len(flow.get_recipes_by_type(RecipeType.PREPARE)) >= 1
+        assert flow.get_recipes_by_type(RecipeType.PIVOT) == []
+        assert flow.get_recipes_by_type(RecipeType.PYTHON) == []
+
+
+class TestEncodingNormalizationGeo:
+    """The 3 OperationTypes that previously had no pipeline coverage."""
+
+    def test_encode_categorical_routes_to_prepare_with_categorical_encoder(self):
+        from py2dataiku.models.prepare_step import ProcessorType
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.ENCODE_CATEGORICAL,
+                    description="One-hot encode",
+                    input_datasets=["df"],
+                    output_dataset="encoded",
+                    suggested_recipe="prepare",
+                    columns=["category"],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prepare_recipes = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert len(prepare_recipes) == 1
+        steps = prepare_recipes[0].steps
+        assert any(s.processor_type == ProcessorType.CATEGORICAL_ENCODER for s in steps)
+
+    def test_normalize_scale_routes_to_normalizer(self):
+        from py2dataiku.models.prepare_step import ProcessorType
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.NORMALIZE_SCALE,
+                    description="Z-score scale",
+                    input_datasets=["df"],
+                    output_dataset="scaled",
+                    suggested_recipe="prepare",
+                    column_transforms=[
+                        ColumnTransform(column="amount", operation="zscore", parameters={"mode": "zscore"})
+                    ],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prepare = flow.get_recipes_by_type(RecipeType.PREPARE)[0]
+        normalize_step = next(s for s in prepare.steps if s.processor_type == ProcessorType.NORMALIZER)
+        assert normalize_step.params["mode"] == "ZSCORE"
+
+    def test_geo_operation_routes_to_geo_processor(self):
+        from py2dataiku.models.prepare_step import ProcessorType
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.GEO_OPERATION,
+                    description="Build geo points",
+                    input_datasets=["df"],
+                    output_dataset="geo",
+                    suggested_recipe="prepare",
+                    column_transforms=[
+                        ColumnTransform(
+                            column="latlon",
+                            operation="create_point",
+                            parameters={"lat": "lat", "lon": "lon", "operation": "create_point"},
+                            output_column="geopoint",
+                        )
+                    ],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prepare = flow.get_recipes_by_type(RecipeType.PREPARE)[0]
+        geo_step = next(
+            s for s in prepare.steps if s.processor_type == ProcessorType.GEO_POINT_CREATOR
+        )
+        assert geo_step.params["lat_column"] == "lat"
+        assert geo_step.params["lon_column"] == "lon"
+
+
+class TestSelectColumnsParams:
+    """SELECT_COLUMNS must include 'mode' so DSS knows whether to keep or remove."""
+
+    def test_select_columns_emits_mode_keep(self):
+        from py2dataiku.models.prepare_step import ProcessorType
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.SELECT_COLUMNS,
+                    description="Select cols",
+                    input_datasets=["df"],
+                    output_dataset="selected",
+                    suggested_recipe="prepare",
+                    columns=["a", "b"],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prepare = flow.get_recipes_by_type(RecipeType.PREPARE)[0]
+        selector_step = next(
+            s for s in prepare.steps if s.processor_type == ProcessorType.COLUMNS_SELECTOR
+        )
+        assert selector_step.params.get("mode") == "keep"
+
+
+class TestPrepareOutputDatasetHonored:
+    """The LLM-declared output_dataset must be used (not auto-invented)."""
+
+    def test_prepare_recipe_uses_llm_output_dataset(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.FILL_MISSING,
+                    description="Fill nulls",
+                    input_datasets=["raw"],
+                    output_dataset="cleaned",
+                    suggested_recipe="prepare",
+                    columns=["x"],
+                    fill_value=0,
+                )
+            ],
+            datasets=[DatasetInfo(name="raw", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prepare = flow.get_recipes_by_type(RecipeType.PREPARE)[0]
+        # Output should be 'cleaned' (the LLM-declared name), not raw_prepared_N
+        assert prepare.outputs[0] == "cleaned"
+
+
+class TestUnknownRecipeFallback:
+    """Unknown suggested_recipe must produce a warning and fall back to Python (not silent drop)."""
+
+    def test_unknown_recipe_falls_back_with_warning(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.CUSTOM_FUNCTION,
+                    description="Mystery op",
+                    input_datasets=["df"],
+                    output_dataset="result",
+                    suggested_recipe="supercharge",  # not a real recipe type
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        # Step should not be silently dropped
+        assert len(flow.get_recipes_by_type(RecipeType.PYTHON)) == 1
+        # Warning should be emitted
+        assert any("supercharge" in w for w in flow.warnings)
+
+
+class TestWindowRecipePopulated:
+    """WINDOW recipe must populate aggregations and order_columns from the step."""
+
+    def test_window_recipe_includes_aggregations(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.WINDOW_FUNCTION,
+                    description="Rolling average",
+                    input_datasets=["df"],
+                    output_dataset="windowed",
+                    suggested_recipe="window",
+                    group_by_columns=["store_id"],
+                    sort_columns=[{"column": "date", "order": "asc"}],
+                    aggregations=[Aggregation("revenue", "avg", "rolling_avg")],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        recipe = flow.get_recipes_by_type(RecipeType.WINDOW)[0]
+        assert recipe.partition_columns == ["store_id"]
+        assert recipe.order_columns == ["date"]
+        assert len(recipe.window_aggregations) == 1
+        assert recipe.window_aggregations[0]["column"] == "revenue"
+
+    def test_empty_window_aggregations_emits_warning(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.WINDOW_FUNCTION,
+                    description="Empty window",
+                    input_datasets=["df"],
+                    output_dataset="windowed",
+                    suggested_recipe="window",
+                    group_by_columns=["store_id"],
+                    # no aggregations!
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        assert any("no aggregations" in w for w in flow.warnings)
+
+
+class TestSplitColumnInfersPrepare:
+    """SPLIT_COLUMN must route to PREPARE via _infer_recipe (was falling to python)."""
+
+    def test_split_column_infers_prepare(self):
+        analyzer = LLMCodeAnalyzer(provider=MockProvider())
+        result = AnalysisResult(
+            code_summary="split",
+            total_operations=1,
+            complexity_score=1,
+            datasets=[DatasetInfo(name="df", is_input=True)],
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.SPLIT_COLUMN,
+                    description="Split name",
+                    input_datasets=["df"],
+                    output_dataset="df_split",
+                    columns=["full_name"],
+                )
+            ],
+        )
+        result = analyzer._post_process(result)
+        assert result.steps[0].suggested_recipe == "prepare"
+
+
+class TestDeleteColumnsKeepFalse:
+    """delete_columns must include keep:False so DSS deletes (not keeps) the listed columns."""
+
+    def test_delete_columns_factory_includes_keep_false(self):
+        from py2dataiku.models.prepare_step import PrepareStep
+        step = PrepareStep.delete_columns(["a", "b", "c"])
+        assert step.params["columns"] == ["a", "b", "c"]
+        assert step.params["keep"] is False
+        assert step.params.get("mode") == "remove"
+
+    def test_drop_columns_via_llm_path_emits_keep_false(self):
+        analysis = _make_analysis(
+            steps=[
+                DataStep(
+                    step_number=1,
+                    operation=OperationType.DROP_COLUMNS,
+                    description="Drop pii cols",
+                    input_datasets=["df"],
+                    output_dataset="cleaned",
+                    suggested_recipe="prepare",
+                    columns=["ssn", "dob"],
+                )
+            ],
+            datasets=[DatasetInfo(name="df", is_input=True)],
+        )
+        flow = LLMFlowGenerator().generate(analysis)
+        prepare = flow.get_recipes_by_type(RecipeType.PREPARE)[0]
+        delete_step = prepare.steps[0]
+        assert delete_step.params.get("keep") is False
+
+
+class TestNuniqueAndMeltAstFixes:
+    """AST handlers must use canonical DSS aggregation/recipe names."""
+
+    def test_nunique_uses_countd_not_countdistinct(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        code = "import pandas as pd\ndf = pd.read_csv('x.csv')\nresult = df.nunique()\n"
+        analyzer = CodeAnalyzer()
+        analyzer.analyze(code)
+        nunique_trans = [t for t in analyzer.transformations if "nunique" in (t.notes or [""])[0].lower()]
+        assert nunique_trans
+        assert nunique_trans[0].parameters["aggregation"] == "COUNTD"
+
+    def test_melt_emits_prepare_not_pivot(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        code = "import pandas as pd\ndf = pd.read_csv('x.csv')\nlong = pd.melt(df)\n"
+        analyzer = CodeAnalyzer()
+        analyzer.analyze(code)
+        melt_trans = [t for t in analyzer.transformations if t.transformation_type.value == "melt"]
+        assert melt_trans
+        assert melt_trans[0].suggested_recipe == "prepare"

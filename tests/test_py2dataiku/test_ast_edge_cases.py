@@ -1038,3 +1038,240 @@ class TestPdConcat:
         dfs = concat_trans[0].parameters.get("dataframes", [])
         assert "df1" in dfs
         assert "df2" in dfs
+
+
+# ===================================================================
+# Ultrareview wave-1 Phase 3 fixes: rule-based parity & multi-agg
+# ===================================================================
+
+
+class TestMultiFunctionAggDict:
+    """groupby().agg({'col': ['sum', 'mean']}) must produce multiple aggregations."""
+
+    def test_multi_function_agg_extracted_as_list(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "result = df.groupby('cat').agg({'amount': ['sum', 'mean', 'max']})\n"
+        )
+        analyzer = CodeAnalyzer()
+        analyzer.analyze(code)
+        gb = [t for t in analyzer.transformations if t.transformation_type.value == "groupby"]
+        assert gb
+        aggs = gb[0].parameters.get("aggregations", {})
+        assert "amount" in aggs
+        # Must preserve the list, not just store the last value
+        assert aggs["amount"] == ["sum", "mean", "max"]
+
+    def test_multi_function_agg_yields_multiple_aggregations_in_recipe(self):
+        from py2dataiku import convert
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "result = df.groupby('cat').agg({'amount': ['sum', 'mean']})\n"
+        )
+        flow = convert(code)
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        grouping = flow.get_recipes_by_type(RecipeType.GROUPING)
+        assert len(grouping) == 1
+        # Should produce 2 aggregations on the same column, not 1 or 0
+        assert len(grouping[0].aggregations) == 2
+
+    def test_single_function_agg_still_works(self):
+        from py2dataiku.parser.ast_analyzer import CodeAnalyzer
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "result = df.groupby('cat').agg({'amount': 'sum'})\n"
+        )
+        analyzer = CodeAnalyzer()
+        analyzer.analyze(code)
+        gb = [t for t in analyzer.transformations if t.transformation_type.value == "groupby"]
+        assert gb[0].parameters["aggregations"]["amount"] == "sum"
+
+
+class TestStringTransformInRuleBasedPath:
+    """STRING_TRANSFORM transformations must produce real PrepareSteps (was returning None)."""
+
+    def test_string_upper_creates_string_transformer_step(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df['name'] = df['name'].str.upper()\n"
+        )
+        flow = convert(code)
+        prepare_recipes = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert prepare_recipes
+        steps = prepare_recipes[0].steps
+        # There should be a real StringTransformer step, not nothing
+        st_steps = [s for s in steps if s.processor_type == ProcessorType.STRING_TRANSFORMER]
+        assert len(st_steps) >= 1
+
+    def test_string_replace_creates_find_replace_step(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        from py2dataiku.models.prepare_step import ProcessorType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df['name'] = df['name'].str.replace('foo', 'bar')\n"
+        )
+        flow = convert(code)
+        prepare_recipes = flow.get_recipes_by_type(RecipeType.PREPARE)
+        assert prepare_recipes
+        steps = prepare_recipes[0].steps
+        fr_steps = [s for s in steps if s.processor_type == ProcessorType.FIND_REPLACE]
+        assert len(fr_steps) >= 1
+
+
+class TestSamplingFracValuePropagation:
+    """Sampling df.sample(frac=0.1) must propagate the fraction (was silently dropped)."""
+
+    def test_frac_converted_to_percentage(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType, SamplingMethod
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "sample = df.sample(frac=0.25)\n"
+        )
+        flow = convert(code)
+        sampling = flow.get_recipes_by_type(RecipeType.SAMPLING)
+        assert len(sampling) == 1
+        assert sampling[0].sampling_method == SamplingMethod.RANDOM_FIXED
+        assert sampling[0].sample_size == 25  # 25%
+
+    def test_n_explicit_count(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType, SamplingMethod
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "sample = df.sample(n=500)\n"
+        )
+        flow = convert(code)
+        sampling = flow.get_recipes_by_type(RecipeType.SAMPLING)
+        assert len(sampling) == 1
+        assert sampling[0].sampling_method == SamplingMethod.RANDOM
+        assert sampling[0].sample_size == 500
+
+
+# ===================================================================
+# Ultrareview wave-1 Phase 4: Ergonomics
+# ===================================================================
+
+
+class TestConvertPolymorphicInput:
+    """convert() and convert_with_llm() must accept Path or .py file paths."""
+
+    def test_convert_accepts_pathlib_path(self, tmp_path):
+        from pathlib import Path
+        from py2dataiku import convert
+        script = tmp_path / "demo.py"
+        script.write_text(
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "df = df.dropna()\n"
+        )
+        flow = convert(Path(script))
+        assert flow is not None
+        assert flow.source_file == str(script)
+
+    def test_convert_accepts_string_path_to_py_file(self, tmp_path):
+        from py2dataiku import convert
+        script = tmp_path / "demo.py"
+        script.write_text(
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+        )
+        flow = convert(str(script))
+        assert flow is not None
+        assert flow.source_file == str(script)
+
+    def test_convert_still_accepts_code_string(self):
+        from py2dataiku import convert
+        flow = convert("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+        assert flow is not None
+
+
+class TestFlowSaveAutoDetect:
+    """flow.save('path.ext') must auto-detect format from extension."""
+
+    def _flow(self):
+        from py2dataiku import convert
+        return convert("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+
+    def test_save_json(self, tmp_path):
+        f = self._flow()
+        out = tmp_path / "flow.json"
+        f.save(str(out))
+        content = out.read_text()
+        assert content.startswith("{")
+        # Must be valid JSON
+        import json
+        json.loads(content)
+
+    def test_save_yaml(self, tmp_path):
+        f = self._flow()
+        out = tmp_path / "flow.yaml"
+        f.save(str(out))
+        assert out.exists()
+        # Should look like YAML
+        assert ":" in out.read_text()
+
+    def test_save_yml_alias(self, tmp_path):
+        f = self._flow()
+        out = tmp_path / "flow.yml"
+        f.save(str(out))
+        assert out.exists()
+
+    def test_save_svg(self, tmp_path):
+        f = self._flow()
+        out = tmp_path / "flow.svg"
+        f.save(str(out))
+        content = out.read_text()
+        assert "<svg" in content
+
+    def test_save_unsupported_format_raises(self, tmp_path):
+        f = self._flow()
+        out = tmp_path / "flow.unknown"
+        try:
+            f.save(str(out))
+        except ValueError as e:
+            assert "Unsupported format" in str(e)
+        else:
+            raise AssertionError("Expected ValueError for unknown extension")
+
+    def test_save_explicit_format_override(self, tmp_path):
+        f = self._flow()
+        out = tmp_path / "flow.txt"
+        f.save(str(out), format="json")
+        assert out.read_text().startswith("{")
+
+
+class TestCliBareFileInvocation:
+    """py2dataiku script.py (no subcommand) should auto-route to convert."""
+
+    def test_bare_file_routes_to_convert(self, tmp_path, capsys):
+        from py2dataiku.cli import main
+        script = tmp_path / "demo.py"
+        script.write_text("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+        # Should not error
+        rc = main([str(script)])
+        assert rc == 0
+        # Should have produced JSON-like output to stdout
+        captured = capsys.readouterr()
+        assert "{" in captured.out  # JSON output
+
+    def test_bare_help_still_works(self, capsys):
+        from py2dataiku.cli import main
+        try:
+            main(["--help"])
+        except SystemExit:
+            pass
+        captured = capsys.readouterr()
+        assert "usage" in captured.out.lower()

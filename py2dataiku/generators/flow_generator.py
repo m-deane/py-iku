@@ -341,6 +341,91 @@ class FlowGenerator(BaseFlowGenerator):
             column = trans.columns[0] if trans.columns else "unknown"
             return PrepareStep.parse_date(column, source_line=trans.source_line)
 
+        elif ttype == TransformationType.STRING_TRANSFORM:
+            # Dispatch on the suggested processor name set by the AST handler
+            proc_name = (trans.suggested_processor or "StringTransformer")
+            column = trans.parameters.get("column") or (
+                trans.columns[0] if trans.columns else "unknown"
+            )
+
+            if proc_name == "FindReplace":
+                return PrepareStep(
+                    processor_type=ProcessorType.FIND_REPLACE,
+                    params={
+                        "column": column,
+                        "find": trans.parameters.get("find", ""),
+                        "replace": trans.parameters.get("replace", ""),
+                    },
+                    source_line=trans.source_line,
+                )
+            if proc_name == "RegexpExtractor":
+                return PrepareStep(
+                    processor_type=ProcessorType.REGEXP_EXTRACTOR,
+                    params={
+                        "column": column,
+                        "pattern": trans.parameters.get("pattern", ""),
+                    },
+                    source_line=trans.source_line,
+                )
+            if proc_name == "SplitColumn":
+                return PrepareStep(
+                    processor_type=ProcessorType.SPLIT_COLUMN,
+                    params={
+                        "column": column,
+                        "separator": trans.parameters.get("separator", ","),
+                    },
+                    source_line=trans.source_line,
+                )
+
+            # Default: StringTransformer with mode (upper/lower/trim/title/...)
+            mode = trans.parameters.get("mode", "UPPERCASE")
+            return PrepareStep(
+                processor_type=ProcessorType.STRING_TRANSFORMER,
+                params={"column": column, "mode": mode},
+                source_line=trans.source_line,
+            )
+
+        elif ttype == TransformationType.COLUMN_CREATE:
+            # Visual processor for computed columns (assign, where, mask, map(dict),
+            # replace(dict), explode, binop assigns).
+            proc_name = trans.suggested_processor or "CreateColumnWithGREL"
+            output_col = trans.parameters.get("output_column") or (
+                trans.columns[0] if trans.columns else "new_column"
+            )
+
+            if proc_name == "Unfold":
+                return PrepareStep(
+                    processor_type=ProcessorType.UNFOLD,
+                    params={"column": trans.parameters.get("column", output_col)},
+                    source_line=trans.source_line,
+                )
+            if proc_name in ("IfThenElse", "If"):
+                return PrepareStep(
+                    processor_type=ProcessorType.CREATE_COLUMN_WITH_GREL,
+                    params={
+                        "column": output_col,
+                        "expression": trans.parameters.get("expression", ""),
+                    },
+                    source_line=trans.source_line,
+                )
+            if proc_name in ("TranslateValues", "MapValues"):
+                return PrepareStep(
+                    processor_type=ProcessorType.CREATE_COLUMN_WITH_GREL,
+                    params={
+                        "column": output_col,
+                        "expression": trans.parameters.get("expression", ""),
+                        "mapping": trans.parameters.get("mapping", {}),
+                    },
+                    source_line=trans.source_line,
+                )
+
+            # Default: CreateColumnWithGREL
+            return PrepareStep.create_column_grel(
+                column=output_col,
+                expression=trans.parameters.get("expression", ""),
+                source_line=trans.source_line,
+            )
+
         return None
 
     def _create_input_dataset(
@@ -432,9 +517,22 @@ class FlowGenerator(BaseFlowGenerator):
 
         aggregations = []
         for col, func in aggs_dict.items():
-            func_key = func.lower() if isinstance(func, str) else "count"
-            agg_func = PandasMapper.AGG_MAPPINGS.get(func_key, "COUNT")
-            aggregations.append(Aggregation(column=col, function=agg_func))
+            # Multi-function form: {"col": ["sum", "mean", ...]}
+            if isinstance(func, (list, tuple)):
+                for f in func:
+                    func_key = f.lower() if isinstance(f, str) else "count"
+                    agg_func = PandasMapper.AGG_MAPPINGS.get(func_key, "COUNT")
+                    aggregations.append(
+                        Aggregation(
+                            column=col,
+                            function=agg_func,
+                            output_column=f"{col}_{func_key}",
+                        )
+                    )
+            else:
+                func_key = func.lower() if isinstance(func, str) else "count"
+                agg_func = PandasMapper.AGG_MAPPINGS.get(func_key, "COUNT")
+                aggregations.append(Aggregation(column=col, function=agg_func))
 
         recipe = DataikuRecipe.create_grouping(
             name=f"grouping_{self.recipe_counter}",
@@ -597,11 +695,16 @@ class FlowGenerator(BaseFlowGenerator):
             method = SamplingMethod.LAST_ROWS
             n = trans.parameters.get("n", 5)
         else:
-            # SAMPLE
+            # SAMPLE: prefer explicit n, then frac (as fraction *100 for ratio sampling)
             n = trans.parameters.get("n", None)
-            trans.parameters.get("frac", None)
+            frac = trans.parameters.get("frac", None)
             if n is not None:
+                method = SamplingMethod.RANDOM
+                # n is the row count, sample_size carries it through
+            elif frac is not None:
                 method = SamplingMethod.RANDOM_FIXED
+                # DSS RANDOM_FIXED_RATIO uses sample_size as a percentage (0-100)
+                n = int(frac * 100) if frac <= 1 else int(frac)
             else:
                 method = SamplingMethod.RANDOM
                 n = None
