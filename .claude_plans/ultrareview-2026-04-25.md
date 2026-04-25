@@ -233,7 +233,38 @@ Cumulative: **+72 tests, 0 failures, 0 ruff violations, 230× faster on large in
 
 ---
 
-## Items deferred to wave 5 (low priority)
+## Wave 5 — completed
+
+### Notebook refresh — DONE
+Re-executed all 7 advanced notebooks against the post-wave-4 codebase. Outputs are now consistent with the current visual-recipe routing (TOP_N/SAMPLING/PIVOT no longer Python stubs, melt → PREPARE+FOLD_MULTIPLE_COLUMNS, etc.) and `05_master.ipynb` cell 90 is now unblocked thanks to the wave-4 SVG XML-escape fix.
+
+| Notebook | Status | Notes |
+|---|---|---|
+| 01_beginner | re-executed + new cells added | added 9.3 save/load, 10.1 Path polymorphism |
+| 02_intermediate | re-executed + new cells added | added Path polymorphism after import, _repr_mimebundle_ note in section 9, save/load section 11 |
+| 02_numpy_operations | re-executed | clean |
+| 03_advanced | re-executed | clean |
+| 03_sklearn_pipelines | re-executed | clean |
+| 04_expert | re-executed | clean (cell 9 catch-ValueError still works because ConfigurationError multi-inherits) |
+| 05_master | re-executed | previously blocked by SVG escape bug; now unblocked |
+
+### Beginner-notebook ergonomics — DONE
+The wave-4 reviewer flagged that `01_beginner.ipynb` and `02_intermediate.ipynb` only showed the inline-string `convert("""...""")` pattern. New cells added so users discover the wave-3 ergonomics:
+
+**01_beginner.ipynb**:
+- New section 9.3 "Auto-detect format with `flow.save()` / `DataikuFlow.load()`" — demonstrates the recommended save/load API with format auto-detection.
+- New section 10.1 "Path polymorphism" — shows that `convert()` accepts `pathlib.Path`, a `.py` path-string, or inline code interchangeably.
+
+**02_intermediate.ipynb**:
+- New cell after the library import showing `convert(Path(...))`, `convert("script.py")`, and inline-code forms produce equivalent flows (also mentions the CLI bare-file form).
+- Section 9 markdown rewritten to explain BOTH `_repr_svg_()` (Classic Jupyter) AND `_repr_mimebundle_()` (JupyterLab/VS Code).
+- New section 11 "Auto-detect format with `flow.save()` and `DataikuFlow.load()`" — demonstrates JSON/YAML round-trip plus SVG/HTML visual exports through the same single method.
+
+All 2291 tests still pass. 0 ruff violations.
+
+---
+
+## Items deferred to future waves (low priority)
 
 1. **FilterOnValue matching modes** — verify against DSS 14 source whether `GT`/`GTE`/`LT`/`LTE`/`IN_LIST` (auditor's claim) or `GREATER_THAN`/`LESS_OR_EQUAL`/`IN` (current) is correct. Either way, normalize across `pattern_matcher.py:95-108` and `llm_flow_generator._map_operator`.
 2. **System prompt processor names** — `analyzer.py:42-50` references `ColumnDeleter`, `Normalizer`, `RegexpExtractor` which don't all match `ProcessorType` `.value`s. Auto-generate from the enum to prevent drift.
