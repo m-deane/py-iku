@@ -1,80 +1,46 @@
 /**
  * Minimal type subset re-exported for flow-viz consumers.
  *
- * @canonical-source: packages/types when M1b lands. Until then these literals
- * mirror the Python `RecipeType`, `DatasetType`, and `DatasetConnectionType`
- * enums, derived from the keys present in `docs/design/tokens.json`.
+ * RecipeType, DatasetType, DatasetConnectionType are now sourced from
+ * @py-iku-studio/types (codegen from /openapi.json). The generated API
+ * types use lowercase DSS enum values (e.g. "prepare", "grouping"); the
+ * flow-viz rendering layer uses those values directly from this file.
+ *
+ * NOTE: Existing render code that used uppercase keys (e.g. "PREPARE") is
+ * being migrated to lowercase DSS values in this file. See nodes/index.ts.
  */
 
-/** All 37 RecipeType members from py2dataiku.models.dataiku_recipe.RecipeType. */
-export type RecipeType =
-  | "PREPARE"
-  | "SYNC"
-  | "GROUPING"
-  | "WINDOW"
-  | "JOIN"
-  | "FUZZY_JOIN"
-  | "GEO_JOIN"
-  | "STACK"
-  | "SPLIT"
-  | "SORT"
-  | "DISTINCT"
-  | "TOP_N"
-  | "PIVOT"
-  | "SAMPLING"
-  | "DOWNLOAD"
-  | "GENERATE_FEATURES"
-  | "GENERATE_STATISTICS"
-  | "PUSH_TO_EDITABLE"
-  | "LIST_FOLDER_CONTENTS"
-  | "DYNAMIC_REPEAT"
-  | "EXTRACT_FAILED_ROWS"
-  | "UPSERT"
-  | "LIST_ACCESS"
-  | "PYTHON"
-  | "R"
-  | "SQL"
-  | "HIVE"
-  | "IMPALA"
-  | "SPARKSQL"
-  | "PYSPARK"
-  | "SPARK_SCALA"
-  | "SPARKR"
-  | "SHELL"
-  | "PREDICTION_SCORING"
-  | "CLUSTERING_SCORING"
-  | "EVALUATION"
-  | "AI_ASSISTANT_GENERATE";
+import type { components } from "@py-iku-studio/types";
 
-/** DatasetType from py2dataiku.models.dataiku_dataset.DatasetType. */
-export type DatasetType = "INPUT" | "INTERMEDIATE" | "OUTPUT";
+/**
+ * All 37 RecipeType DSS values (lowercase).
+ * Sourced from @py-iku-studio/types codegen; replaced the hand-written union.
+ */
+export type RecipeType = components["schemas"]["RecipeTypeEnum"];
 
-/** Subset of DatasetConnectionType used for shape mapping in node-spec.md. */
-export type DatasetConnectionType =
-  | "FILESYSTEM"
-  | "MANAGED_FOLDER"
-  | "SQL_POSTGRESQL"
-  | "SQL_MYSQL"
-  | "SQL_BIGQUERY"
-  | "SQL_SNOWFLAKE"
-  | "SQL_REDSHIFT"
-  | "S3"
-  | "GCS"
-  | "AZURE_BLOB"
-  | "HDFS"
-  | "MONGODB"
-  | "ELASTICSEARCH";
+/**
+ * DatasetType DSS values (lowercase: "input", "intermediate", "output").
+ * Sourced from @py-iku-studio/types codegen.
+ */
+export type DatasetType = components["schemas"]["DatasetTypeEnum"];
+
+/**
+ * DatasetConnectionType — canonical DSS connection string values.
+ * Sourced from @py-iku-studio/types codegen.
+ */
+export type DatasetConnectionType = components["schemas"]["DatasetConnectionTypeEnum"];
 
 /** Theme name. */
 export type ThemeName = "light" | "dark";
 
-/** Node deployment / execution status. M3a renders only `none`. */
+/** Node deployment / execution status. */
 export type NodeStatus =
   | "none"
   | "not_deployed"
   | "deploying"
   | "deployed"
   | "executing"
+  | "done"
   | "error";
 
 /** Recipe node payload as stored on a React Flow node. */
@@ -84,6 +50,7 @@ export interface RecipeNodeData {
   inputs: number;
   outputs: number;
   status?: NodeStatus;
+  dimmed?: boolean;
 }
 
 /** Dataset node payload as stored on a React Flow node. */
@@ -92,6 +59,7 @@ export interface DatasetNodeData {
   connectionType: DatasetConnectionType;
   name: string;
   status?: NodeStatus;
+  dimmed?: boolean;
 }
 
 /** Generic flow-node descriptor used by the layout engine. */

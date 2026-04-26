@@ -1,35 +1,30 @@
 /**
- * Recipe icon glyphs. Mirrors `py2dataiku/visualizers/icons.py` UNICODE map.
- *
- * M3a covers the 5 representative types (PREPARE, GROUPING, JOIN, SPLIT,
- * WINDOW) plus the partials Unicode-only glyphs already defined in the Python
- * source; the 23 fall-back-only types resolve to the default square. Dedicated
- * SVG paths and the ML/AI/code-recipe glyphs are TODO:M3b per icon-inventory.md.
+ * Recipe icon glyphs. Uses lowercase DSS enum values from @py-iku-studio/types codegen.
  */
 
 import type { RecipeType } from "../types";
 
 const UNICODE: Partial<Record<RecipeType, string>> = {
-  PREPARE: "⚙", // ⚙ gear
-  JOIN: "⋈", // ⋈ bowtie
-  STACK: "☰", // ☰ trigram
-  GROUPING: "Σ", // Σ sigma
-  WINDOW: "▦", // ▦ grid square
-  SPLIT: "⑂", // ⑂ fork
-  SORT: "⇅", // ⇅ up-down
-  DISTINCT: "◎", // ◎ bullseye
-  PYTHON: "λ", // λ lambda
-  PYSPARK: "λ",
-  SYNC: "⇄", // ⇄ left-right
-  SAMPLING: "◔", // ◔ circle quarter
-  PIVOT: "⊞", // ⊞ squared plus
-  TOP_N: "↑", // ↑ up arrow
-  EXTRACT_FAILED_ROWS: "▼", // ▼ filter
-  FUZZY_JOIN: "⋈",
-  GEO_JOIN: "⋈",
+  "prepare": "\u2699",
+  "join": "\u22c8",
+  "stack": "\u2630",
+  "grouping": "\u03a3",
+  "window": "\u25a6",
+  "split": "\u2482",
+  "sort": "\u21c5",
+  "distinct": "\u25ce",
+  "python": "\u03bb",
+  "pyspark": "\u03bb",
+  "sync": "\u21c4",
+  "sampling": "\u25d4",
+  "pivot": "\u229e",
+  "topn": "\u2191",
+  "extract_failed_rows": "\u25bc",
+  "fuzzyjoin": "\u22c8",
+  "geojoin": "\u22c8",
 };
 
-const DEFAULT_GLYPH = "■"; // ■
+const DEFAULT_GLYPH = "\u25a0";
 
 export function getRecipeGlyph(type: RecipeType): string {
   return UNICODE[type] ?? DEFAULT_GLYPH;

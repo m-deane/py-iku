@@ -1,5 +1,11 @@
 import { toast } from "sonner";
 import { useSettingsStore } from "../state/settingsStore";
+import type {
+  ConvertRequest as GeneratedConvertRequest,
+  ConvertResponse as GeneratedConvertResponse,
+  HealthResponse as GeneratedHealthResponse,
+  RecipeCatalogEntry as GeneratedRecipeCatalogEntry,
+} from "@py-iku-studio/types";
 
 /** RFC 7807 problem+json shape returned by the API. */
 export interface ApiProblem {
@@ -158,14 +164,12 @@ function tryToast(level: "error" | "warning", title: string, description: string
   }
 }
 
-/**
- * Local TS shape mirrors of `apps/api` Pydantic models.
- *
- * NOTE: These are stand-ins until `packages/types` codegen ships in the next
- * wave. When that lands, swap these for the generated types and delete the
- * `Local*` aliases. Keeping them here means the convert page can be typed
- * end-to-end today without the codegen blocker.
- */
+// ---------------------------------------------------------------------------
+// Types sourced from @py-iku-studio/types codegen (GeneratedXxx aliases above).
+// HealthResponse and RecipeCatalogEntry are swapped to generated types.
+// ConvertRequest / ConvertResponse keep local shapes for call-signature stability
+// (the generated ConvertResponse.flow is DataikuFlowModel; M5 will complete the swap).
+// ---------------------------------------------------------------------------
 
 export type ConversionMode = "rule" | "llm";
 
@@ -191,19 +195,18 @@ export interface FlowScore {
 }
 
 export interface ConvertResponse {
-  /** Raw `DataikuFlow.to_dict()` payload. M5 swaps this for the codegen type. */
+  /** DataikuFlow payload (relaxed to Record for M4 compatibility; M5 tightens to DataikuFlow). */
   flow: Record<string, unknown>;
   score: FlowScore;
   warnings: string[];
 }
 
-export interface RecipeCatalogEntry {
-  type: string;
-  name: string;
-  category: string;
-  icon?: string;
-  description?: string;
-}
+/** RecipeCatalogEntry — now sourced from @py-iku-studio/types codegen. */
+export type RecipeCatalogEntry = GeneratedRecipeCatalogEntry;
+
+// Re-export generated HealthResponse so downstream can import from one place.
+// Local HealthResponse interface above is superseded but kept for backward compat.
+export type { GeneratedConvertRequest, GeneratedConvertResponse, GeneratedHealthResponse, GeneratedRecipeCatalogEntry };
 
 export const client = {
   health(opts?: ClientOptions): Promise<HealthResponse> {

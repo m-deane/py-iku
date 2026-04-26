@@ -123,19 +123,19 @@ export function getConnectionColor(
 export type DatasetShape = "cylinder" | "folder" | "document";
 
 const SHAPE_MAP: Record<DatasetConnectionType, DatasetShape> = {
-  FILESYSTEM: "folder",
-  MANAGED_FOLDER: "folder",
-  SQL_POSTGRESQL: "cylinder",
-  SQL_MYSQL: "cylinder",
-  SQL_BIGQUERY: "cylinder",
-  SQL_SNOWFLAKE: "cylinder",
-  SQL_REDSHIFT: "cylinder",
-  HDFS: "cylinder",
-  S3: "document",
-  GCS: "document",
-  AZURE_BLOB: "document",
-  MONGODB: "document",
-  ELASTICSEARCH: "document",
+  "Filesystem": "folder",
+  "ManagedFolder": "folder",
+  "PostgreSQL": "cylinder",
+  "MySQL": "cylinder",
+  "BigQuery": "cylinder",
+  "Snowflake": "cylinder",
+  "Redshift": "cylinder",
+  "HDFS": "cylinder",
+  "S3": "document",
+  "GCS": "document",
+  "Azure": "document",
+  "MongoDB": "document",
+  "Elasticsearch": "document",
 };
 
 export function getDatasetShape(type: DatasetConnectionType): DatasetShape {
