@@ -411,12 +411,19 @@ class DataikuFlow:
                 return z
         return None
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary representation."""
+    def to_dict(self, include_timestamp: bool = True) -> dict[str, Any]:
+        """Convert to dictionary representation.
+
+        Args:
+            include_timestamp: When False, omit ``generation_timestamp``
+                from the output. Useful when comparing two flows for
+                equality (the wallclock-based timestamp is otherwise the
+                dominant source of byte-level drift between identical
+                conversions). Wave-A determinism prober flagged this.
+        """
         result = {
             "flow_name": self.name,
             "generated_from": self.source_file,
-            "generation_timestamp": self.generation_timestamp,
             "total_recipes": len(self.recipes),
             "total_datasets": len(self.datasets),
             "datasets": [ds.to_dict() for ds in self.datasets],
@@ -424,6 +431,8 @@ class DataikuFlow:
             "optimization_notes": self.optimization_notes,
             "recommendations": [r.to_dict() for r in self.recommendations],
         }
+        if include_timestamp:
+            result["generation_timestamp"] = self.generation_timestamp
         if self.zones:
             result["zones"] = [z.to_dict() for z in self.zones]
         return result

@@ -65,6 +65,7 @@ class AnthropicProvider(LLMProvider):
         max_tokens: int = 4096,
         timeout: Optional[float] = None,
         max_retries: int = 2,
+        temperature: float = 0.0,
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -76,6 +77,12 @@ class AnthropicProvider(LLMProvider):
         self.max_tokens = max_tokens
         self.timeout = timeout
         self.max_retries = max_retries
+        # Default to 0.0 — code-to-flow conversion is a structured extraction
+        # task where determinism (same code -> same flow) matters more than
+        # creativity. Wave A determinism prober found temperature default 1.0
+        # was the dominant source of run-to-run drift (e.g. dropna() inventing
+        # `df_temp`/`df_initial` intermediate dataset names).
+        self.temperature = temperature
         self._client = None
 
     @property
@@ -102,6 +109,7 @@ class AnthropicProvider(LLMProvider):
             "model": self.model,
             "max_tokens": self.max_tokens,
             "messages": messages,
+            "temperature": self.temperature,
         }
         if system_prompt:
             kwargs["system"] = system_prompt
@@ -144,6 +152,8 @@ class OpenAIProvider(LLMProvider):
         max_tokens: int = 4096,
         timeout: Optional[float] = None,
         max_retries: int = 2,
+        temperature: float = 0.0,
+        seed: Optional[int] = 42,
     ):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
@@ -155,6 +165,10 @@ class OpenAIProvider(LLMProvider):
         self.max_tokens = max_tokens
         self.timeout = timeout
         self.max_retries = max_retries
+        # Determinism defaults — same rationale as AnthropicProvider.
+        # OpenAI also accepts a `seed` for further determinism.
+        self.temperature = temperature
+        self.seed = seed
         self._client = None
 
     @property
@@ -180,11 +194,16 @@ class OpenAIProvider(LLMProvider):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            max_tokens=self.max_tokens,
-            messages=messages,
-        )
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+            "temperature": self.temperature,
+        }
+        if self.seed is not None:
+            kwargs["seed"] = self.seed
+
+        response = self.client.chat.completions.create(**kwargs)
 
         return LLMResponse(
             content=response.choices[0].message.content,
@@ -205,12 +224,17 @@ class OpenAIProvider(LLMProvider):
         messages.append({"role": "system", "content": json_system})
         messages.append({"role": "user", "content": prompt})
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            max_tokens=self.max_tokens,
-            messages=messages,
-            response_format={"type": "json_object"},
-        )
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+            "response_format": {"type": "json_object"},
+            "temperature": self.temperature,
+        }
+        if self.seed is not None:
+            kwargs["seed"] = self.seed
+
+        response = self.client.chat.completions.create(**kwargs)
 
         content = response.choices[0].message.content
         return json.loads(content)
@@ -258,6 +282,7 @@ def get_provider(
     provider: str = "anthropic",
     api_key: Optional[str] = None,
     model: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> LLMProvider:
     """
     Factory function to get an LLM provider.
@@ -266,19 +291,25 @@ def get_provider(
         provider: Provider name ("anthropic", "openai", "mock")
         api_key: API key (uses environment variable if not provided)
         model: Model name (uses provider default if not provided)
+        temperature: Sampling temperature override (default: 0.0 — see
+            AnthropicProvider/OpenAIProvider __init__ for rationale).
 
     Returns:
         LLMProvider instance
     """
     if provider == "anthropic":
-        kwargs = {"api_key": api_key}
+        kwargs: dict[str, Any] = {"api_key": api_key}
         if model:
             kwargs["model"] = model
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         return AnthropicProvider(**kwargs)
     elif provider == "openai":
         kwargs = {"api_key": api_key}
         if model:
             kwargs["model"] = model
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         return OpenAIProvider(**kwargs)
     elif provider == "mock":
         return MockProvider()

@@ -74,7 +74,44 @@ Dataiku Recipe Types:
 
 {_build_processor_catalog_section()}
 
-Be precise and thorough. Extract ALL operations, even implicit ones. Use only the canonical processor names listed above when populating ``suggested_processors``."""
+## Mapping Rules (non-obvious cases)
+
+These pandas patterns map to specific DSS recipes — they are the cases where naive lexical matching gets the wrong answer:
+
+- ``df.melt()`` / ``pd.melt(df, ...)`` -> **prepare** recipe with ``FoldMultipleColumns`` processor (NOT ``pivot`` — pivot is the opposite operation, long-to-wide)
+- ``df.pivot()`` / ``df.pivot_table()`` -> **pivot** recipe
+- ``df.rolling(N).mean()``, ``df.cumsum()``, ``df.expanding()``, ``df.shift()`` -> **window** recipe
+- ``df.nlargest(N, col)`` / ``df.nsmallest(N, col)`` -> **topn** recipe
+- ``df.head(N)`` / ``df.tail(N)`` / ``df.sample(...)`` -> **sampling** recipe
+- ``df.round()``, ``df.abs()``, ``df.clip()`` -> **prepare** recipe with ``CreateColumnWithGREL`` (abs uses ``abs()`` formula)
+- ``df.drop_duplicates()`` -> **distinct** recipe
+- ``pd.concat([a, b, c])`` (axis=0, default) -> **stack** recipe
+- ``df.merge()`` / ``pd.merge()`` -> **join** recipe
+- ``pd.cut()`` / ``pd.qcut()`` -> **prepare** recipe with ``Binner`` processor
+- ``pd.get_dummies()`` -> **prepare** recipe with ``CategoricalEncoder``
+- ``df.groupby(...).agg({{col: ['sum', 'mean']}})`` (multi-function dict) -> **grouping** with one aggregation per (col, func) pair
+- ``df[df.x > N]`` (single boolean mask) -> **prepare** with ``FilterOnNumericRange`` (NOT ``FilterOnValue`` — that field is for string matching)
+- ``df[df.x == 'foo']`` -> **prepare** with ``FilterOnValue`` and ``matchingMode: FULL_STRING``
+- ``df[(df.x > N) & (df.y < M)]`` (compound predicate) -> **prepare** with ``FilterOnFormula`` and a GREL ``formula``
+- ``df[cond]`` and ``df[~cond]`` on the same source -> ONE multi-output **split** recipe (not two)
+
+## Aggregation Function Naming
+
+Use canonical DSS names in ``aggregations[].function``: ``SUM``, ``AVG`` (not ``MEAN``), ``COUNT``, ``COUNTD`` (not ``NUNIQUE`` or ``COUNTDISTINCT``), ``MIN``, ``MAX``, ``STDDEV`` (not ``STD``), ``VAR``, ``MEDIAN``, ``FIRST``, ``LAST``.
+
+## Output Discipline
+
+- Respond with EXACTLY ONE valid JSON object. No markdown code fences. No prose before or after.
+- ``operation`` MUST be one of the OperationType enum values listed in the schema (e.g. ``read_data``, ``filter``, ``group_aggregate``, ``window_function``, ``join``, ``pivot``, ``unpivot``, ``sort``, ``top_n``, ``sample``, ``cast_type``, ``parse_date``, ``split_column``, ``encode_categorical``, ``normalize_scale``, ``geo_operation``, ``statistics``, ``custom_function``, ``unknown``).
+- ``suggested_processors`` MUST contain only canonical names from the processor catalog above. Do NOT invent new names.
+- If you cannot confidently map a step to a visual recipe, set ``requires_python_recipe: true`` and ``suggested_recipe: "python"``. Do NOT guess.
+- For self-mutating ops like ``df = df.dropna()``, use the SAME variable name for both ``input_datasets`` and ``output_dataset`` — do not invent intermediate names like ``df_temp`` or ``df_initial``.
+
+## Reasoning Approach
+
+For each Python statement, internally: (1) identify the pandas/numpy operation, (2) pick the OperationType, (3) apply the Mapping Rules to pick the recipe, (4) pick processors if recipe is "prepare". Capture the reasoning in the step's ``reasoning`` field. Do NOT emit reasoning text outside the JSON.
+
+Be precise and thorough. Extract ALL operations, even implicit ones."""
 
 
 # System prompt for code analysis. Built once at import time from the
@@ -178,13 +215,36 @@ class LLMCodeAnalyzer:
         prompt = get_analysis_prompt(code)
 
         try:
-            response_data = self.provider.complete_json(
-                prompt=prompt,
-                system_prompt=ANALYSIS_SYSTEM_PROMPT,
+            # Call complete() directly (rather than complete_json) so we can
+            # capture LLMResponse.usage and surface it on the AnalysisResult.
+            # The MockProvider returns mock JSON that doesn't go through the
+            # real-LLM path, so fall back to complete_json there.
+            from py2dataiku.llm.providers import (
+                AnthropicProvider,
+                OpenAIProvider,
+                _extract_json,
             )
+            if isinstance(self.provider, (AnthropicProvider, OpenAIProvider)):
+                # Mirror the JSON-instruction wrapping that complete_json does
+                # so behaviour matches existing tests.
+                json_system = (ANALYSIS_SYSTEM_PROMPT or "") + (
+                    "\n\nYou must respond with valid JSON only. No other text."
+                )
+                llm_response = self.provider.complete(prompt, json_system)
+                json_text = _extract_json(llm_response.content)
+                response_data = json.loads(json_text)
+                usage = llm_response.usage
+            else:
+                # MockProvider / custom provider — keep the old contract.
+                response_data = self.provider.complete_json(
+                    prompt=prompt,
+                    system_prompt=ANALYSIS_SYSTEM_PROMPT,
+                )
+                usage = None
 
             result = AnalysisResult.from_dict(response_data)
             result.model_used = self.provider.model_name
+            result.usage = usage
             result.raw_response = json.dumps(response_data)
 
             # Post-process to ensure consistency
@@ -254,6 +314,33 @@ class LLMCodeAnalyzer:
         for step in result.steps:
             if not step.suggested_recipe:
                 step.suggested_recipe = self._infer_recipe(step)
+
+        # Validate suggested_processors against ProcessorCatalog. Wave A
+        # determinism prober found the LLM occasionally invents processor
+        # names that aren't in the catalog (e.g. invented sklearn names).
+        # Drop unknown names and surface a warning so the user knows what
+        # happened, rather than silently failing downstream when
+        # LLMFlowGenerator tries to look the name up.
+        canonical_names = {
+            info.name for info in ProcessorCatalog.PROCESSORS.values()
+        }
+        for step in result.steps:
+            if not step.suggested_processors:
+                continue
+            valid = []
+            invalid = []
+            for proc_name in step.suggested_processors:
+                if proc_name in canonical_names:
+                    valid.append(proc_name)
+                else:
+                    invalid.append(proc_name)
+            if invalid:
+                step.suggested_processors = valid
+                result.warnings.append(
+                    f"Step {step.step_number}: dropped unknown processor names "
+                    f"{invalid} (not in ProcessorCatalog). Valid alternatives "
+                    f"can be found in py2dataiku.mappings.processor_catalog.ProcessorCatalog."
+                )
 
         # Update total operations count
         result.total_operations = len(result.steps)

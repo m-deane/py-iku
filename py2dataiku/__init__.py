@@ -306,6 +306,7 @@ def convert_with_llm(
     optimize: bool = True,
     flow_name: str = "converted_flow",
     on_progress=None,
+    temperature: float = 0.0,
 ) -> DataikuFlow:
     """
     Convert Python code to a Dataiku flow using LLM-based analysis.
@@ -345,6 +346,7 @@ def convert_with_llm(
         return convert_file_with_llm(
             str(code), provider=provider, api_key=api_key, model=model,
             optimize=optimize, flow_name=flow_name, on_progress=on_progress,
+            temperature=temperature,
         )
     if (
         isinstance(code, str)
@@ -355,6 +357,7 @@ def convert_with_llm(
         return convert_file_with_llm(
             code, provider=provider, api_key=api_key, model=model,
             optimize=optimize, flow_name=flow_name, on_progress=on_progress,
+            temperature=temperature,
         )
 
     def _emit(phase: str, info: dict) -> None:
@@ -369,7 +372,7 @@ def convert_with_llm(
     _emit("start", {"code_size": len(code) if isinstance(code, str) else 0})
 
     # Initialize LLM analyzer
-    llm_provider = get_provider(provider, api_key, model)
+    llm_provider = get_provider(provider, api_key, model, temperature=temperature)
     _emit("analyzing", {"provider": provider, "model": llm_provider.model_name})
 
     analyzer = LLMCodeAnalyzer(provider=llm_provider)
@@ -421,6 +424,7 @@ def convert_file_with_llm(
     optimize: bool = True,
     flow_name: Optional[str] = None,
     on_progress=None,
+    temperature: float = 0.0,
 ) -> DataikuFlow:
     """
     Convert a Python file to a Dataiku flow using LLM-based analysis.
@@ -450,6 +454,7 @@ def convert_file_with_llm(
         optimize=optimize,
         flow_name=flow_name,
         on_progress=on_progress,
+        temperature=temperature,
     )
     flow.source_file = path
     return flow

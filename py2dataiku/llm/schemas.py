@@ -277,6 +277,10 @@ class AnalysisResult:
     # Raw LLM response for debugging
     raw_response: Optional[str] = None
     model_used: Optional[str] = None
+    # Token usage from the underlying API call ({"input_tokens": int,
+    # "output_tokens": int}). Surfaced so callers running in CI can
+    # monitor cost. Captured by the provider on every complete() call.
+    usage: Optional[dict[str, int]] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -298,6 +302,7 @@ class AnalysisResult:
             "recommendations": self.recommendations,
             "warnings": self.warnings,
             "model_used": self.model_used,
+            "usage": self.usage,
         }
 
     def to_json(self, indent: int = 2) -> str:
