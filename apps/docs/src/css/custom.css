@@ -1,0 +1,91 @@
+/**
+ * Custom CSS for py-iku Studio Docs.
+ * Brand colors sourced from docs/design/tokens.json (primary stripe = dataset input border).
+ */
+
+:root {
+  /* Primary: dataset input border blue from tokens.json */
+  --ifm-color-primary: #2196f3;
+  --ifm-color-primary-dark: #0d89eb;
+  --ifm-color-primary-darker: #0881e0;
+  --ifm-color-primary-darkest: #076abd;
+  --ifm-color-primary-light: #35a2f5;
+  --ifm-color-primary-lighter: #40a8f5;
+  --ifm-color-primary-lightest: #65bbf8;
+
+  /* Secondary accent: grouping green from tokens.json */
+  --ifm-color-secondary: #4caf50;
+
+  /* Background: light theme token #FAFAFA */
+  --ifm-background-color: #fafafa;
+
+  /* Code block highlighting */
+  --docusaurus-highlighted-code-line-bg: rgba(33, 150, 243, 0.1);
+
+  /* Link colors */
+  --ifm-link-color: #1565c0;
+  --ifm-link-hover-color: #0d47a1;
+}
+
+[data-theme="dark"] {
+  /* Primary adjusted for dark mode */
+  --ifm-color-primary: #64b5f6;
+  --ifm-color-primary-dark: #42a5f5;
+  --ifm-color-primary-darker: #2196f3;
+  --ifm-color-primary-darkest: #1976d2;
+  --ifm-color-primary-light: #90caf9;
+  --ifm-color-primary-lighter: #bbdefb;
+  --ifm-color-primary-lightest: #e3f2fd;
+
+  /* Background: dark theme token #1E1E1E */
+  --ifm-background-color: #1e1e1e;
+  --ifm-background-surface-color: #252526;
+
+  --docusaurus-highlighted-code-line-bg: rgba(100, 181, 246, 0.12);
+
+  --ifm-link-color: #90caf9;
+  --ifm-link-hover-color: #bbdefb;
+}
+
+/* Recipe type color chips used in docs */
+.recipe-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.recipe-chip--prepare  { background: #fff3e0; color: #e65100; border: 1px solid #ff9800; }
+.recipe-chip--join     { background: #e3f2fd; color: #1565c0; border: 1px solid #2196f3; }
+.recipe-chip--grouping { background: #e8f5e9; color: #2e7d32; border: 1px solid #4caf50; }
+.recipe-chip--window   { background: #e0f7fa; color: #00838f; border: 1px solid #00bcd4; }
+.recipe-chip--split    { background: #fce4ec; color: #ad1457; border: 1px solid #e91e63; }
+.recipe-chip--sort     { background: #fffde7; color: #ff8f00; border: 1px solid #ffc107; }
+.recipe-chip--python   { background: #e8eaf6; color: #283593; border: 1px solid #3f51b5; }
+.recipe-chip--stack    { background: #f3e5f5; color: #6a1b9a; border: 1px solid #9c27b0; }
+
+/* Stable API admonition banner */
+.api-stable-banner {
+  border-left: 4px solid #2196f3;
+  background: #e3f2fd;
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 16px;
+  font-size: 0.9em;
+}
+
+[data-theme="dark"] .api-stable-banner {
+  background: #1a237e;
+  border-left-color: #64b5f6;
+}
+
+/* Improve table readability */
+table th {
+  background-color: #e3f2fd;
+}
+
+[data-theme="dark"] table th {
+  background-color: #1a237e;
+}

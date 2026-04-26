@@ -115,6 +115,8 @@ nav:
     - MLOps: api/mlops.md
   - Auto-generated API:
     - py2dataiku: reference/index.md
+  - Future Work:
+    - DSS Write-back: future-dss-writeback.md
 
 extra:
   social:
