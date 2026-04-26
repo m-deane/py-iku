@@ -301,6 +301,55 @@
           }
         }
       }
+    },
+    "/export/{format}": {
+      "post": {
+        "tags": [
+          "export"
+        ],
+        "summary": "Export a DataikuFlow as a binary payload",
+        "description": "Render the flow as ``format`` and stream it back as an attachment.",
+        "operationId": "post_export_export__format__post",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ExportFormat"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Binary export payload (zip / json / yaml / svg / png / pdf)",
+            "content": {
+              "application/zip": {},
+              "application/json": {},
+              "application/x-yaml": {},
+              "image/svg+xml": {},
+              "image/png": {},
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Invalid format or malformed flow body"
+          },
+          "501": {
+            "description": "Format not supported in this environment"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -863,6 +912,48 @@
         "type": "object",
         "title": "DistinctSettingsModel",
         "description": "Mirrors DistinctSettings.to_dict(): computeCount."
+      },
+      "ExportFormat": {
+        "type": "string",
+        "enum": [
+          "zip",
+          "json",
+          "yaml",
+          "svg",
+          "png",
+          "pdf"
+        ],
+        "title": "ExportFormat",
+        "description": "Supported export formats for ``POST /export/{format}``."
+      },
+      "ExportRequest": {
+        "properties": {
+          "flow": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Flow",
+            "description": "DataikuFlow.to_dict() payload"
+          },
+          "opts": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opts",
+            "description": "Optional format-specific options (passed through to the sink)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow"
+        ],
+        "title": "ExportRequest",
+        "description": "Request body for ``POST /export/{format}``.\n\n``flow`` is the raw ``DataikuFlow.to_dict()`` payload (round-trippable via\n``DataikuFlow.from_dict``).  ``opts`` is a free-form dict reserved for\nformat-specific knobs (e.g. ``{\"scale\": 2.0}`` for PNG)."
       },
       "FlowRecommendationModel": {
         "properties": {

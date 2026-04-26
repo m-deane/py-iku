@@ -74,15 +74,15 @@ describe("drift detection", () => {
     }
   });
 
-  it("snapshot has exactly 36 component schemas", () => {
+  it("snapshot has exactly 38 component schemas", () => {
     const snapshot = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, "utf8")) as {
       components: { schemas: Record<string, unknown> };
     };
     const count = Object.keys(snapshot.components.schemas).length;
-    expect(count).toBe(36);
+    expect(count).toBe(38);
   });
 
-  it("snapshot has the 7 API paths", () => {
+  it("snapshot has the 8 API paths", () => {
     const snapshot = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, "utf8")) as {
       paths: Record<string, unknown>;
     };
@@ -94,5 +94,6 @@ describe("drift detection", () => {
     expect(paths).toContain("/catalog/processors/{processor_type}");
     expect(paths).toContain("/diff");
     expect(paths).toContain("/score");
+    expect(paths).toContain("/export/{format}");
   });
 });

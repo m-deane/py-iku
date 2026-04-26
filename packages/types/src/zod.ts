@@ -12,6 +12,9 @@ export type DatasetConnectionTypeEnum = z.infer<typeof DatasetConnectionTypeEnum
 export const DatasetTypeEnumSchema = z.enum(["input", "intermediate", "output"]);
 export type DatasetTypeEnum = z.infer<typeof DatasetTypeEnumSchema>;
 
+export const ExportFormatSchema = z.enum(["zip", "json", "yaml", "svg", "png", "pdf"]);
+export type ExportFormat = z.infer<typeof ExportFormatSchema>;
+
 export const ProcessorTypeEnumSchema = z.enum(["ColumnRenamer", "ColumnCopier", "ColumnsSelector", "ColumnReorder", "ColumnsConcat", "FillEmptyWithValue", "RemoveRowsOnEmpty", "UpDownFill", "FillEmptyWithComputedValue", "ImputeWithML", "StringTransformer", "Tokenizer", "PatternExtract", "FindReplace", "ColumnsSplitter", "HtmlStripper", "MultiColumnFindReplace", "Ngrammer", "SimplifyText", "StemText", "LemmatizeText", "LanguageDetector", "SentimentAnalyzer", "TextHasher", "UnicodeNormalizer", "URLParser", "IPAddressParser", "EmailDomainExtractor", "PhoneFormatter", "CountryNormalizer", "UserAgentParser", "NumericalTransformer", "Round", "NumberClipping", "Binner", "MeasureNormalize", "TypeSetter", "DateParser", "DateFormatter", "DateComponentExtractor", "DateDifference", "HolidaysComputer", "TimezoneConverter", "DateRangeClassifier", "TimestampExtractor", "FilterOnValue", "FilterOnBadType", "FilterOnFormula", "FilterOnDateRange", "FilterOnNumericRange", "FilterOnMultipleValues", "FilterOnNullNumeric", "FilterOnGeoZone", "FilterOnCustomCondition", "FlagOnValue", "FlagOnFormula", "FlagOnBadType", "FlagOnDateRange", "FlagOnNumericRange", "RemoveDuplicates", "SortRows", "SampleRows", "ShuffleRows", "CreateColumnWithGREL", "Formula", "MultiColumnFormula", "ColumnPseudoAnonymizer", "HashComputer", "UUIDGenerator", "LongTailGrouper", "CategoricalEncoder", "GeoPointCreator", "GeoEncoder", "GeoIPResolver", "GeoDistanceCalculator", "GeoPolygonMatcher", "AddressParser", "ReverseGeocoder", "IfThenElse", "SwitchCase", "TranslateValues", "ExtractWithJSONPath", "SplitURL", "FoldMultipleColumns", "TransposeRowsToColumns", "Unfold", "Coalesce", "FillColumn", "ArraySplitter", "ArrayJoiner", "ArraySorter", "ArrayUnfold", "ArrayFold", "ArrayElementExtractor", "JSONFlattener", "JSONExtractor", "XMLExtractor", "NestedProcessor", "ProcessorGroup", "PythonUDF"]);
 export type ProcessorTypeEnum = z.infer<typeof ProcessorTypeEnumSchema>;
 
@@ -256,6 +259,12 @@ export const DiffResponseSchema = z.object({
   "changed": z.array(NodeDiffSchema).optional()
 }).passthrough();
 export type DiffResponse = z.infer<typeof DiffResponseSchema>;
+
+export const ExportRequestSchema = z.object({
+  "flow": z.record(z.string(), z.unknown()),
+  "opts": z.record(z.string(), z.unknown()).nullable().optional()
+}).passthrough();
+export type ExportRequest = z.infer<typeof ExportRequestSchema>;
 
 export const ValidationErrorSchema = z.object({
   "loc": z.array(z.union([

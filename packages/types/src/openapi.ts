@@ -164,6 +164,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/export/{format}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export a DataikuFlow as a binary payload
+         * @description Render the flow as ``format`` and stream it back as an attachment.
+         */
+        post: operations["post_export_export__format__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -428,6 +448,36 @@ export interface components {
              * @default false
              */
             computeCount: boolean;
+        };
+        /**
+         * ExportFormat
+         * @description Supported export formats for ``POST /export/{format}``.
+         * @enum {string}
+         */
+        ExportFormat: "zip" | "json" | "yaml" | "svg" | "png" | "pdf";
+        /**
+         * ExportRequest
+         * @description Request body for ``POST /export/{format}``.
+         *
+         *     ``flow`` is the raw ``DataikuFlow.to_dict()`` payload (round-trippable via
+         *     ``DataikuFlow.from_dict``).  ``opts`` is a free-form dict reserved for
+         *     format-specific knobs (e.g. ``{"scale": 2.0}`` for PNG).
+         */
+        ExportRequest: {
+            /**
+             * Flow
+             * @description DataikuFlow.to_dict() payload
+             */
+            flow: {
+                [key: string]: unknown;
+            };
+            /**
+             * Opts
+             * @description Optional format-specific options (passed through to the sink)
+             */
+            opts?: {
+                [key: string]: unknown;
+            } | null;
         };
         /**
          * FlowRecommendationModel
@@ -1086,6 +1136,51 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    post_export_export__format__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                format: components["schemas"]["ExportFormat"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Binary export payload (zip / json / yaml / svg / png / pdf) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
+                    "application/json": unknown;
+                    "application/x-yaml": unknown;
+                    "image/svg+xml": unknown;
+                    "image/png": unknown;
+                    "application/pdf": unknown;
+                };
+            };
+            /** @description Invalid format or malformed flow body */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Format not supported in this environment */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

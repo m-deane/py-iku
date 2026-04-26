@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { MonacoEditor } from "../editor/MonacoEditor";
 import { SnippetPicker } from "../editor/SnippetPicker";
 import { JsonView } from "../../components/JsonView";
+import { ExportButtons } from "../export/ExportButtons";
 import {
   client,
   ApiError,
@@ -30,6 +31,8 @@ export interface ConvertPageProps {
   useFallbackEditor?: boolean;
   /** When true, disables the streaming code path (used by REST-only tests). */
   useRestOnly?: boolean;
+  /** Test seam — swap in a stub client for the export buttons. */
+  exportClientImpl?: typeof client;
 }
 
 export function ConvertPage(props: ConvertPageProps): JSX.Element {
@@ -295,6 +298,10 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
                 (visualization lands in M5)
               </span>
             </h2>
+            <ExportButtons
+              flow={response.flow}
+              clientImpl={props.exportClientImpl}
+            />
             <JsonView value={response.flow} />
           </div>
         ) : null}

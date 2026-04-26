@@ -4,6 +4,7 @@ import type {
   ConvertRequest as GeneratedConvertRequest,
   ConvertResponse as GeneratedConvertResponse,
   HealthResponse as GeneratedHealthResponse,
+  ProcessorCatalogEntry as GeneratedProcessorCatalogEntry,
   RecipeCatalogEntry as GeneratedRecipeCatalogEntry,
 } from "@py-iku-studio/types";
 
@@ -204,9 +205,18 @@ export interface ConvertResponse {
 /** RecipeCatalogEntry — now sourced from @py-iku-studio/types codegen. */
 export type RecipeCatalogEntry = GeneratedRecipeCatalogEntry;
 
+/** ProcessorCatalogEntry — sourced from @py-iku-studio/types codegen. */
+export type ProcessorCatalogEntry = GeneratedProcessorCatalogEntry;
+
 // Re-export generated HealthResponse so downstream can import from one place.
 // Local HealthResponse interface above is superseded but kept for backward compat.
-export type { GeneratedConvertRequest, GeneratedConvertResponse, GeneratedHealthResponse, GeneratedRecipeCatalogEntry };
+export type {
+  GeneratedConvertRequest,
+  GeneratedConvertResponse,
+  GeneratedHealthResponse,
+  GeneratedProcessorCatalogEntry,
+  GeneratedRecipeCatalogEntry,
+};
 
 export interface NodeDiff {
   id: string;
@@ -230,6 +240,35 @@ export interface ScoreResponse {
   cost_estimate?: number | null;
 }
 
+export interface ListProcessorsOptions extends ClientOptions {
+  q?: string;
+  category?: string;
+}
+
+export type ExportFormat = "zip" | "json" | "yaml" | "svg" | "png" | "pdf";
+
+export interface ExportResult {
+  blob: Blob;
+  filename: string;
+  contentType: string;
+}
+
+function parseFilename(disposition: string | null, fallback: string): string {
+  if (!disposition) return fallback;
+  // Prefer filename*=UTF-8'' if present.
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (utf8?.[1]) {
+    try {
+      return decodeURIComponent(utf8[1].trim());
+    } catch {
+      /* fall through */
+    }
+  }
+  const ascii = /filename="?([^";]+)"?/i.exec(disposition);
+  if (ascii?.[1]) return ascii[1].trim();
+  return fallback;
+}
+
 export const client = {
   health(opts?: ClientOptions): Promise<HealthResponse> {
     return request<HealthResponse>("/health", { method: "GET" }, opts);
@@ -243,6 +282,24 @@ export const client = {
   },
   getRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
     return request<RecipeCatalogEntry[]>("/catalog/recipes", { method: "GET" }, opts);
+  },
+  listRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
+    return request<RecipeCatalogEntry[]>("/catalog/recipes", { method: "GET" }, opts);
+  },
+  listProcessors(opts?: ListProcessorsOptions): Promise<ProcessorCatalogEntry[]> {
+    const params = new URLSearchParams();
+    if (opts?.q) params.set("q", opts.q);
+    if (opts?.category) params.set("category", opts.category);
+    const qs = params.toString();
+    const path = qs ? `/catalog/processors?${qs}` : "/catalog/processors";
+    return request<ProcessorCatalogEntry[]>(path, { method: "GET" }, opts);
+  },
+  getProcessor(type: string, opts?: ClientOptions): Promise<ProcessorCatalogEntry> {
+    return request<ProcessorCatalogEntry>(
+      `/catalog/processors/${encodeURIComponent(type)}`,
+      { method: "GET" },
+      opts,
+    );
   },
   diff(
     a: Record<string, unknown>,
@@ -261,6 +318,62 @@ export const client = {
       { method: "POST", body: JSON.stringify(flow) },
       opts,
     );
+  },
+  async export(
+    format: ExportFormat,
+    flow: Record<string, unknown>,
+    opts?: ClientOptions & { exportOpts?: Record<string, unknown> },
+  ): Promise<ExportResult> {
+    const baseUrl = (opts?.baseUrl ?? getBaseUrl(opts ?? {})).replace(/\/$/, "");
+    const url = `${baseUrl}/export/${encodeURIComponent(format)}`;
+    const fetchImpl = opts?.fetchImpl ?? fetch;
+    const requestId = uuid();
+    const headers = new Headers({
+      "X-Request-ID": requestId,
+      "Content-Type": "application/json",
+      Accept: "*/*",
+    });
+    if (opts?.authToken) headers.set("Authorization", `Bearer ${opts.authToken}`);
+
+    const body = JSON.stringify({ flow, opts: opts?.exportOpts });
+    let response: Response;
+    try {
+      response = await fetchImpl(url, { method: "POST", headers, body });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      throw new ApiError(
+        { type: "about:blank", title: "Network error", status: 0, detail: message },
+        requestId,
+      );
+    }
+    if (!response.ok) {
+      let problem: ApiProblem = {
+        type: "about:blank",
+        title: response.statusText || "Request failed",
+        status: response.status,
+      };
+      try {
+        const data = (await response.json()) as Partial<ApiProblem>;
+        problem = {
+          type: data.type ?? problem.type,
+          title: data.title ?? problem.title,
+          status: data.status ?? response.status,
+          detail: data.detail,
+          ...data,
+        };
+      } catch {
+        /* keep default problem */
+      }
+      throw new ApiError(problem, requestId);
+    }
+
+    const blob = await response.blob();
+    const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+    const filename = parseFilename(
+      response.headers.get("content-disposition"),
+      `flow.${format}`,
+    );
+    return { blob, filename, contentType };
   },
   /** Generic escape hatch for not-yet-typed endpoints (M5+ will expand). */
   request,

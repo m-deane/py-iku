@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { CatalogPage } from "../features/catalog/CatalogPage";
 import { ConvertPage } from "../features/conversion/ConvertPage";
 import { DiffPage } from "../features/diff/DiffPage";
 
@@ -83,10 +84,7 @@ export function AppRouter(): JSX.Element {
             path="/flow/:id"
             element={<PlaceholderPage title="Flow viewer" milestone="M5" />}
           />
-          <Route
-            path="/catalog"
-            element={<PlaceholderPage title="Catalog browser" milestone="M6" />}
-          />
+          <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/diff" element={<DiffPage />} />
           <Route
             path="/share/:token"

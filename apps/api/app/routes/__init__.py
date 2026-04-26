@@ -7,13 +7,13 @@ from fastapi import APIRouter
 from .catalog import router as catalog_router
 from .convert import router as convert_router
 from .diff import router as diff_router
+from .export import router as export_router
 from .health import router as health_router
 from .score import router as score_router
 
-# Placeholders for future milestones (M6, M7).  Each is an empty
+# Placeholders for future milestones (M7).  Each is an empty
 # APIRouter so this file can import them without errors; they will be filled
 # in their respective milestones.
-export_router: APIRouter = APIRouter()   # M6
 flows_router: APIRouter = APIRouter()    # M7
 audit_router: APIRouter = APIRouter()    # M7
 
