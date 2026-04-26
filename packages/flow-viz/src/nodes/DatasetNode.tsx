@@ -61,6 +61,7 @@ function DatasetNodeImpl(props: DatasetNodeProps): JSX.Element {
   const theme: ThemeName = themeProp ?? readTheme();
   const colors = getDatasetColor(data.datasetType, theme);
   const shape = getDatasetShape(data.connectionType);
+  const dimmed = data.dimmed === true;
 
   const styleVars: CSSProperties = {
     ["--ds-bg" as string]: colors.bg,
@@ -70,11 +71,12 @@ function DatasetNodeImpl(props: DatasetNodeProps): JSX.Element {
 
   return (
     <div
-      className={clsx(styles.datasetNode, selected && styles.selected)}
+      className={clsx(styles.datasetNode, selected && styles.selected, dimmed && styles.dimmed)}
       style={styleVars}
       data-dataset-type={data.datasetType}
       data-connection-type={data.connectionType}
       data-theme={theme}
+      data-dimmed={dimmed ? "true" : undefined}
     >
       <Handle type="target" position={Position.Left} />
       <span className={styles.shape}>

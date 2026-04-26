@@ -16,6 +16,8 @@
   position: relative;
   cursor: pointer;
   user-select: none;
+  overflow: hidden;
+  transition: opacity 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
 }
 
 .recipeNode:hover {
@@ -34,10 +36,58 @@
   color: #c62828;
 }
 
+.recipeNode.dimmed {
+  opacity: 0.25;
+  filter: saturate(0.4);
+}
+
+.recipeNode.executing {
+  box-shadow: 0 0 0 2px var(--node-border);
+}
+
+.recipeNode.done {
+  filter: brightness(1.02);
+}
+
+/* Category-specific decorations: each category gets a subtle accent on
+ * top of the per-type color stripe. The stripe color always comes from
+ * tokens, so these layered effects do not introduce hard-coded brand
+ * colors. */
+.recipeNode.category-prep {
+  /* default — nothing extra */
+}
+
+.recipeNode.category-structure {
+  /* default — nothing extra */
+}
+
+.recipeNode.category-code {
+  /* monospace sub-label badge anchored bottom-left */
+  border-top-color: var(--node-border);
+}
+
+.recipeNode.category-ml {
+  /* purple ring around icon */
+  border-style: dashed;
+  border-width: 1px;
+  border-left-style: solid;
+  border-left-width: 4px;
+}
+
+.recipeNode.category-io {
+  /* slim bottom stripe */
+  border-bottom: 3px solid var(--node-border);
+}
+
 .icon {
   font-size: 20px;
   line-height: 1;
   color: var(--node-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  z-index: 1;
 }
 
 .label {
@@ -47,6 +97,21 @@
   color: var(--node-text);
   line-height: 1.1;
   word-break: break-word;
+  z-index: 1;
+}
+
+.subLabel {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-family: var(--typography-fontfamily-mono, "Courier New", Courier, monospace);
+  font-size: 8px;
+  font-weight: 700;
+  background: var(--node-border);
+  color: var(--node-bg);
+  padding: 1px 3px;
+  border-radius: 3px;
+  z-index: 2;
 }
 
 .ioRow {
@@ -54,6 +119,7 @@
   gap: 4px;
   font-size: 9px;
   font-weight: 500;
+  z-index: 1;
 }
 
 .ioBadge {
@@ -72,19 +138,58 @@
   border-radius: 50%;
   border: 1.5px solid var(--node-border);
   background: transparent;
+  z-index: 2;
 }
 
-.statusBadge.deployed {
+.statusBadge.deployed,
+.statusBadge.doneBadge {
   background: #43a047;
   border-color: #43a047;
 }
 
-.statusBadge.deploying {
+.statusBadge.deploying,
+.statusBadge.executingBadge {
   background: #ffc107;
   border-color: #ffc107;
 }
 
-.statusBadge.error {
+.statusBadge.errorBadge {
   background: #e53935;
   border-color: #e53935;
+}
+
+/* Shimmer overlay for the executing state. CSS-only so playback is
+ * frame-budget friendly and survives screenshot capture (the animation
+ * holds the same final frame in jsdom). */
+.shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  animation: flow-viz-shimmer 1.4s ease-in-out infinite;
+  border-radius: 10px;
+  z-index: 0;
+}
+
+@keyframes flow-viz-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    background: rgba(255, 255, 255, 0.2);
+  }
 }

@@ -26,6 +26,11 @@
   outline-offset: 1px;
 }
 
+.datasetNode.dimmed {
+  opacity: 0.25;
+  filter: saturate(0.4);
+}
+
 .shape {
   flex: 0 0 24px;
   width: 24px;
