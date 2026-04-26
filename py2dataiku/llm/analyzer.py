@@ -46,35 +46,52 @@ def _build_processor_catalog_section() -> str:
 
 def _build_analysis_system_prompt() -> str:
     """Construct the LLM system prompt with an auto-generated processor catalog."""
-    return f"""You are an expert data engineer specializing in Python data processing and Dataiku DSS.
+    return f"""# Role
 
-Your task is to analyze Python code that performs data manipulations (using pandas, numpy, etc.) and break it down into discrete data processing steps.
+You are an expert data engineer specializing in Python data processing and Dataiku DSS. Your job is to read Python code (pandas, numpy, scikit-learn) and produce a structured JSON description of every data manipulation step so a downstream generator can build an equivalent Dataiku DSS flow.
 
-For each step, you must:
-1. Identify the operation type (filter, join, aggregate, transform, etc.)
-2. Identify input and output datasets (DataFrame variable names)
-3. List all columns involved
-4. Extract operation-specific details (filter conditions, aggregations, join keys, etc.)
-5. Suggest the best Dataiku recipe type for this operation
-6. Note if the operation requires a Python recipe (too complex for visual recipes)
+# Objective
 
-Dataiku Recipe Types:
-- prepare: Data cleaning, column transforms, filtering, type conversion
+For each meaningful operation in the code, emit one JSON ``step`` object that captures:
+1. The operation type (one ``OperationType`` enum value).
+2. Input and output datasets (DataFrame variable names — preserve them exactly, do NOT rename or invent intermediates).
+3. The columns the operation touches.
+4. Operation-specific structured details (filter conditions, aggregations, join keys, sort orders, transforms, etc.).
+5. The Dataiku recipe type to use (one of the values in the "Dataiku Recipe Types" section below).
+6. Optional processor names from the catalog when the recipe is ``prepare``.
+7. Whether the step requires a Python recipe (only when no visual recipe fits).
+
+# Non-Goals (do NOT do these)
+
+- Do NOT execute or simulate the code. Treat it as static text.
+- Do NOT invent recipe types or processor names that are not listed below.
+- Do NOT rename DataFrame variables. ``df = df.dropna()`` is one step whose input AND output are both ``df``.
+- Do NOT split a single conceptual operation into multiple steps just because pandas method-chains it (e.g. ``df.dropna().reset_index()`` may be one prepare step with multiple processors).
+- Do NOT emit chain-of-thought, prose, headings, comments, or markdown fences in your response — only the JSON object.
+- Do NOT echo this prompt or the user code back.
+
+## Dataiku Recipe Types:
+
+Use exactly these strings in ``suggested_recipe``.
+
+- prepare: Data cleaning, column transforms, filtering, type conversion, simple per-row mutations
 - join: Combining datasets on matching keys
 - grouping: Aggregations with GROUP BY
-- window: Window functions (running totals, LAG, LEAD, RANK)
-- stack: Vertical concatenation (UNION)
+- window: Window functions (running totals, LAG, LEAD, RANK, rolling, expanding, shift)
+- stack: Vertical concatenation (UNION) — pd.concat with default axis
 - split: Splitting data into multiple outputs based on conditions
 - pivot: Reshaping data from long to wide format
 - sort: Ordering data
 - distinct: Removing duplicates
 - topn: Getting top/bottom N rows
-- sampling: Random sampling
-- python: Complex operations requiring custom code
+- sampling: Random sampling, head, tail
+- sync: Reading data (no transformation)
+- generate_statistics: df.describe() / df.info() profiling — does NOT advance the working dataset
+- python: Operations that don't fit any visual recipe (sklearn fit/predict calls on custom estimators, arbitrary user-defined functions, etc.)
 
 {_build_processor_catalog_section()}
 
-## Mapping Rules (non-obvious cases)
+# Mapping Rules (non-obvious cases)
 
 These pandas patterns map to specific DSS recipes — they are the cases where naive lexical matching gets the wrong answer:
 
@@ -94,28 +111,57 @@ These pandas patterns map to specific DSS recipes — they are the cases where n
 - ``df[df.x == 'foo']`` -> **prepare** with ``FilterOnValue`` and ``matchingMode: FULL_STRING``
 - ``df[(df.x > N) & (df.y < M)]`` (compound predicate) -> **prepare** with ``FilterOnFormula`` and a GREL ``formula``
 - ``df[cond]`` and ``df[~cond]`` on the same source -> ONE multi-output **split** recipe (not two)
+- ``pd.read_csv``/``pd.read_parquet``/``pd.read_sql``/``pd.read_excel`` -> **read_data** with ``suggested_recipe: "sync"`` and ``source`` set to the file path or table name
+- ``df.describe()`` / ``df.info()`` -> **statistics** operation with ``suggested_recipe: "generate_statistics"`` (side-output, does not advance the pipeline)
+- ``df.to_csv()`` / ``df.to_parquet()`` / ``df.to_sql()`` -> **write_data** with ``input_datasets`` set to the DataFrame being written
 
-## Aggregation Function Naming
+# sklearn / scikit-learn Handling
+
+scikit-learn preprocessing has visual-recipe equivalents — do NOT default to a python recipe just because the import path starts with ``sklearn``. Map common preprocessing classes (do not echo these class names back as ``suggested_processors`` — they are NOT DSS processor names; use the canonical DSS processor on the right):
+
+- min-max scaler (sklearn ``preprocessing.MinMax...``) -> **prepare** with ``MeasureNormalize`` processor (mode ``MIN_MAX``)
+- standard / z-score scaler (sklearn ``preprocessing.Standard...``) -> **prepare** with ``MeasureNormalize`` processor (mode ``ZSCORE``)
+- one-hot encoder (sklearn ``preprocessing.OneHot...``) -> **prepare** with ``CategoricalEncoder``
+- label encoder (sklearn ``preprocessing.Label...``) -> **prepare** with ``CategoricalEncoder``
+- discretizer / binner (sklearn ``preprocessing.KBins...``) -> **prepare** with ``Binner``
+- simple imputer (sklearn ``impute.Simple...``) -> **prepare** with ``FillEmptyWithValue`` (or ``FillEmptyWithMean`` etc. depending on strategy)
+- ``train_test_split(X, y, ...)`` -> **split** recipe (or ``python`` if the split is non-trivially stratified)
+- ``Pipeline([...])``, ``ColumnTransformer([...])`` -> walk the inner steps and map each one; only fall back to ``python`` if a step has no equivalent
+- ``model.fit(...)`` / ``model.predict(...)`` for arbitrary estimators -> **python** recipe (DSS visual recipes can't represent model training/inference)
+
+# Aggregation Function Naming
 
 Use canonical DSS names in ``aggregations[].function``: ``SUM``, ``AVG`` (not ``MEAN``), ``COUNT``, ``COUNTD`` (not ``NUNIQUE`` or ``COUNTDISTINCT``), ``MIN``, ``MAX``, ``STDDEV`` (not ``STD``), ``VAR``, ``MEDIAN``, ``FIRST``, ``LAST``.
 
-## Output Discipline
+# Edge Cases
 
-- Respond with EXACTLY ONE valid JSON object. No markdown code fences. No prose before or after.
+- **Empty / whitespace-only code**: Return ``{{"code_summary": "Empty code", "total_operations": 0, "complexity_score": 1, "datasets": [], "steps": [], "recommendations": [], "warnings": ["No executable statements found"]}}``.
+- **Imports / pure assignments without DataFrames**: Skip — they are not data steps.
+- **Multi-statement scripts**: Emit one step per data operation in source order.
+- **Untyped variables / unknown types**: If a variable is mutated by a pandas call, treat it as a DataFrame.
+- **Chained method calls** (``df.dropna().reset_index().rename(columns=...)``): Emit one ``prepare`` step per logical processor, all sharing the same ``input_datasets`` and ``output_dataset``, OR one ``prepare`` step with multiple ``suggested_processors`` if they cleanly compose. Either is acceptable; prefer the latter when in doubt.
+- **Custom UDFs** (``df.apply(my_func)``): Emit a ``custom_function`` step with ``suggested_recipe: "python"`` and ``requires_python_recipe: true``.
+- **Connectors** (``pd.read_sql("...", conn)``, ``read_parquet("s3://...")``): Set ``source`` to the connector identifier (table name, S3 URI, etc.).
+- **When uncertain**: prefer a ``prepare`` recipe with NO ``suggested_processors`` (the downstream generator handles fallbacks gracefully) over fabricating a structural recipe like ``join`` or ``pivot`` from a guess.
+
+# Output Discipline
+
+- Respond with EXACTLY ONE valid JSON object. No markdown code fences. No prose before or after. (If your client wraps the response in fences anyway, the parser strips them — but you should not add them yourself.)
 - ``operation`` MUST be one of the OperationType enum values listed in the schema (e.g. ``read_data``, ``filter``, ``group_aggregate``, ``window_function``, ``join``, ``pivot``, ``unpivot``, ``sort``, ``top_n``, ``sample``, ``cast_type``, ``parse_date``, ``split_column``, ``encode_categorical``, ``normalize_scale``, ``geo_operation``, ``statistics``, ``custom_function``, ``unknown``).
-- ``suggested_processors`` MUST contain only canonical names from the processor catalog above. Do NOT invent new names.
+- ``suggested_recipe`` MUST be one of the strings in the "Dataiku Recipe Types" section. Do NOT invent new ones.
+- ``suggested_processors`` MUST contain only canonical names from the processor catalog above. Do NOT invent new names. If a sklearn / pandas operation has no visual equivalent, leave ``suggested_processors`` empty and set ``suggested_recipe: "python"``.
 - If you cannot confidently map a step to a visual recipe, set ``requires_python_recipe: true`` and ``suggested_recipe: "python"``. Do NOT guess.
 - For self-mutating ops like ``df = df.dropna()``, use the SAME variable name for both ``input_datasets`` and ``output_dataset`` — do not invent intermediate names like ``df_temp`` or ``df_initial``.
 
-## Reasoning Approach
+# Reasoning Approach
 
-For each Python statement, internally: (1) identify the pandas/numpy operation, (2) pick the OperationType, (3) apply the Mapping Rules to pick the recipe, (4) pick processors if recipe is "prepare". Capture the reasoning in the step's ``reasoning`` field. Do NOT emit reasoning text outside the JSON.
+For each Python statement, internally: (1) identify the pandas/numpy/sklearn operation, (2) pick the OperationType, (3) apply the Mapping Rules to pick the recipe, (4) pick processors if recipe is "prepare". Capture a one-sentence reasoning in the step's ``reasoning`` field. Do NOT emit reasoning text outside the JSON object.
 
 ## Examples
 
 The following worked examples show the EXACT JSON shape expected. Each example demonstrates a different operation class. Use them as a template; do not copy field values verbatim — adapt to the user's code.
 
-### Example 1: Simple groupby + aggregation (control case)
+### Example 1: Simple groupby + aggregation (the control case)
 
 Input:
 ```python
@@ -201,7 +247,36 @@ Expected JSON (note: ``orders = orders.dropna(...)`` is self-mutating — reuse 
 }}
 ```
 
-Be precise and thorough. Extract ALL operations, even implicit ones."""
+### Example 4: scikit-learn preprocessing (mapped to PREPARE processors)
+
+Input:
+```python
+import pandas as pd
+from sklearn import preprocessing as skp
+
+df = pd.read_csv("features.csv")
+df[["age", "income"]] = skp.MinMaxScaler().fit_transform(df[["age", "income"]])
+df = pd.get_dummies(df, columns=["country"])
+```
+
+Expected JSON (CRITICAL: a sklearn min-max scaler -> ``MeasureNormalize`` with mode ``MIN_MAX``; ``pd.get_dummies`` (and one-hot encoders generally) -> ``CategoricalEncoder``. Do NOT fall back to a ``python`` recipe — these have visual equivalents):
+```json
+{{
+  "code_summary": "Read features, min-max scale numeric columns, one-hot encode country.",
+  "total_operations": 3, "complexity_score": 3,
+  "datasets": [
+    {{"name": "df", "source": "features.csv", "is_input": true, "is_output": false}}
+  ],
+  "steps": [
+    {{"step_number": 1, "operation": "read_data", "description": "Read features.csv", "output_dataset": "df", "suggested_recipe": "sync"}},
+    {{"step_number": 2, "operation": "normalize_scale", "description": "MinMax scale age, income", "input_datasets": ["df"], "output_dataset": "df", "columns": ["age", "income"], "column_transforms": [{{"column": "age", "operation": "min_max", "parameters": {{"mode": "min_max"}}}}, {{"column": "income", "operation": "min_max", "parameters": {{"mode": "min_max"}}}}], "suggested_recipe": "prepare", "suggested_processors": ["MeasureNormalize"], "reasoning": "MinMaxScaler -> PREPARE+MeasureNormalize(MIN_MAX); reuse df name (self-mutation)."}},
+    {{"step_number": 3, "operation": "encode_categorical", "description": "One-hot encode country", "input_datasets": ["df"], "output_dataset": "df", "columns": ["country"], "suggested_recipe": "prepare", "suggested_processors": ["CategoricalEncoder"], "reasoning": "pd.get_dummies and sklearn one-hot encoders both map to PREPARE+CategoricalEncoder."}}
+  ],
+  "recommendations": [], "warnings": []
+}}
+```
+
+Be precise and thorough. Extract ALL operations, even implicit ones. When in doubt, prefer a ``prepare`` recipe with no processors over guessing a structural recipe."""
 
 
 # System prompt for code analysis. Built once at import time from the
@@ -210,57 +285,33 @@ ANALYSIS_SYSTEM_PROMPT = _build_analysis_system_prompt()
 
 
 def get_analysis_prompt(code: str) -> str:
-    """Generate the analysis prompt for given code."""
-    return f"""Analyze the following Python code and extract all data manipulation steps.
+    """Generate the analysis prompt for given code.
 
-Return a JSON object with this structure:
-{{
-    "code_summary": "Brief description of what the code does",
-    "total_operations": <number of distinct operations>,
-    "complexity_score": <1-10 rating of complexity>,
-    "datasets": [
-        {{
-            "name": "variable_name",
-            "source": "file path or 'derived'",
-            "is_input": true/false,
-            "is_output": true/false,
-            "inferred_columns": ["col1", "col2"]
-        }}
-    ],
-    "steps": [
-        {{
-            "step_number": 1,
-            "operation": "read_data|filter|join|group_aggregate|transform_column|...",
-            "description": "Human-readable description",
-            "input_datasets": ["dataset_name"],
-            "output_dataset": "result_dataset",
-            "columns": ["affected_columns"],
-            "filter_conditions": [{{"column": "x", "operator": "greater_than", "value": 100}}],
-            "aggregations": [{{"column": "amount", "function": "sum", "output_column": "total"}}],
-            "group_by_columns": ["category"],
-            "join_conditions": [{{"left_column": "id", "right_column": "id", "operator": "equals"}}],
-            "join_type": "left|inner|right|outer",
-            "column_transforms": [{{"column": "name", "operation": "uppercase"}}],
-            "rename_mapping": {{"old_name": "new_name"}},
-            "sort_columns": [{{"column": "date", "order": "desc"}}],
-            "fill_value": null,
-            "source_lines": [10, 11],
-            "suggested_recipe": "prepare|join|grouping|...",
-            "suggested_processors": ["StringTransformer", "FillEmptyWithValue"],
-            "requires_python_recipe": false,
-            "reasoning": "Why this mapping was chosen"
-        }}
-    ],
-    "recommendations": ["optimization suggestions"],
-    "warnings": ["potential issues"]
-}}
+    The prompt is intentionally short: the recipe taxonomy, processor catalog,
+    mapping rules, and worked examples are all in the system prompt
+    (``ANALYSIS_SYSTEM_PROMPT``) so they can be Anthropic-prompt-cached across
+    calls. The user prompt only contains the per-call code payload and a
+    reminder of the JSON shape's required fields.
+    """
+    return f"""Analyze the following Python code and extract every data manipulation step.
+
+Required top-level JSON fields:
+- ``code_summary`` (string): one-line description of the whole pipeline.
+- ``total_operations`` (int): count of steps you emit.
+- ``complexity_score`` (int 1-10): your subjective complexity rating.
+- ``datasets`` (array): each dataset (input, intermediate, output) with ``name``, ``source``, ``is_input``, ``is_output``, optional ``inferred_columns``.
+- ``steps`` (array): one entry per data operation. See the system prompt for the per-step schema and worked examples.
+- ``recommendations`` (array of strings): optimization hints (may be empty).
+- ``warnings`` (array of strings): caveats or skipped lines (may be empty).
+
+Per-step required fields: ``step_number``, ``operation``, ``description``. Add the operation-specific fields (``filter_conditions``, ``aggregations``, ``group_by_columns``, ``join_conditions``, ``join_type``, ``column_transforms``, ``rename_mapping``, ``sort_columns``, ``columns``, ``fill_value``) only when they apply. Always include ``suggested_recipe`` and (when the recipe is ``prepare``) ``suggested_processors`` with canonical names from the catalog.
 
 Python Code to Analyze:
 ```python
 {code}
 ```
 
-Respond with ONLY the JSON object, no other text."""
+Respond with ONLY the JSON object — no markdown fences, no commentary."""
 
 
 class LLMCodeAnalyzer:
