@@ -63,12 +63,34 @@ markdown_extensions:
   - toc:
       permalink: true
 
+not_in_nav: |
+  /textbook/STYLE.md
+  /textbook/_outline.md
+  /textbook/_running_example.md
+
 nav:
   - Home: index.md
   - Getting Started:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
   - Notebooks & Examples: notebooks.md
+  - Textbook:
+    - Foreword: textbook/index.md
+    - 1. Why py-iku: textbook/01-why-py-iku.md
+    - 2. The five-second tour: textbook/02-five-second-tour.md
+    - 3. Anatomy of a flow: textbook/03-anatomy-of-a-flow.md
+    - 4. Pandas to DSS grammar: textbook/04-pandas-to-dss-grammar.md
+    - 5. Prepare recipes deep dive: textbook/05-prepare-recipes-deep-dive.md
+    - 6. Recipe types tour: textbook/06-recipe-types-tour.md
+    - 7. The LLM path: textbook/07-the-llm-path.md
+    - 8. Filters and predicates: textbook/08-filters-and-predicates.md
+    - 9. Advanced patterns: textbook/09-advanced-patterns.md
+    - 10. Optimization and the DAG: textbook/10-optimization-and-dag.md
+    - 11. Production usage: textbook/11-production-usage.md
+    - 12. Extending py-iku: textbook/12-extending-py-iku.md
+    - "Appendix A: Glossary": textbook/appendix-a-glossary.md
+    - "Appendix B: Troubleshooting": textbook/appendix-b-troubleshooting.md
+    - "Appendix C: Cheatsheet": textbook/appendix-c-cheatsheet.md
   - API Reference:
     - Overview: api/index.md
     - Core Functions: api/core-functions.md

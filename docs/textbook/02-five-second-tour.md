@@ -1,0 +1,199 @@
+# Chapter 2 — The 5-Second Tour
+
+## What you'll learn
+
+This chapter takes V1 of the running example, runs it through `convert(...)`, and inspects the resulting `DataikuFlow` end-to-end. By the end of it, you will know how to call the entry point, how to count and identify recipes in the produced flow, how to round-trip the flow through JSON, and how to render a visualization.
+
+## The input
+
+Here is V1 of the running example, copied from the running-example contract verbatim. The file is named `running_example_v1.py`; subsequent chapters extend it to V2 through V5.
+
+```python
+# running_example_v1.py
+import pandas as pd
+
+orders = pd.read_csv("orders.csv")
+orders["discount_pct"] = orders["discount_pct"].fillna(0.0)
+orders["revenue"] = orders["quantity"] * orders["unit_price"] * (1 - orders["discount_pct"])
+orders = orders.rename(columns={"order_date": "ordered_at"})
+orders_clean = orders
+```
+
+The script does three things to the `orders` table: it fills missing values in `discount_pct` with `0.0`, it derives a `revenue` column from `quantity`, `unit_price`, and `discount_pct`, and it renames `order_date` to `ordered_at`. The result is assigned to `orders_clean`, which becomes the output dataset name.
+
+## One call
+
+py-iku's public entry point for the rule-based analyzer is the `convert` function. It takes either a Python source string, a `pathlib.Path` to a `.py` file, or a path-like string ending in `.py`, and returns a `DataikuFlow` object (see the public API surface in [`py2dataiku/__init__.py`](https://github.com/dataiku/py-iku/blob/main/py2dataiku/__init__.py) — the exported `convert` symbol is the canonical entry point).
+
+```python
+from py2dataiku import convert
+
+source = """
+import pandas as pd
+
+orders = pd.read_csv("orders.csv")
+orders["discount_pct"] = orders["discount_pct"].fillna(0.0)
+orders["revenue"] = orders["quantity"] * orders["unit_price"] * (1 - orders["discount_pct"])
+orders = orders.rename(columns={"order_date": "ordered_at"})
+orders_clean = orders
+"""
+
+flow = convert(source)
+```
+
+That is the entire conversion. There are no required arguments beyond the source. The `optimize=True` default runs the post-conversion optimizer pass that merges adjacent PREPARE recipes; for V1 there is only one PREPARE so the optimizer has nothing to merge, but the same default applies in later chapters.
+
+The function is deterministic. Running it ten times in a row on the same source produces ten structurally identical flow objects. That property is what makes the rule-based path fit for use inside a CI assertion — the test does not need to tolerate run-to-run variation, because there is none. Chapter 7 establishes the analogous property for the LLM path, with the additional condition that `temperature=0`.
+
+## Inspecting the flow
+
+`DataikuFlow` is a plain dataclass with a small public surface. The two attributes worth looking at first are `recipes` and `datasets`.
+
+```python
+print(len(flow.recipes))
+# 1
+
+print([r.recipe_type.value for r in flow.recipes])
+# ['prepare']
+
+print([d.name for d in flow.datasets])
+# ['orders', 'orders_clean']
+```
+
+The flow has exactly one recipe — a PREPARE — and two datasets, one input (`orders`) and one output (`orders_clean`). This matches the V1 specification in the running-example contract: V1 is a single PREPARE with `orders` as the input and `orders_clean` as the output.
+
+The recipe itself is a `DataikuRecipe`. Its type is the `RecipeType.PREPARE` enum value, and because it is a PREPARE recipe it carries an ordered list of `PrepareStep` instances under `recipe.steps`.
+
+```python
+recipe = flow.recipes[0]
+print(recipe.recipe_type.value)
+# 'prepare'
+
+print(len(recipe.steps))
+# 3
+
+print([s.processor_type.value for s in recipe.steps])
+# ['FillEmptyWithValue', 'CreateColumnWithGREL', 'ColumnRenamer']
+```
+
+The exact `ProcessorType` values come from the `ProcessorType` enum defined in `py2dataiku.models.prepare_step`. The three values above correspond to the three operations the script performed, in the same order:
+
+1. `FillEmptyWithValue` for `orders["discount_pct"].fillna(0.0)`.
+2. `CreateColumnWithGREL` (the GREL-formula processor, the catalog entry py-iku currently emits for derived columns built from arithmetic on existing columns) for the `revenue` assignment.
+3. `ColumnRenamer` for the `rename(columns={"order_date": "ordered_at"})` call.
+
+The processor names DSS uses internally are different from the enum names; the running-example contract calls the second processor `CREATE_COLUMN_WITH_FORMULA`, and the catalog entry name in current py-iku is `CreateColumnWithGREL`. Both are accepted shapes for V1 — what matters is that the `revenue` derivation comes out as a single formula step rather than as multiple arithmetic steps.
+
+## Input and output dataset views
+
+`DataikuFlow` has three derived properties that filter the dataset list by role: `input_datasets`, `intermediate_datasets`, and `output_datasets`. They classify by `dataset_type`, which the analyzer infers from how each dataset is referenced in the source. A name produced by `pd.read_csv(...)` and never written back is an input. A name written by one operation and read by another is an intermediate. A name written by the final operation is an output.
+
+```python
+print([d.name for d in flow.input_datasets])
+# ['orders']
+
+print([d.name for d in flow.intermediate_datasets])
+# []
+
+print([d.name for d in flow.output_datasets])
+# ['orders_clean']
+```
+
+V1 has no intermediates because the script's three element-wise operations all collapse into one PREPARE recipe; the only datasets that survive are the read input and the assigned output. V2 in the next chapter introduces the first intermediate — `orders_clean` becomes an intermediate dataset in V2 because it is read by the JOIN that produces `orders_enriched`.
+
+These properties are convenience views, not separate collections. Mutating `flow.datasets` is reflected in all three. They exist so that downstream code that wants to render only the inputs (a flow header) or only the outputs (a flow tail) does not have to filter the list by hand.
+
+## Asserting the shape
+
+Because the conversion is deterministic, you can assert against the produced flow directly. This is the assertion pattern Chapter 11 builds CI integration around; it is worth seeing the shape now.
+
+```python
+from py2dataiku import RecipeType
+
+assert len(flow.recipes) == 1
+assert flow.recipes[0].recipe_type == RecipeType.PREPARE
+assert len(flow.recipes[0].steps) == 3
+
+dataset_names = {d.name for d in flow.datasets}
+assert dataset_names == {"orders", "orders_clean"}
+```
+
+These four assertions encode the entire V1 contract. The same code runs as a `pytest` test, as a script, or as a notebook cell. If a future change to the rule-based analyzer broke V1's expected shape, every one of these assertions would fail in a way that pinpoints the breakage.
+
+## Round-tripping the flow
+
+A `DataikuFlow` is data, not a side effect. It can be serialised to a Python `dict` with `to_dict()` and reconstructed with `DataikuFlow.from_dict(...)`. The same is true for JSON and YAML.
+
+```python
+import json
+from py2dataiku import DataikuFlow
+
+# Serialize to dict, then to JSON
+flow_dict = flow.to_dict()
+flow_json = json.dumps(flow_dict, indent=2)
+
+# Reload from JSON and assert structural equality
+reloaded_dict = json.loads(flow_json)
+reloaded = DataikuFlow.from_dict(reloaded_dict)
+
+assert len(reloaded.recipes) == len(flow.recipes)
+assert reloaded.recipes[0].recipe_type == flow.recipes[0].recipe_type
+assert len(reloaded.recipes[0].steps) == len(flow.recipes[0].steps)
+```
+
+The convenience methods `flow.to_json()` and `DataikuFlow.from_json(...)` skip the intermediate `dict` step. The same pair exists for YAML. Round-trip equality is a property tested in the library's own test suite; the practical use of it is that a flow can be checked into git and reviewed as a text artifact.
+
+The round-trip property is what makes the rule-based path operate as data engineering infrastructure rather than as a one-shot script. The `DataikuFlow` object is the source of truth for the produced flow shape, and any downstream tool — DSS deployer, visualizer, diff tool — reads from that object rather than from the original Python script.
+
+## Rendering a visualization
+
+The `flow.visualize(format=...)` method produces a string in the requested format; `flow.save(path, format=...)` writes the string to disk and infers the format from the file extension if `format` is not given.
+
+```python
+from pathlib import Path
+
+# Render to SVG, write to disk
+svg = flow.visualize(format="svg")
+Path("v1_flow.svg").write_text(svg, encoding="utf-8")
+
+# Or, equivalently:
+flow.save("v1_flow.svg")
+```
+
+For V1 the rendered SVG shows two dataset nodes connected by a single PREPARE recipe node: `orders → PREPARE → orders_clean`. The visualizer dispatches to a format-specific class (`SVGVisualizer`, `HTMLVisualizer`, `ASCIIVisualizer`, `PlantUMLVisualizer`) depending on the `format` argument; the SVG path is the one that produces the pixel-accurate Dataiku styling.
+
+The ASCII variant is useful in terminal contexts where loading an image viewer would be heavy:
+
+```python
+print(flow.visualize(format="ascii"))
+```
+
+The output is a small text-art DAG with the two dataset names and the single recipe between them. It is not a substitute for the SVG when the flow gets larger — Chapter 6 produces flows with seven nodes and the ASCII view does not stay legible — but for V1 it fits in a comment block.
+
+## Determinism in practice
+
+The rule-based path produces the same flow object every time for the same input. That property is what makes it fit for CI; it also has a more immediate consequence for development. Two team members running `convert(source)` on the same script on different machines and at different times produce flow objects whose `to_dict()` outputs compare equal. Diffing the JSON serialization of two converted flows is a meaningful diff: every difference between two outputs corresponds to a difference between the two inputs.
+
+The library's own test suite asserts this property by running `convert(source)` against each example script and comparing against a checked-in expected flow shape. There is no need to tolerate run-to-run variation in those tests because there is none to tolerate. Chapter 11 walks the same pattern at the project level — a `pytest` test that loads a script, calls `convert(...)`, and asserts against the recipe types in topological order.
+
+The LLM path establishes the same property under different conditions: temperature pinned to zero and a fixed system prompt. Chapter 7 covers that; for now, the takeaway is that both paths are usable as deterministic infrastructure rather than as one-shot tools.
+
+## A note on dataset names
+
+py-iku reads input dataset names from `pd.read_csv("orders.csv")` calls and output dataset names from the final assignment in the script. In V1 the input is `orders` (the CSV name minus the extension) and the output is `orders_clean` (the variable name on the last assignment). Subsequent chapters add more inputs (`customers`, `products`) and more named intermediates (`orders_enriched`, `orders_windowed`, `orders_ranked`), all of which match the dataset names declared in the running-example contract.
+
+The library does not invent dataset names. If the script does not name an intermediate, py-iku will name it after the last variable that referenced it, but every name in the produced flow can be traced back to the source.
+
+## What this leaves out
+
+V1 exercises one recipe type (PREPARE) and three processors. That is enough to demonstrate the conversion shape but not enough to exercise the model: PREPARE alone does not show how the DAG is built, the optimizer pass has nothing to optimize, and there is no JOIN, GROUPING, WINDOW, SORT, or SPLIT to compare against. Chapter 3 takes V1's flow object and walks every attribute on it, including the `flow.graph` accessor that becomes load-bearing for the rest of the book. Chapter 4 introduces V2, which adds two `merge(...)` calls and produces the first multi-recipe flow.
+
+## Further reading
+
+- [Core functions API reference](../api/core-functions.md) — `convert`, `convert_file`, and the LLM-mode counterparts.
+- [Models API reference](../api/models.md) — `DataikuFlow`, `DataikuRecipe`, `PrepareStep`.
+- [Notebook 01 — Beginner](https://github.com/m-deane/py-iku/blob/main/notebooks/01_beginner.ipynb) — runs through the V1 conversion interactively.
+
+## What's next
+
+Chapter 3 walks every attribute on V1's flow object — `flow.recipes`, `flow.datasets`, `flow.graph`, `recipe.settings`, `recipe.steps` — and explains the recipe-versus-processor distinction that the rest of the book relies on.
