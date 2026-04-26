@@ -1,0 +1,18 @@
+{
+  "name": "@py-iku-studio/types",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "format": "prettier --write src/ scripts/"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "prettier": "^3.3.0"
+  }
+}

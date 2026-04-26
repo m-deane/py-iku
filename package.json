@@ -1,0 +1,19 @@
+{
+  "name": "py-iku-studio",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.9",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail \"pnpm --filter apps/web dev\" \"pnpm --filter apps/api dev\" \"pnpm --filter docs dev\"",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "typecheck": "tsc -b",
+    "postinstall": "pre-commit install || true"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  }
+}

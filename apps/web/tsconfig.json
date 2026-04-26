@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
+    "baseUrl": ".",
+    "paths": {
+      "@flow-viz/*": ["../../packages/flow-viz/src/*"],
+      "@types/*": ["../../packages/types/src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/flow-viz" },
+    { "path": "../../packages/types" }
+  ]
+}

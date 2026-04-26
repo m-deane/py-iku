@@ -57,3 +57,16 @@ Thumbs.db
 .env.*
 !.env.example
 secrets/
+
+# Node / pnpm
+node_modules/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.pnpm-store/
+
+# API virtualenv
+.venv-api/
