@@ -29,7 +29,9 @@ class LLMResponse:
 
     content: str
     model: str
-    usage: Optional[dict[str, int]] = None
+    # Values may be int or None — cache_creation_input_tokens / cache_read_input_tokens
+    # are None when caching is disabled or unsupported by the SDK version.
+    usage: Optional[dict[str, Optional[int]]] = None
     raw_response: Optional[Any] = None
 
 
@@ -66,6 +68,7 @@ class AnthropicProvider(LLMProvider):
         timeout: Optional[float] = None,
         max_retries: int = 2,
         temperature: float = 0.0,
+        disable_cache: bool = False,
     ):
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -83,6 +86,10 @@ class AnthropicProvider(LLMProvider):
         # was the dominant source of run-to-run drift (e.g. dropna() inventing
         # `df_temp`/`df_initial` intermediate dataset names).
         self.temperature = temperature
+        # When True, fall back to the legacy string `system=...` form. Useful
+        # for tests or when callers don't want the API to depend on the 5-min
+        # ephemeral-cache state on the server side.
+        self.disable_cache = disable_cache
         self._client = None
 
     @property
@@ -102,17 +109,35 @@ class AnthropicProvider(LLMProvider):
         return self._client
 
     def complete(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse:
-        """Send a completion request to Claude."""
+        """Send a completion request to Claude.
+
+        When ``system_prompt`` is non-empty, it's passed as a structured block
+        with ``cache_control: ephemeral`` so the Anthropic API caches it for
+        ~5 minutes. Subsequent calls within that window with an identical
+        system prompt only pay ~10% of the input-token cost for the cached
+        portion, cutting LLM-path cost by 70-80% for typical multi-call
+        sessions. Set ``disable_cache=True`` on the provider to fall back to
+        the legacy string form (e.g. for tests).
+        """
         messages = [{"role": "user", "content": prompt}]
 
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "model": self.model,
             "max_tokens": self.max_tokens,
             "messages": messages,
             "temperature": self.temperature,
         }
         if system_prompt:
-            kwargs["system"] = system_prompt
+            if self.disable_cache:
+                kwargs["system"] = system_prompt
+            else:
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
 
         response = self.client.messages.create(**kwargs)
 
@@ -122,6 +147,15 @@ class AnthropicProvider(LLMProvider):
             usage={
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
+                # Cache hit/miss tracking. Anthropic SDK returns these as None
+                # when caching is disabled or for non-cached portions; older
+                # SDKs may not expose these attributes at all (hence getattr).
+                "cache_creation_input_tokens": getattr(
+                    response.usage, "cache_creation_input_tokens", None
+                ),
+                "cache_read_input_tokens": getattr(
+                    response.usage, "cache_read_input_tokens", None
+                ),
             },
             raw_response=response,
         )

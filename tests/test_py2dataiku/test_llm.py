@@ -3049,3 +3049,130 @@ class TestFlowToDictTimestampOptional:
         d1 = convert(code).to_dict(include_timestamp=False)
         d2 = convert(code).to_dict(include_timestamp=False)
         assert json.dumps(d1, sort_keys=True) == json.dumps(d2, sort_keys=True)
+
+
+class TestSystemPromptHasFewShotExamples:
+    """The system prompt must include worked few-shot examples that lock in
+    the confusable pandas patterns (especially pd.melt -> prepare, not pivot).
+
+    Few-shot examples are appended to the SYSTEM prompt (not the user prompt)
+    so they can be Anthropic-prompt-cached across calls.
+    """
+
+    def test_prompt_has_examples_section_header(self):
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        assert "## Examples" in ANALYSIS_SYSTEM_PROMPT
+
+    def test_prompt_examples_mention_melt_confusion_case(self):
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        # The whole point of example 2 is to lock in the melt routing
+        assert "pd.melt" in ANALYSIS_SYSTEM_PROMPT
+
+    def test_prompt_examples_mention_groupby_and_agg(self):
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        assert "groupby" in ANALYSIS_SYSTEM_PROMPT
+        assert "agg" in ANALYSIS_SYSTEM_PROMPT
+
+    def test_prompt_examples_include_group_aggregate_operation(self):
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        assert '"operation": "group_aggregate"' in ANALYSIS_SYSTEM_PROMPT
+
+    def test_prompt_examples_include_unpivot_operation(self):
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        # melt is the UNPIVOT operation in our schema
+        assert '"operation": "unpivot"' in ANALYSIS_SYSTEM_PROMPT
+
+    def test_prompt_examples_cover_prepare_and_grouping_recipes(self):
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        assert '"suggested_recipe": "prepare"' in ANALYSIS_SYSTEM_PROMPT
+        assert '"suggested_recipe": "grouping"' in ANALYSIS_SYSTEM_PROMPT
+
+    def test_melt_example_uses_fold_multiple_columns_processor(self):
+        """The melt confusion case must explicitly show FoldMultipleColumns
+        in suggested_processors (this is the core lock-in)."""
+        from py2dataiku.llm.analyzer import ANALYSIS_SYSTEM_PROMPT
+        # Find the melt example block and check FoldMultipleColumns is in
+        # suggested_processors there (not just elsewhere in the prompt).
+        assert '"FoldMultipleColumns"' in ANALYSIS_SYSTEM_PROMPT
+        # Also ensure it appears in the suggested_processors of the unpivot step
+        # (a stronger structural check)
+        assert '"suggested_processors": ["FoldMultipleColumns"]' in ANALYSIS_SYSTEM_PROMPT
+
+
+class TestAnthropicPromptCaching:
+    """Anthropic prompt caching: system prompt sent as cache_control block.
+
+    Cached input tokens cost ~10% of normal input tokens, so caching the
+    ~8 KB system prompt across calls cuts LLM-path cost by 70-80% for
+    typical multi-call sessions (5-minute ephemeral cache window).
+    """
+
+    def _make_provider(self, **kwargs):
+        """Build an AnthropicProvider with a mocked SDK client."""
+        import os
+        from unittest.mock import MagicMock
+        from py2dataiku.llm.providers import AnthropicProvider
+
+        os.environ["ANTHROPIC_API_KEY"] = "test-key"
+        try:
+            provider = AnthropicProvider(**kwargs)
+        finally:
+            os.environ.pop("ANTHROPIC_API_KEY", None)
+
+        # Build a fake SDK response shape (response.content[0].text, response.model,
+        # response.usage.{input,output,cache_creation,cache_read}_input_tokens).
+        mock_response = MagicMock()
+        mock_response.content = [MagicMock(text="ok")]
+        mock_response.model = "claude-sonnet-4-20250514"
+        mock_response.usage.input_tokens = 10
+        mock_response.usage.output_tokens = 5
+        mock_response.usage.cache_creation_input_tokens = None
+        mock_response.usage.cache_read_input_tokens = None
+
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = mock_response
+        provider._client = mock_client
+        return provider, mock_client, mock_response
+
+    def test_complete_passes_system_as_cached_block(self):
+        provider, mock_client, _ = self._make_provider()
+
+        provider.complete("hi", "system text")
+
+        call_kwargs = mock_client.messages.create.call_args.kwargs
+        assert call_kwargs["system"] == [
+            {
+                "type": "text",
+                "text": "system text",
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
+
+    def test_complete_omits_system_when_empty(self):
+        provider, mock_client, _ = self._make_provider()
+
+        provider.complete("hi", None)
+
+        call_kwargs = mock_client.messages.create.call_args.kwargs
+        assert "system" not in call_kwargs
+
+    def test_disable_cache_falls_back_to_string(self):
+        provider, mock_client, _ = self._make_provider(disable_cache=True)
+
+        provider.complete("hi", "system text")
+
+        call_kwargs = mock_client.messages.create.call_args.kwargs
+        # Legacy string form, no cache_control.
+        assert call_kwargs["system"] == "system text"
+
+    def test_cache_token_counts_in_usage(self):
+        provider, _, mock_response = self._make_provider()
+        mock_response.usage.cache_creation_input_tokens = 100
+        mock_response.usage.cache_read_input_tokens = 200
+
+        result = provider.complete("hi", "system text")
+
+        assert result.usage["cache_creation_input_tokens"] == 100
+        assert result.usage["cache_read_input_tokens"] == 200
+        assert result.usage["input_tokens"] == 10
+        assert result.usage["output_tokens"] == 5

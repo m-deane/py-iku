@@ -111,6 +111,96 @@ Use canonical DSS names in ``aggregations[].function``: ``SUM``, ``AVG`` (not ``
 
 For each Python statement, internally: (1) identify the pandas/numpy operation, (2) pick the OperationType, (3) apply the Mapping Rules to pick the recipe, (4) pick processors if recipe is "prepare". Capture the reasoning in the step's ``reasoning`` field. Do NOT emit reasoning text outside the JSON.
 
+## Examples
+
+The following worked examples show the EXACT JSON shape expected. Each example demonstrates a different operation class. Use them as a template; do not copy field values verbatim — adapt to the user's code.
+
+### Example 1: Simple groupby + aggregation (control case)
+
+Input:
+```python
+sales = pd.read_csv("sales.csv")
+totals = sales.groupby("region").agg({{"amount": "sum"}})
+```
+
+Expected JSON:
+```json
+{{
+  "code_summary": "Read sales and aggregate total amount per region.",
+  "total_operations": 2, "complexity_score": 2,
+  "datasets": [
+    {{"name": "sales", "source": "sales.csv", "is_input": true, "is_output": false}},
+    {{"name": "totals", "source": "derived", "is_input": false, "is_output": true}}
+  ],
+  "steps": [
+    {{"step_number": 1, "operation": "read_data", "description": "Read sales.csv", "output_dataset": "sales", "suggested_recipe": "sync"}},
+    {{"step_number": 2, "operation": "group_aggregate", "description": "Sum amount per region", "input_datasets": ["sales"], "output_dataset": "totals", "group_by_columns": ["region"], "aggregations": [{{"column": "amount", "function": "SUM", "output_column": "amount_sum"}}], "suggested_recipe": "grouping", "reasoning": "groupby+agg -> grouping; canonical SUM"}}
+  ],
+  "recommendations": [], "warnings": []
+}}
+```
+
+### Example 2: pandas melt (the confusion case)
+
+Input:
+```python
+wide = pd.read_csv("quarterly.csv")
+long = pd.melt(wide, id_vars=["product"], value_vars=["q1", "q2", "q3", "q4"], var_name="quarter", value_name="revenue")
+```
+
+Expected JSON (CRITICAL: melt is UNPIVOT — wide-to-long. It routes to **prepare** + **FoldMultipleColumns**, NOT the pivot recipe):
+```json
+{{
+  "code_summary": "Unpivot quarterly columns into long format.",
+  "total_operations": 2, "complexity_score": 2,
+  "datasets": [
+    {{"name": "wide", "source": "quarterly.csv", "is_input": true, "is_output": false}},
+    {{"name": "long", "source": "derived", "is_input": false, "is_output": true}}
+  ],
+  "steps": [
+    {{"step_number": 1, "operation": "read_data", "description": "Read quarterly.csv", "output_dataset": "wide", "suggested_recipe": "sync"}},
+    {{"step_number": 2, "operation": "unpivot", "description": "pd.melt: fold q1..q4 into (quarter, revenue)", "input_datasets": ["wide"], "output_dataset": "long", "columns": ["q1", "q2", "q3", "q4"], "suggested_recipe": "prepare", "suggested_processors": ["FoldMultipleColumns"], "reasoning": "pd.melt is wide-to-long; DSS implements as PREPARE+FoldMultipleColumns, NOT the pivot recipe (pivot is the opposite)."}}
+  ],
+  "recommendations": [], "warnings": []
+}}
+```
+
+### Example 3: Multi-recipe ETL (read -> clean -> join -> groupby -> sort)
+
+Input:
+```python
+import pandas as pd
+orders = pd.read_csv("orders.csv")
+customers = pd.read_csv("customers.csv")
+orders = orders.dropna(subset=["customer_id"])
+enriched = orders.merge(customers, on="customer_id", how="left")
+revenue = enriched.groupby("country").agg({{"amount": "sum"}})
+top = revenue.sort_values("amount", ascending=False)
+```
+
+Expected JSON (note: ``orders = orders.dropna(...)`` is self-mutating — reuse the SAME variable name for input and output):
+```json
+{{
+  "code_summary": "Read orders+customers, drop null customer_id, join, sum amount per country, sort desc.",
+  "total_operations": 6, "complexity_score": 5,
+  "datasets": [
+    {{"name": "orders", "source": "orders.csv", "is_input": true, "is_output": false}},
+    {{"name": "customers", "source": "customers.csv", "is_input": true, "is_output": false}},
+    {{"name": "top", "source": "derived", "is_input": false, "is_output": true}}
+  ],
+  "steps": [
+    {{"step_number": 1, "operation": "read_data", "description": "Read orders", "output_dataset": "orders", "suggested_recipe": "sync"}},
+    {{"step_number": 2, "operation": "read_data", "description": "Read customers", "output_dataset": "customers", "suggested_recipe": "sync"}},
+    {{"step_number": 3, "operation": "drop_missing", "description": "Drop null customer_id", "input_datasets": ["orders"], "output_dataset": "orders", "columns": ["customer_id"], "suggested_recipe": "prepare", "suggested_processors": ["RemoveRowsOnEmpty"], "reasoning": "Self-mutating dropna; reuse same name"}},
+    {{"step_number": 4, "operation": "join", "description": "Left-join on customer_id", "input_datasets": ["orders", "customers"], "output_dataset": "enriched", "join_conditions": [{{"left_column": "customer_id", "right_column": "customer_id", "operator": "equals"}}], "join_type": "left", "suggested_recipe": "join"}},
+    {{"step_number": 5, "operation": "group_aggregate", "description": "Sum amount per country", "input_datasets": ["enriched"], "output_dataset": "revenue", "group_by_columns": ["country"], "aggregations": [{{"column": "amount", "function": "SUM", "output_column": "amount_sum"}}], "suggested_recipe": "grouping"}},
+    {{"step_number": 6, "operation": "sort", "description": "Sort desc by amount", "input_datasets": ["revenue"], "output_dataset": "top", "sort_columns": [{{"column": "amount", "order": "desc"}}], "suggested_recipe": "sort"}}
+  ],
+  "recommendations": ["Filter orders before join to reduce volume"],
+  "warnings": []
+}}
+```
+
 Be precise and thorough. Extract ALL operations, even implicit ones."""
 
 
