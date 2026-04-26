@@ -68,5 +68,8 @@ test-results/
 *.tsbuildinfo
 .pnpm-store/
 
+# Generated design tokens (regenerated from docs/design/tokens.json by sync-tokens.ts)
+apps/web/src/styles/tokens.css
+
 # API virtualenv
 .venv-api/

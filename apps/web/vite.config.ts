@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@": path.resolve(__dirname, "src"),
       "@flow-viz": path.resolve(__dirname, "../../packages/flow-viz/src"),
       "@types": path.resolve(__dirname, "../../packages/types/src"),
     },
@@ -16,5 +17,10 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:8000",
     },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    include: ["tests/**/*.test.{ts,tsx}"],
   },
 });

@@ -4,12 +4,14 @@
     "composite": true,
     "tsBuildInfoFile": ".tsbuildinfo",
     "baseUrl": ".",
+    "types": ["vitest/globals", "node"],
     "paths": {
+      "@/*": ["src/*"],
       "@flow-viz/*": ["../../packages/flow-viz/src/*"],
       "@types/*": ["../../packages/types/src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "tests", "scripts", "vite.config.ts"],
   "references": [
     { "path": "../../packages/flow-viz" },
     { "path": "../../packages/types" }

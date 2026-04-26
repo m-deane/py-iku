@@ -1,2 +1,19 @@
-// apps/web entry point — placeholder, filled in M4
-export {};
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Providers } from "./app/providers";
+import { AppRouter } from "./app/router";
+import "./styles/tokens.css";
+import "./styles/global.css";
+
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Root element #root not found in index.html");
+}
+
+ReactDOM.createRoot(rootElement).render(
+  <React.StrictMode>
+    <Providers>
+      <AppRouter />
+    </Providers>
+  </React.StrictMode>,
+);
