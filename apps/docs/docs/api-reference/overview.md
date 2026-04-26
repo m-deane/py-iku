@@ -85,13 +85,12 @@ A snapshot of the OpenAPI schema as of M7 is committed at `packages/types/openap
 | `GET /share/{token}` | 60 req/min per IP |
 | All other endpoints | No limit in M8 |
 
-## OpenAPI snapshot sync
+## OpenAPI snapshot drift check
 
-The `apps/docs/scripts/sync-api-reference.ts` script reads `packages/types/openapi.snapshot.json` and can emit MDX files for each path. Run it with:
+The reference pages below are hand-authored — generic generators don't produce the curated examples and cross-links that make these pages useful. To prevent drift between the routes and the docs, `apps/docs/scripts/sync-api-reference.ts` cross-checks every documented path against `packages/types/openapi.snapshot.json` and exits non-zero on mismatch:
 
 ```bash
-cd apps/docs
-npx ts-node scripts/sync-api-reference.ts
+pnpm dlx tsx apps/docs/scripts/sync-api-reference.ts
 ```
 
-In M9, the API reference pages below are hand-authored. Autogeneration from the snapshot is left as a `// TODO(M9-followup):` improvement.
+CI runs this check on every push. If you add a new route, update the corresponding MDX page; if you remove one, delete its section.

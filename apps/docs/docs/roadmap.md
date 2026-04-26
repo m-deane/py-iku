@@ -36,7 +36,7 @@ Implement the `DSSApiSink` class, enabling Studio to write converted flows direc
 - Rollback: snapshot DSS project state before write, reverse-diff restore.
 - Telemetry: `dss.write` and `dss.dry_run` events in the audit log.
 
-See [DSS Write-back Design](/future-dss-writeback) (in the library docs) for the detailed design.
+See [DSS Write-back Design](https://github.com/m-deane/py-iku/blob/main/docs/future-dss-writeback.md) (in the library docs) for the detailed design.
 
 ### M11 — Authentication & multi-user
 

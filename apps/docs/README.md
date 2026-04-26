@@ -38,7 +38,7 @@ apps/docs/
     contributing/       # recipe/processor guide, commit conventions
     roadmap.md
   scripts/
-    sync-api-reference.ts  # TODO(M9-followup): auto-gen from OpenAPI snapshot
+    sync-api-reference.ts  # drift check vs packages/types/openapi.snapshot.json
   src/css/
     custom.css          # brand colours from docs/design/tokens.json
   docusaurus.config.ts

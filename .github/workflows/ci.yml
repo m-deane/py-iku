@@ -263,6 +263,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --ignore-scripts
 
+      - name: API reference drift check
+        run: pnpm dlx tsx apps/docs/scripts/sync-api-reference.ts
+
       - name: Build Studio Docs
         run: pnpm --filter apps-docs build
 
