@@ -29,6 +29,7 @@ Exception
     ├── ValidationError          # Error during flow or recipe validation
     ├── ExportError              # Error during DSS project export
     └── ConfigurationError       # Error in py2dataiku configuration
+                                 # (also inherits from ValueError — see note below)
 ```
 
 ---
@@ -126,13 +127,22 @@ except ExportError as e:
 
 ## ConfigurationError
 
-Raised when configuration is invalid (e.g., malformed config file, missing required settings).
+Raised when configuration is invalid (e.g., malformed config file, missing required settings, missing LLM API key, unknown provider name).
+
+`ConfigurationError` multi-inherits from both `Py2DataikuError` and `ValueError`. This means legacy callers that were catching `ValueError` for missing-API-key errors continue to work without change. New code should prefer catching `ConfigurationError` or `Py2DataikuError` for typed handling.
 
 ```python
+# Preferred — typed catch
 try:
-    config = load_config("bad_config.toml")
+    flow = convert_with_llm(code, provider="anthropic")
 except ConfigurationError as e:
-    print(f"Config error: {e}")
+    print(f"Config error (missing API key?): {e}")
+
+# Also works — backward-compat path
+try:
+    flow = convert_with_llm(code, provider="anthropic")
+except ValueError as e:
+    print(f"Config error (legacy catch): {e}")
 ```
 
 ---
@@ -155,6 +165,7 @@ except Py2DataikuError as e:
 
 ```python
 from py2dataiku import (
+    ConfigurationError,
     InvalidPythonCodeError,
     LLMResponseParseError,
     ProviderError,
@@ -163,6 +174,8 @@ from py2dataiku import (
 
 try:
     flow = convert_with_llm(code)
+except ConfigurationError:
+    print("API key missing or provider unknown — check environment variables")
 except InvalidPythonCodeError:
     print("The code has syntax errors")
 except LLMResponseParseError:

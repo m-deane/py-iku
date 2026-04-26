@@ -76,6 +76,8 @@ def convert_with_llm(
     model: Optional[str] = None,
     optimize: bool = True,
     flow_name: str = "converted_flow",
+    on_progress=None,
+    temperature: float = 0.0,
 ) -> DataikuFlow
 ```
 
@@ -89,6 +91,8 @@ def convert_with_llm(
 | `model` | `Optional[str]` | `None` | Model name (provider default if not specified) |
 | `optimize` | `bool` | `True` | Whether to optimize the flow |
 | `flow_name` | `str` | `"converted_flow"` | Name for the generated flow |
+| `on_progress` | `Optional[Callable]` | `None` | Optional callback invoked at each pipeline phase. Signature: `on_progress(phase: str, info: dict) -> None`. Phases (in order): `"start"` (`{"code_size": int}`), `"analyzing"` (`{"provider": str, "model": str}`), `"analyzed"` (`{"steps": int, "datasets": int, "complexity": int}`), `"generating"` (`{"step_count": int}`), `"optimizing"` (`{"recipe_count": int}`), `"done"` (`{"recipes": int, "datasets": int}`). Exceptions raised inside the callback are silently swallowed so they never abort the conversion. |
+| `temperature` | `float` | `0.0` | Sampling temperature passed to the LLM. `0.0` (deterministic) is recommended for structured output; raise it only when experimenting. |
 
 **Returns:** [`DataikuFlow`](models.md#dataikuflow) - The converted pipeline
 
@@ -117,10 +121,30 @@ df[['total_spent']] = scaler.fit_transform(df[['total_spent']])
 print(flow.visualize(format="ascii"))
 ```
 
+**Progress callback example:**
+
+```python
+def show_progress(phase: str, info: dict) -> None:
+    print(f"[{phase}] {info}")
+
+flow = convert_with_llm(
+    "pipeline.py",
+    provider="anthropic",
+    on_progress=show_progress,
+)
+# [start] {'code_size': 843}
+# [analyzing] {'provider': 'anthropic', 'model': 'claude-sonnet-4-20250514'}
+# [analyzed] {'steps': 5, 'datasets': 3, 'complexity': 4}
+# [generating] {'step_count': 5}
+# [optimizing] {'recipe_count': 4}
+# [done] {'recipes': 3, 'datasets': 4}
+```
+
 **Notes:**
 - This is the recommended method for production use
 - Requires an API key (set via parameter or environment variable)
 - Default models: `claude-sonnet-4-20250514` (Anthropic), `gpt-4o` (OpenAI)
+- Use `temperature=0.0` (the default) for reproducible structured output; higher values introduce variability
 
 ---
 
@@ -165,6 +189,8 @@ def convert_file_with_llm(
     model: Optional[str] = None,
     optimize: bool = True,
     flow_name: Optional[str] = None,
+    on_progress=None,
+    temperature: float = 0.0,
 ) -> DataikuFlow
 ```
 
@@ -178,8 +204,16 @@ def convert_file_with_llm(
 | `model` | `Optional[str]` | `None` | Model name |
 | `optimize` | `bool` | `True` | Whether to optimize the flow |
 | `flow_name` | `Optional[str]` | `None` | Flow name (defaults to filename without extension) |
+| `on_progress` | `Optional[Callable]` | `None` | Progress callback — same signature and phases as [`convert_with_llm`](#convert_with_llm) |
+| `temperature` | `float` | `0.0` | LLM sampling temperature — same semantics as [`convert_with_llm`](#convert_with_llm) |
 
 **Returns:** [`DataikuFlow`](models.md#dataikuflow) - The converted pipeline (with `source_file` set)
+
+**Raises:**
+- [`ConfigurationError`](exceptions.md#configurationerror) - If the provider's API key is missing (also catchable as `ValueError` for backward-compat)
+- [`ProviderError`](exceptions.md#providererror) - If LLM communication fails
+- [`LLMResponseParseError`](exceptions.md#llmresponseparseerror) - If LLM response cannot be parsed
+- [`ConversionError`](exceptions.md#conversionerror) - If flow generation fails
 
 **Example:**
 

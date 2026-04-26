@@ -39,11 +39,32 @@ result = df.groupby('category').agg({'amount': 'sum'})
 """)
 
 # LLM-based conversion (more accurate, requires API key)
+# Runs at temperature=0.0 by default for deterministic output.
+# Store ANTHROPIC_API_KEY in .env.local (gitignored) or as an env var.
 flow = convert_with_llm("script.py", provider="anthropic")
 
-# Save in any format — extension auto-detects (.json, .yaml, .svg, .html, .png, .pdf, .puml, .txt, .md)
+# Optional progress callback — useful for long-running LLM calls
+def show_progress(phase, info):
+    print(f"[{phase}] {info}")
+
+flow = convert_with_llm("script.py", on_progress=show_progress)
+
+# Save in any format — extension auto-detects
 flow.save("flow.json")
+flow.save("flow.yaml")
 flow.save("flow.svg")
+flow.save("flow.html")
+flow.save("flow.png")
+flow.save("flow.pdf")
+flow.save("flow.puml")   # PlantUML
+flow.save("flow.txt")    # ASCII
+flow.save("flow.md")     # Mermaid
+
+# Load back from JSON or YAML
+flow2 = DataikuFlow.load("flow.json")
+
+# Compare two flows (e.g. rule-based vs LLM output)
+delta = flow.diff(flow2)
 
 # Or render directly
 print(flow.visualize(format="ascii"))
@@ -53,14 +74,14 @@ flow                                  # renders inline in Jupyter / JupyterLab
 CLI:
 
 ```bash
-py2dataiku script.py                  # bare-file invocation (auto-routes to convert)
+py2dataiku script.py                  # bare-file invocation (rule-based)
 py2dataiku script.py --llm            # use LLM (default provider: anthropic)
 py2dataiku convert script.py --provider openai
 ```
 
 ## Supported Conversions
 
-### pandas → Dataiku Recipes
+### pandas -> Dataiku Recipes
 
 | pandas Operation | Dataiku Recipe |
 |-----------------|----------------|
@@ -70,10 +91,13 @@ py2dataiku convert script.py --provider openai
 | `df.drop_duplicates()` | DISTINCT |
 | `df.sort_values()` | SORT |
 | `df.pivot()` / `df.pivot_table()` | PIVOT |
-| `df.rolling()` / `df.cumsum()` | WINDOW |
-| `df[condition]` | SPLIT / FILTER |
+| `df.rolling()` / `df.cumsum()` / `df.expanding()` | WINDOW |
+| `df[cond]` and `df[~cond]` (boolean pair) | SPLIT (multi-output) |
+| `df[condition]` (single branch) | FILTER (in PREPARE recipe) |
+| `df.nlargest()` / `df.nsmallest()` | TOP_N |
+| `df.describe()` / `df.info()` | GENERATE_STATISTICS |
 
-### pandas → Dataiku Processors
+### pandas -> Dataiku Processors (inside PREPARE recipes)
 
 | pandas Operation | Dataiku Processor |
 |-----------------|-------------------|
@@ -86,46 +110,89 @@ py2dataiku convert script.py --provider openai
 | `pd.to_datetime()` | DATE_PARSER |
 | `pd.cut()` / `pd.qcut()` | BINNER |
 | `pd.get_dummies()` | CATEGORICAL_ENCODER |
+| `df.round()` / `df.abs()` / `df.clip()` | NUMERIC_TRANSFORM processors |
+| `df[col] > value` / `< value` / etc. | FilterOnNumericRange |
+| `df[col] == value` / `!= value` | FilterOnValue (FULL_STRING) |
+| compound predicate `(a > 5) & (b < 10)` | FilterOnFormula (GREL) |
 
 ## Output Formats
 
-- **SVG**: Pixel-accurate Dataiku styling
-- **HTML**: Interactive canvas with zoom/pan
-- **ASCII**: Terminal-friendly text diagrams
-- **PlantUML**: UML-compatible diagrams
-- **Mermaid**: Markdown-compatible diagrams
-- **JSON/YAML**: Machine-readable export
+`flow.save(path)` and `flow.visualize(format=...)` support the following formats:
+
+| Extension / format name | Description |
+|------------------------|-------------|
+| `.json` / `json` | Machine-readable JSON export (round-trip with `DataikuFlow.load`) |
+| `.yaml` / `.yml` / `yaml` | Machine-readable YAML export (round-trip with `DataikuFlow.load`) |
+| `.svg` / `svg` | Pixel-accurate Dataiku-style vector diagram |
+| `.html` / `html` | Interactive canvas with zoom/pan |
+| `.png` / `png` | Raster image via matplotlib |
+| `.pdf` / `pdf` | PDF via cairosvg |
+| `.puml` / `plantuml` | PlantUML diagram |
+| `.txt` / `ascii` | Terminal-friendly ASCII diagram |
+| `.md` / `mermaid` | Mermaid diagram (GitHub/Notion compatible) |
 
 ## API Reference
 
 ### Main Functions
 
 ```python
-# Rule-based conversion
-convert(code: str) -> DataikuFlow
+# Rule-based conversion — accepts str, pathlib.Path, or path-string to .py file
+convert(code: str | Path, optimize: bool = True) -> DataikuFlow
 
 # LLM-based conversion
 convert_with_llm(
-    code: str,
-    provider: str = "anthropic",  # or "openai"
-    model: str = None,  # optional model override
+    code: str | Path,
+    provider: str = "anthropic",   # or "openai"
+    api_key: str = None,           # falls back to ANTHROPIC_API_KEY / OPENAI_API_KEY env var
+    model: str = None,             # uses provider default if omitted
+    optimize: bool = True,
+    flow_name: str = "converted_flow",
+    on_progress=None,              # callable(phase: str, info: dict) -> None
+    temperature: float = 0.0,      # 0.0 = deterministic; raise for more variety
 ) -> DataikuFlow
+
+# File-path variants (same parameters as above)
+convert_file(path: str, optimize: bool = True) -> DataikuFlow
+convert_file_with_llm(path: str, ..., on_progress=None, temperature: float = 0.0) -> DataikuFlow
 ```
+
+`on_progress` phases: `"start"`, `"analyzing"`, `"analyzed"`, `"generating"`, `"optimizing"`, `"done"`.
 
 ### DataikuFlow Methods
 
 ```python
-flow.visualize(format="svg")  # Generate visualization
-flow.to_dict()                # Export as dictionary
-flow.to_json()                # Export as JSON string
-flow.to_yaml()                # Export as YAML string
-flow.validate()               # Check flow structure
-flow.get_summary()            # Text summary
+# Visualization
+flow.visualize(format="svg")          # returns string (or bytes for png)
+flow.to_ascii()                       # shorthand
+flow.to_svg(output_path=None)         # shorthand, returns SVG string
+flow.to_html(output_path=None)        # shorthand, returns HTML string
+
+# Serialization
+flow.to_dict(include_timestamp=True)  # dict; pass False when diffing
+flow.to_json()                        # JSON string
+flow.to_yaml()                        # YAML string
+
+# File I/O (format auto-detected from extension)
+flow.save(path, format=None)          # write to file
+DataikuFlow.load(path, format=None)   # classmethod — reads .json or .yaml/.yml
+
+# Comparison
+flow.diff(other)                      # structural diff; returns dict with added/removed/changed/equivalent
+
+# Inspection
+flow.validate()                       # returns {valid, errors, warnings, info}
+flow.get_summary()                    # text summary string
+flow.graph                            # FlowGraph DAG (topological sort, cycle detection)
 ```
 
-## Examples
+### LLM Provider Notes
 
-The library includes comprehensive examples:
+- `AnthropicProvider` defaults to `temperature=0.0` for deterministic output.
+- Anthropic prompt caching is enabled by default (pass `disable_cache=True` to opt out). Caching reduces token cost by ~70-80% across repeated calls with the same system prompt within a 5-minute window.
+- A missing API key raises `ConfigurationError` (not `ValueError`).
+- Store credentials in `.env.local` (gitignored) and load with `python-dotenv` or similar.
+
+## Examples
 
 ```python
 from py2dataiku.examples.recipe_examples import RECIPE_EXAMPLES
@@ -136,11 +203,15 @@ from py2dataiku.examples.combination_examples import COMBINATION_EXAMPLES
 ## Development
 
 ```bash
-# Run tests
+# Run tests (1807 tests)
 python -m pytest tests/ -v
 
 # With coverage
 python -m pytest tests/ --cov=py2dataiku --cov-report=html
+
+# Lint / format
+ruff check py2dataiku/
+black py2dataiku/ tests/
 ```
 
 ## License

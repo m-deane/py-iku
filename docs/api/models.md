@@ -58,6 +58,23 @@ flow.get_summary()                 # Text summary -> str
 flow.get_column_lineage("col")              # Trace column lineage -> ColumnLineage
 flow.get_column_lineage("col", "dataset")  # Trace from a specific dataset
 flow.get_recommendations()         # Get recommendations -> List[FlowRecommendation]
+flow.diff(other_flow)              # Structural diff against another flow -> Dict[str, Any]
+```
+
+`diff()` returns a dictionary with keys `added`, `removed`, `changed`, `dataset_added`, `dataset_removed`, and `equivalent` (bool). It is recipe-name-keyed: two recipes are considered *changed* when their `recipe_type`, `inputs`, or `outputs` differ.
+
+```python
+rule_flow = convert(code)
+llm_flow  = convert_with_llm(code, provider="anthropic")
+
+delta = rule_flow.diff(llm_flow)
+if delta["equivalent"]:
+    print("Both paths produced the same flow")
+else:
+    print("Added recipes :", [r["name"] for r in delta["added"]])
+    print("Removed recipes:", [r["name"] for r in delta["removed"]])
+    for c in delta["changed"]:
+        print(f"  {c['name']}: {c['self']['type']} -> {c['other']['type']}")
 ```
 
 ### Visualization
@@ -96,6 +113,7 @@ DataikuFlow.load("flow.yaml", format="json")  # Explicit override
 
 # Lower-level export (no I/O)
 flow.to_dict()                     # -> Dict[str, Any]
+flow.to_dict(include_timestamp=False)  # omit generation_timestamp (useful for equality checks)
 flow.to_json(indent=2)             # -> str (JSON)
 flow.to_yaml()                     # -> str (YAML)
 flow.to_recipe_configs()           # -> List[Dict] (Dataiku API-compatible)
@@ -116,8 +134,9 @@ for recipe in flow:                # Iterate over recipes
 
 # Jupyter / JupyterLab / VS Code notebook inline rendering
 flow                               # Just typing the flow renders it inline
-flow._repr_svg_()                  # Classic Jupyter rich display
-flow._repr_mimebundle_()           # JupyterLab 3+ / VS Code rich display
+flow._repr_svg_()                  # Classic Jupyter rich display (SVG)
+flow._repr_html_()                 # HTML repr — SVG wrapped in <div class="py-iku-flow">
+flow._repr_mimebundle_()           # JupyterLab 3+ / VS Code rich display (SVG + plain)
 ```
 
 ### Zone Operations
@@ -401,3 +420,54 @@ Join key pair for JOIN recipes.
 | `left_column` | `str` | *required* | Column from left dataset |
 | `right_column` | `str` | *required* | Column from right dataset |
 | `match_type` | `str` | `"EXACT"` | `"EXACT"` or `"FUZZY"` |
+
+---
+
+## AnalysisResult
+
+Result of LLM code analysis, returned by `LLMCodeAnalyzer.analyze()` and accessible via `Py2Dataiku.analyze()`.
+
+```python
+from py2dataiku.llm.schemas import AnalysisResult
+```
+
+### Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `steps` | `List[DataStep]` | *required* | Extracted data manipulation steps |
+| `datasets` | `List[DatasetInfo]` | *required* | Datasets identified in the code |
+| `code_summary` | `str` | `""` | Human-readable summary of what the code does |
+| `total_operations` | `int` | `0` | Total number of operations found |
+| `complexity_score` | `int` | `0` | Complexity on a 1–10 scale |
+| `recommendations` | `List[str]` | `[]` | Optimisation recommendations from the LLM |
+| `warnings` | `List[str]` | `[]` | Conversion warnings |
+| `raw_response` | `Optional[str]` | `None` | Raw LLM JSON response (for debugging) |
+| `model_used` | `Optional[str]` | `None` | Model identifier that produced this result |
+| `usage` | `Optional[Dict[str, int]]` | `None` | Token-usage counters from the API call: `{"input_tokens": int, "output_tokens": int}`. Present on every successful call; `None` if the provider did not return usage data. Use this field to monitor cost in CI pipelines. |
+
+### Methods
+
+```python
+result.to_dict()           # -> Dict[str, Any]
+result.to_json(indent=2)   # -> str (JSON)
+AnalysisResult.from_dict(data)  # Classmethod
+```
+
+### Example
+
+```python
+from py2dataiku import Py2Dataiku
+
+converter = Py2Dataiku(provider="anthropic")
+result = converter.analyze(code)
+
+# Inspect token cost
+if result.usage:
+    print(f"Tokens used: {result.usage['input_tokens']} in / "
+          f"{result.usage['output_tokens']} out")
+
+# Inspect extracted steps
+for step in result.steps:
+    print(step.step_number, step.operation.value, step.description)
+```

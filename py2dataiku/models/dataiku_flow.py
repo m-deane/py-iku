@@ -336,7 +336,23 @@ class DataikuFlow:
         )
 
     def validate(self) -> dict[str, Any]:
-        """Validate the flow structure using DAG analysis."""
+        """Validate the flow structure using DAG analysis.
+
+        Checks for cycles, orphan datasets, missing datasets referenced by
+        recipes, disconnected subgraphs, and PYTHON fallback recipes.
+
+        Returns:
+            A dict with keys:
+
+            - ``valid`` (bool): ``True`` when no errors were found.
+            - ``errors`` (list[dict]): Fatal structural problems (cycles,
+              missing datasets). Each item has ``type`` and ``message`` keys.
+            - ``warnings`` (list[dict]): Non-fatal issues (orphan datasets,
+              disconnected subgraphs), including any flow-level warnings
+              stored on ``self.warnings``.
+            - ``info`` (list[dict]): Informational notes, e.g. PYTHON fallback
+              recipes that require manual intervention.
+        """
         errors = []
         warnings = []
         info = []
@@ -415,11 +431,20 @@ class DataikuFlow:
         """Convert to dictionary representation.
 
         Args:
-            include_timestamp: When False, omit ``generation_timestamp``
+            include_timestamp: When ``False``, omit ``generation_timestamp``
                 from the output. Useful when comparing two flows for
-                equality (the wallclock-based timestamp is otherwise the
-                dominant source of byte-level drift between identical
-                conversions). Wave-A determinism prober flagged this.
+                equality — the wallclock timestamp is otherwise the dominant
+                source of byte-level drift between identical conversions.
+
+        Returns:
+            A plain Python dict with keys ``flow_name``, ``generated_from``,
+            ``total_recipes``, ``total_datasets``, ``datasets``, ``recipes``,
+            ``optimization_notes``, ``recommendations``, and optionally
+            ``generation_timestamp`` and ``zones``.
+
+        Example:
+            >>> d = flow.to_dict(include_timestamp=False)
+            >>> assert "generation_timestamp" not in d
         """
         result = {
             "flow_name": self.name,
@@ -439,7 +464,14 @@ class DataikuFlow:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "DataikuFlow":
-        """Reconstruct a DataikuFlow from a dictionary (inverse of to_dict)."""
+        """Reconstruct a DataikuFlow from a dictionary (inverse of ``to_dict``).
+
+        Args:
+            data: A dict in the same shape produced by :meth:`to_dict`.
+
+        Returns:
+            A new ``DataikuFlow`` instance.
+        """
         datasets = [
             DataikuDataset.from_dict(ds) for ds in data.get("datasets", [])
         ]
@@ -473,12 +505,26 @@ class DataikuFlow:
 
     @classmethod
     def from_json(cls, json_str: str) -> "DataikuFlow":
-        """Reconstruct a DataikuFlow from a JSON string."""
+        """Reconstruct a DataikuFlow from a JSON string (inverse of ``to_json``).
+
+        Args:
+            json_str: A JSON string previously produced by :meth:`to_json`.
+
+        Returns:
+            A new ``DataikuFlow`` instance.
+        """
         return cls.from_dict(json.loads(json_str))
 
     @classmethod
     def from_yaml(cls, yaml_str: str) -> "DataikuFlow":
-        """Reconstruct a DataikuFlow from a YAML string."""
+        """Reconstruct a DataikuFlow from a YAML string (inverse of ``to_yaml``).
+
+        Args:
+            yaml_str: A YAML string previously produced by :meth:`to_yaml`.
+
+        Returns:
+            A new ``DataikuFlow`` instance.
+        """
         return cls.from_dict(yaml.safe_load(yaml_str))
 
     def to_yaml(self) -> str:
@@ -776,12 +822,27 @@ class DataikuFlow:
     def load(cls, path: str, format: Optional[str] = None) -> "DataikuFlow":
         """Load a flow from a file, auto-detecting format from the extension.
 
-        Symmetric with :meth:`save`. Supported extensions: ``.json``, ``.yaml``,
-        ``.yml``.
+        Symmetric with :meth:`save` for data formats. Only serialised
+        (round-trippable) formats are supported: ``.json``, ``.yaml``,
+        ``.yml``. Visual formats (``.svg``, ``.html``, etc.) cannot be
+        loaded.
 
         Args:
             path: Source file path.
             format: Optional format override (``"json"`` or ``"yaml"``).
+                When ``None`` the format is inferred from the file extension.
+
+        Returns:
+            A new ``DataikuFlow`` instance reconstructed from the file.
+
+        Raises:
+            ValueError: If the format cannot be determined from the extension
+                or is not one of ``"json"``/``"yaml"``.
+            FileNotFoundError: If ``path`` does not exist.
+
+        Example:
+            >>> flow.save("my_flow.json")
+            >>> flow2 = DataikuFlow.load("my_flow.json")
         """
         from pathlib import Path as _Path
 

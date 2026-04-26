@@ -322,22 +322,34 @@ def convert_with_llm(
         model: Model name (uses provider default if not provided)
         optimize: Whether to optimize the flow
         flow_name: Name for the generated flow
-        on_progress: Optional callable invoked at each pipeline phase. Signature
-            ``on_progress(phase: str, info: dict) -> None``. Phases: ``"start"``
-            (info: ``{"code_size": int}``), ``"analyzing"`` (info: ``{"provider":
-            str, "model": str}``), ``"analyzed"`` (info: ``{"steps": int,
-            "datasets": int, "complexity": int}``), ``"generating"`` (info:
-            ``{"step_count": int}``), ``"optimizing"`` (info: ``{"recipe_count":
-            int}``), ``"done"`` (info: ``{"recipes": int, "datasets": int}``).
-            Use this to give users feedback during long LLM calls.
+        on_progress: Optional callable invoked at each pipeline phase.
+            Signature: ``on_progress(phase: str, info: dict) -> None``.
+            The six phases in order are:
+
+            - ``"start"``      — ``{"code_size": int}``
+            - ``"analyzing"``  — ``{"provider": str, "model": str}``
+            - ``"analyzed"``   — ``{"steps": int, "datasets": int, "complexity": int}``
+            - ``"generating"`` — ``{"step_count": int}``
+            - ``"optimizing"`` — ``{"recipe_count": int}`` (only when ``optimize=True``)
+            - ``"done"``       — ``{"recipes": int, "datasets": int}``
+
+            Exceptions raised inside the callback are silently swallowed so
+            that a buggy progress handler never aborts the conversion.
+        temperature: Sampling temperature passed to the LLM (default ``0.0``).
+            Keep at ``0.0`` for deterministic, reproducible flows. Raise only
+            if you intentionally want run-to-run variation.
 
     Returns:
-        DataikuFlow object representing the converted pipeline
+        DataikuFlow object representing the converted pipeline.
+
+    Raises:
+        ConfigurationError: If the API key for the requested provider is
+            missing (not passed and not set as an environment variable).
 
     Example:
         >>> def show(phase, info):
         ...     print(f"[{phase}] {info}")
-        >>> flow = convert_with_llm("script.py", on_progress=show)
+        >>> flow = convert_with_llm("import pandas as pd\\ndf = pd.read_csv('a.csv')", on_progress=show)
     """
     from pathlib import Path as _Path
 
@@ -403,11 +415,16 @@ def convert_file(path: str, optimize: bool = True) -> DataikuFlow:
     Convert a Python file to a Dataiku flow using rule-based analysis.
 
     Args:
-        path: Path to a Python file
-        optimize: Whether to optimize the flow
+        path: Path to a ``.py`` file on disk.
+        optimize: Whether to optimize the flow (merge recipes, reorder steps).
 
     Returns:
-        DataikuFlow object representing the converted pipeline
+        DataikuFlow object representing the converted pipeline. The
+        ``source_file`` attribute is set to ``path``.
+
+    Raises:
+        FileNotFoundError: If ``path`` does not exist.
+        OSError: If the file cannot be read.
     """
     with open(path, encoding="utf-8") as f:
         code = f.read()
@@ -430,16 +447,26 @@ def convert_file_with_llm(
     Convert a Python file to a Dataiku flow using LLM-based analysis.
 
     Args:
-        path: Path to a Python file
-        provider: LLM provider ("anthropic", "openai")
-        api_key: API key (uses environment variable if not provided)
-        model: Model name (uses provider default if not provided)
-        optimize: Whether to optimize the flow
-        flow_name: Name for the generated flow (defaults to filename)
-        on_progress: See ``convert_with_llm``.
+        path: Path to a ``.py`` file on disk.
+        provider: LLM provider (``"anthropic"`` or ``"openai"``).
+        api_key: API key (uses environment variable if not provided).
+        model: Model name override (uses provider default if not provided).
+        optimize: Whether to optimize the flow (merge recipes, reorder steps).
+        flow_name: Name for the generated flow. Defaults to the filename
+            stem (e.g. ``"pipeline"`` for ``pipeline.py``).
+        on_progress: Optional progress callback — see ``convert_with_llm``
+            for the full phase/info specification.
+        temperature: Sampling temperature passed to the LLM (default ``0.0``
+            for deterministic output). See ``convert_with_llm``.
 
     Returns:
-        DataikuFlow object representing the converted pipeline
+        DataikuFlow object representing the converted pipeline. The
+        ``source_file`` attribute is set to ``path``.
+
+    Raises:
+        FileNotFoundError: If ``path`` does not exist.
+        ConfigurationError: If the API key for the requested provider is
+            missing (not passed and not set as an environment variable).
     """
     import os
     with open(path, encoding="utf-8") as f:
@@ -479,10 +506,22 @@ class Py2Dataiku:
         Initialize the converter.
 
         Args:
-            provider: LLM provider name ("anthropic", "openai")
-            api_key: API key for LLM provider
-            model: Model name override
-            use_llm: Whether to use LLM (True) or rule-based (False)
+            provider: LLM provider name (``"anthropic"`` or ``"openai"``).
+            api_key: API key for the LLM provider. If not provided the
+                relevant environment variable is used (``ANTHROPIC_API_KEY``
+                or ``OPENAI_API_KEY``).
+            model: Model name override. Uses the provider default when
+                ``None``.
+            use_llm: When ``True`` (default) the LLM-based analyzer is used.
+                If the provider cannot be initialized (missing API key,
+                missing optional dependency) a ``UserWarning`` is emitted
+                and the instance transparently falls back to rule-based
+                analysis. Pass ``False`` to skip the LLM attempt entirely.
+
+        Note:
+            For ``temperature``, ``on_progress``, or other per-call options
+            use the module-level :func:`convert_with_llm` /
+            :func:`convert_file_with_llm` functions directly.
         """
         self.use_llm = use_llm
         self.provider = provider

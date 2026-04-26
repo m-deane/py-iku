@@ -70,6 +70,35 @@ class AnthropicProvider(LLMProvider):
         temperature: float = 0.0,
         disable_cache: bool = False,
     ):
+        """Initialize the Anthropic Claude provider.
+
+        Args:
+            api_key: Anthropic API key. Falls back to the
+                ``ANTHROPIC_API_KEY`` environment variable when ``None``.
+            model: Claude model ID to use (default:
+                ``"claude-sonnet-4-20250514"``).
+            max_tokens: Maximum tokens in the completion response
+                (default: ``4096``).
+            timeout: HTTP request timeout in seconds. ``None`` uses the
+                Anthropic SDK default (no explicit timeout).
+            max_retries: Number of automatic retries on transient errors
+                (default: ``2``).
+            temperature: Sampling temperature (default: ``0.0``). Keep at
+                ``0.0`` for deterministic, reproducible flow conversions.
+                The wave-A determinism prober found the original default of
+                ``1.0`` produced run-to-run drift (e.g. varying intermediate
+                dataset names for the same input code).
+            disable_cache: When ``True``, the system prompt is sent as a
+                plain string instead of a structured block with
+                ``cache_control: ephemeral``. Useful in tests or when you
+                want to avoid dependency on Anthropic's 5-minute cache
+                state. When ``False`` (default) the prompt cache can reduce
+                per-call token cost by 70-80% for repeated sessions.
+
+        Raises:
+            ConfigurationError: If no API key is found (neither argument
+                nor environment variable).
+        """
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ConfigurationError(
@@ -189,6 +218,28 @@ class OpenAIProvider(LLMProvider):
         temperature: float = 0.0,
         seed: Optional[int] = 42,
     ):
+        """Initialize the OpenAI GPT provider.
+
+        Args:
+            api_key: OpenAI API key. Falls back to the ``OPENAI_API_KEY``
+                environment variable when ``None``.
+            model: OpenAI model ID to use (default: ``"gpt-4o"``).
+            max_tokens: Maximum tokens in the completion response
+                (default: ``4096``).
+            timeout: HTTP request timeout in seconds. ``None`` uses the
+                OpenAI SDK default.
+            max_retries: Number of automatic retries on transient errors
+                (default: ``2``).
+            temperature: Sampling temperature (default: ``0.0``). Keep at
+                ``0.0`` for deterministic, reproducible flow conversions.
+                Same rationale as :class:`AnthropicProvider`.
+            seed: Integer seed forwarded to the OpenAI API for additional
+                determinism (default: ``42``). Pass ``None`` to omit it.
+
+        Raises:
+            ConfigurationError: If no API key is found (neither argument
+                nor environment variable).
+        """
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
             raise ConfigurationError(
@@ -282,6 +333,14 @@ class MockProvider(LLMProvider):
     """Mock provider for testing without API calls."""
 
     def __init__(self, responses: Optional[dict[str, str]] = None):
+        """Initialize the mock provider.
+
+        Args:
+            responses: Optional mapping of prompt substring to canned
+                response text. When a prompt contains a key from this dict
+                that response is returned; otherwise a default empty-steps
+                JSON blob is used. Calls are recorded in ``self.calls``.
+        """
         self.responses = responses or {}
         self.calls = []
 
