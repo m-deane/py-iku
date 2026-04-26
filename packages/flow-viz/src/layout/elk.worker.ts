@@ -46,17 +46,25 @@ self.onmessage = async (ev: MessageEvent<WorkerInput>) => {
     children: nodes.map((n) => ({ id: n.id, width: n.width, height: n.height })),
     edges: edges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
   };
-  const result = await elk.layout(graph);
-  const positioned: WorkerOutputNode[] = (result.children ?? []).map((c) => {
-    const orig = nodes.find((n) => n.id === c.id);
-    return {
-      id: c.id,
-      width: orig?.width ?? 0,
-      height: orig?.height ?? 0,
-      x: c.x ?? 0,
-      y: c.y ?? 0,
-    };
-  });
-  const output: WorkerOutput = { nodes: positioned, edges };
-  (self as unknown as Worker).postMessage(output);
+  try {
+    const result = await elk.layout(graph);
+    const positioned: WorkerOutputNode[] = (result.children ?? []).map((c) => {
+      const orig = nodes.find((n) => n.id === c.id);
+      return {
+        id: c.id,
+        width: orig?.width ?? 0,
+        height: orig?.height ?? 0,
+        x: c.x ?? 0,
+        y: c.y ?? 0,
+      };
+    });
+    const output: WorkerOutput = { nodes: positioned, edges };
+    (self as unknown as Worker).postMessage(output);
+  } catch (err) {
+    // Propagate layout errors back to the main thread via a structured error
+    // message. Without this, an async throw inside onmessage is silently
+    // swallowed and layoutInWorker's Promise never resolves.
+    const message = err instanceof Error ? err.message : String(err);
+    (self as unknown as Worker).postMessage({ __error: message, nodes: [], edges });
+  }
 };

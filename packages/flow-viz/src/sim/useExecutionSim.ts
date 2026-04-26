@@ -88,12 +88,20 @@ export function topologicalSort(
   return out;
 }
 
+/** Returns true if the user has requested reduced motion via OS/browser settings. */
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function useExecutionSim(
   nodes: readonly FlowNode[],
   edges: readonly FlowEdgeModel[],
   options: UseExecutionSimOptions = {},
 ): UseExecutionSimResult {
-  const stepMs = options.stepMs ?? 600;
+  // Honour prefers-reduced-motion: collapse each step to a single animation
+  // frame (≈0 ms) so the sim completes instantly without visual motion.
+  const stepMs = prefersReducedMotion() ? 0 : (options.stepMs ?? 600);
   const order = useMemo<readonly string[]>(
     () => options.topologicalOrder ?? topologicalSort(nodes, edges),
     [nodes, edges, options.topologicalOrder],

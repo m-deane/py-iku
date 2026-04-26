@@ -336,11 +336,12 @@ export const client = {
       opts,
     );
   },
-  getRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
-    return request<RecipeCatalogEntry[]>("/catalog/recipes", { method: "GET" }, opts);
-  },
   listRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
     return request<RecipeCatalogEntry[]>("/catalog/recipes", { method: "GET" }, opts);
+  },
+  /** @deprecated Use listRecipes instead. */
+  getRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
+    return this.listRecipes(opts);
   },
   listProcessors(opts?: ListProcessorsOptions): Promise<ProcessorCatalogEntry[]> {
     const params = new URLSearchParams();

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fastapi import APIRouter, Depends, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from pydantic import ValidationError
 
@@ -56,8 +56,9 @@ async def post_convert(
             timeout=_SYNC_TIMEOUT_SECONDS,
         )
     except TimeoutError as exc:
-        raise TimeoutError(
-            f"Conversion did not complete within {_SYNC_TIMEOUT_SECONDS}s"
+        raise HTTPException(
+            status_code=504,
+            detail=f"Conversion did not complete within {_SYNC_TIMEOUT_SECONDS}s",
         ) from exc
 
     # Audit hook — log every successful conversion.

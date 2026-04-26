@@ -103,3 +103,41 @@ def test_atomic_write_survives_independent_repo_instance(tmp_path: Path) -> None
     rec = repo1.save(flow=_flow("persist"), name="persist")
     repo2 = FlowsRepo(tmp_path)
     assert repo2.get(rec.id) is not None
+
+
+# ---------------------------------------------------------------------------
+# Security: path traversal prevention
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bad_id",
+    [
+        "../../../etc/passwd",
+        "../../secret",
+        "/absolute/path",
+        "normal/slash",
+        "null\x00byte",
+        "a" * 65,  # too long
+        "",
+    ],
+)
+def test_get_treats_path_traversal_ids_as_not_found(tmp_path: Path, bad_id: str) -> None:
+    """flow_id values that look like path traversal must return None (safe 404), not 500."""
+    repo = FlowsRepo(tmp_path)
+    result = repo.get(bad_id)
+    assert result is None
+
+
+def test_update_rejects_path_traversal_ids(tmp_path: Path) -> None:
+    """update() raises KeyError for unsafe ids (mapped to 404 by the route)."""
+    repo = FlowsRepo(tmp_path)
+    with pytest.raises(KeyError):
+        repo.update("../../etc/shadow", name="x")
+
+
+def test_flow_path_raises_value_error_for_traversal(tmp_path: Path) -> None:
+    """_flow_path raises ValueError directly for path-traversal ids."""
+    repo = FlowsRepo(tmp_path)
+    with pytest.raises(ValueError, match="Invalid flow_id"):
+        repo._flow_path("../../etc/passwd")  # noqa: SLF001

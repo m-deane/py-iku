@@ -107,7 +107,28 @@ class FlowsRepo:
             self._index_path, json.dumps({"ids": list(ids)}, indent=2)
         )
 
+    @staticmethod
+    def _is_safe_flow_id(flow_id: str) -> bool:
+        """Return True iff *flow_id* cannot escape the flows directory.
+
+        Only UUID-shaped ids (hex digits and hyphens, 1–64 chars) pass.  This
+        prevents path-traversal attacks via crafted ids such as
+        ``../../etc/passwd``.
+        """
+        import re
+        return bool(re.fullmatch(r"[0-9a-fA-F\-]{1,64}", flow_id))
+
     def _flow_path(self, flow_id: str) -> Path:
+        """Return the absolute path for *flow_id* or raise ``ValueError`` on unsafe input."""
+        if not self._is_safe_flow_id(flow_id):
+            raise ValueError(
+                f"Invalid flow_id {flow_id!r}: "
+                "only hex digits and hyphens are allowed (UUID format expected)"
+            )
+        resolved = (self._flows_dir / f"{flow_id}.json").resolve()
+        flows_dir_resolved = str(self._flows_dir.resolve())
+        if not str(resolved).startswith(flows_dir_resolved + "/") and str(resolved) != flows_dir_resolved:
+            raise ValueError(f"flow_id {flow_id!r} escapes the flows directory")
         return self._flows_dir / f"{flow_id}.json"
 
     def _read_flow(self, flow_id: str) -> SavedFlow | None:
@@ -152,8 +173,13 @@ class FlowsRepo:
             return record
 
     def get(self, flow_id: str) -> SavedFlow | None:
-        with self._lock:
-            return self._read_flow(flow_id)
+        """Return the saved flow or ``None`` if unknown or the id is unsafe."""
+        try:
+            with self._lock:
+                return self._read_flow(flow_id)
+        except ValueError:
+            # Unsafe flow_id (e.g. path traversal) — surface as "not found".
+            return None
 
     def update(
         self,
@@ -163,21 +189,25 @@ class FlowsRepo:
         name: str | None = None,
         tags: list[str] | None = None,
     ) -> SavedFlow:
-        """Patch a saved flow.  Raises ``KeyError`` if the id is unknown."""
-        with self._lock:
-            existing = self._read_flow(flow_id)
-            if existing is None:
-                raise KeyError(flow_id)
-            updated = SavedFlow(
-                id=existing.id,
-                name=name if name is not None else existing.name,
-                flow=dict(flow) if flow is not None else existing.flow,
-                created_at=existing.created_at,
-                updated_at=_now_iso(),
-                tags=list(tags) if tags is not None else existing.tags,
-            )
-            self._write_flow(updated)
-            return updated
+        """Patch a saved flow.  Raises ``KeyError`` if the id is unknown or unsafe."""
+        try:
+            with self._lock:
+                existing = self._read_flow(flow_id)
+                if existing is None:
+                    raise KeyError(flow_id)
+                updated = SavedFlow(
+                    id=existing.id,
+                    name=name if name is not None else existing.name,
+                    flow=dict(flow) if flow is not None else existing.flow,
+                    created_at=existing.created_at,
+                    updated_at=_now_iso(),
+                    tags=list(tags) if tags is not None else existing.tags,
+                )
+                self._write_flow(updated)
+                return updated
+        except ValueError as exc:
+            # Unsafe id (path traversal attempt) — treat as not found.
+            raise KeyError(flow_id) from exc
 
     def list(
         self, *, limit: int = 50, cursor: str | None = None

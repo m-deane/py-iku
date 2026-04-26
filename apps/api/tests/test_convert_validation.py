@@ -87,3 +87,23 @@ async def test_missing_code_field_returns_422(client) -> None:  # type: ignore[n
         json={"mode": "rule"},
     )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_timeout_returns_504(client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """A conversion that times out must return HTTP 504, not an opaque 500."""
+    import asyncio
+    from app.routes import convert as convert_module
+
+    # Patch wait_for to raise TimeoutError immediately.
+    async def _mock_wait_for(coro, timeout):  # type: ignore[no-untyped-def]
+        coro.close()
+        raise asyncio.TimeoutError()
+
+    monkeypatch.setattr(asyncio, "wait_for", _mock_wait_for)
+
+    response = await client.post(
+        "/convert",
+        json={"code": "import pandas as pd", "mode": "rule"},
+    )
+    assert response.status_code == 504

@@ -15,7 +15,9 @@ export interface FlowState {
   setFlow: (flow: DataikuFlow | null) => void;
   setConversionStatus: (status: ConversionStatus) => void;
   setConversionMode: (mode: ConversionMode) => void;
+  /** Select a node by id (or deselect by passing null). */
   selectNode: (id: string | null) => void;
+  /** @deprecated Use selectNode instead. */
   setSelectedNodeId: (id: string | null) => void;
   clearSelection: () => void;
   reset: () => void;
@@ -32,6 +34,7 @@ export const useFlowStore = create<FlowState>()((set) => ({
   setConversionStatus: (conversionStatus) => set({ conversionStatus }),
   setConversionMode: (conversionMode) => set({ conversionMode }),
   selectNode: (selectedNodeId) => set({ selectedNodeId }),
+  /** @deprecated Use selectNode instead — both do the same thing. */
   setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId }),
   clearSelection: () => set({ selectedNodeId: null }),
   reset: () =>

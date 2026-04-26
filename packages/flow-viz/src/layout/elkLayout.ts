@@ -66,13 +66,19 @@ async function layoutInWorker(
       reject(err);
       return;
     }
-    worker.onmessage = (ev: MessageEvent<{ nodes: { id: string; x: number; y: number }[] }>) => {
+    worker.onmessage = (
+      ev: MessageEvent<{ nodes: { id: string; x: number; y: number }[]; __error?: string }>,
+    ) => {
+      worker.terminate();
+      if (ev.data.__error) {
+        reject(new Error(`ELK layout worker error: ${ev.data.__error}`));
+        return;
+      }
       const positions = new Map(ev.data.nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
       const out = nodes.map((n) => ({
         ...n,
         position: positions.get(n.id) ?? n.position ?? { x: 0, y: 0 },
       }));
-      worker.terminate();
       resolve(out);
     };
     worker.onerror = (e) => {

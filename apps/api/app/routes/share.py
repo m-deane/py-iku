@@ -36,23 +36,47 @@ router = APIRouter(tags=["share"])
 
 
 class _TokenBucket:
-    """Per-key token bucket.  Refills *capacity* tokens every *period* seconds."""
+    """Per-key token bucket.  Refills *capacity* tokens every *period* seconds.
+
+    Buckets for keys that have been idle for more than ``_TTL`` seconds are
+    evicted periodically to prevent unbounded memory growth in long-lived
+    processes serving many unique client IPs.
+    """
+
+    # Evict buckets idle for more than 10 minutes.
+    _TTL: float = 600.0
 
     def __init__(self, capacity: int, period: float = 60.0) -> None:
         self._capacity = float(capacity)
         self._period = float(period)
         self._tokens: dict[str, float] = defaultdict(lambda: self._capacity)
-        self._last: dict[str, float] = defaultdict(lambda: time.monotonic())
+        self._last: dict[str, float] = {}
         self._lock = threading.Lock()
+        # Use -inf so that the first request for any key triggers eviction check.
+        self._last_eviction: float = float("-inf")
+
+    def _evict_stale(self, now: float) -> None:
+        """Evict idle buckets (caller must hold ``self._lock``)."""
+        stale = [k for k, t in self._last.items() if now - t > self._TTL]
+        for k in stale:
+            self._tokens.pop(k, None)
+            self._last.pop(k, None)
+        self._last_eviction = now
 
     def allow(self, key: str, *, now: float | None = None) -> bool:
         """Consume one token for *key*; return False if the bucket is empty."""
         now = time.monotonic() if now is None else now
         rate = self._capacity / self._period
         with self._lock:
-            elapsed = now - self._last[key]
+            # Periodic eviction: run at most once per TTL period.
+            if now - self._last_eviction >= self._TTL:
+                self._evict_stale(now)
+            # New keys start with a full bucket; existing keys refill proportionally.
+            last = self._last.get(key, now)
+            elapsed = now - last
+            current_tokens = self._tokens.get(key, self._capacity)
             refill = elapsed * rate
-            self._tokens[key] = min(self._capacity, self._tokens[key] + refill)
+            self._tokens[key] = min(self._capacity, current_tokens + refill)
             self._last[key] = now
             if self._tokens[key] >= 1.0:
                 self._tokens[key] -= 1.0
@@ -86,6 +110,22 @@ def reset_share_rate_limiter() -> None:
 
 
 def _client_ip(request: Request) -> str:
+    """Return the best-effort client IP for rate-limit keying.
+
+    When running behind a trusted reverse proxy, prefer the leftmost address in
+    ``X-Forwarded-For`` (the original client IP).  Fall back to the direct
+    peer address when the header is absent.
+
+    Note: In production, restrict forwarded-IP trust to known proxy CIDR
+    ranges to prevent spoofing.  This implementation accepts the header at
+    face value, which is appropriate for single-trusted-proxy deployments.
+    """
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # X-Forwarded-For: client, proxy1, proxy2 — take the leftmost entry.
+        first = forwarded_for.split(",")[0].strip()
+        if first:
+            return first
     return request.client.host if request.client else "unknown"
 
 
