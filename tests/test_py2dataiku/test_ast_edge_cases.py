@@ -2843,3 +2843,72 @@ class TestMatchFilterFormulaOperator:
             "any", "expression", 'val("score") >= 90'
         )
         assert step.processor_type == ProcessorType.FILTER_ON_FORMULA
+
+
+# ===================================================================
+# flow.save() PNG dispatch fix
+# ===================================================================
+
+
+class TestFlowSavePngDispatch:
+    """flow.save("flow.png") should route through visualize(format="png")
+    (matplotlib renderer) so save() and visualize() agree on the renderer.
+
+    Was previously calling self.to_png() which uses cairosvg — a different
+    renderer with different visual output and dependency."""
+
+    def test_save_png_produces_valid_png_bytes(self, tmp_path):
+        from py2dataiku import convert
+        flow = convert("import pandas as pd\ndf = pd.read_csv('x.csv').dropna()\n")
+        out = tmp_path / "flow.png"
+        flow.save(str(out))
+        # PNG magic bytes
+        assert out.read_bytes()[:8].startswith(b"\x89PNG")
+        assert out.stat().st_size > 0
+
+    def test_save_png_uses_matplotlib_not_cairosvg(self, tmp_path, monkeypatch):
+        """Sanity-check the dispatch: save("flow.png") should call
+        visualize(format="png") (which uses MatplotlibVisualizer), NOT
+        the cairosvg-backed self.to_png() path."""
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+
+        flow = convert("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+        # Patch to_png to detect any accidental fall-through.
+        called = {"to_png": False}
+
+        def fake_to_png(self, output_path, scale=2.0):
+            called["to_png"] = True
+
+        monkeypatch.setattr(DataikuFlow, "to_png", fake_to_png)
+
+        out = tmp_path / "flow.png"
+        flow.save(str(out))
+        # The cairosvg path must not have been invoked.
+        assert called["to_png"] is False, (
+            "flow.save('flow.png') should route through visualize(format='png') "
+            "(matplotlib), not flow.to_png() (cairosvg)"
+        )
+        # And the file must still exist (matplotlib bytes were written).
+        assert out.exists() and out.stat().st_size > 0
+
+    def test_save_pdf_still_uses_cairosvg(self, tmp_path, monkeypatch):
+        """Regression guard: PDF has no matplotlib path, so save("flow.pdf")
+        must still route through to_pdf() (cairosvg)."""
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_flow import DataikuFlow
+
+        flow = convert("import pandas as pd\ndf = pd.read_csv('x.csv')\n")
+        called = {"to_pdf": False}
+
+        def fake_to_pdf(self, output_path):
+            called["to_pdf"] = True
+            # Write a minimal placeholder so the assertion below holds.
+            from pathlib import Path
+            Path(output_path).write_bytes(b"%PDF-1.4 placeholder")
+
+        monkeypatch.setattr(DataikuFlow, "to_pdf", fake_to_pdf)
+
+        out = tmp_path / "flow.pdf"
+        flow.save(str(out))
+        assert called["to_pdf"] is True

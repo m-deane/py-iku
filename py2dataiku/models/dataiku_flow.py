@@ -589,13 +589,23 @@ class DataikuFlow:
     def save(self, path: str, format: Optional[str] = None) -> None:
         """Save the flow to a file, auto-detecting format from the extension.
 
-        Supported extensions: .json, .yaml/.yml, .svg, .html, .png, .pdf,
-        .puml/.plantuml, .txt (ASCII), .md/.mermaid.
+        Supported extensions: ``.json``, ``.yaml``/``.yml``, ``.svg``,
+        ``.html``, ``.png`` (matplotlib), ``.pdf`` (cairosvg),
+        ``.puml``/``.plantuml``, ``.txt`` (ASCII), ``.md``/``.mermaid``.
+
+        ``.png`` routes through :meth:`visualize` (matplotlib renderer,
+        requires ``matplotlib``); ``.pdf`` and the lower-level
+        :meth:`to_png` use cairosvg.
 
         Args:
             path: Output file path. Format is detected from the extension
                   unless ``format`` is explicitly provided.
-            format: Optional format override (e.g. "json", "svg", "html").
+            format: Optional format override (e.g. ``"json"``, ``"svg"``,
+                ``"png"``).
+
+        Raises:
+            ValueError: When the format cannot be inferred from the
+                extension or is not in the supported list.
         """
         from pathlib import Path as _Path
 
@@ -628,8 +638,15 @@ class DataikuFlow:
         elif format == "plantuml":
             self.to_plantuml(str(target))
         elif format == "png":
-            self.to_png(str(target))
+            # Route through visualize(format="png") so save() and
+            # visualize() agree on the renderer (MatplotlibVisualizer,
+            # requires `matplotlib`). Users who specifically want the
+            # cairosvg path can still call flow.to_png(path) directly.
+            png_bytes = self.visualize(format="png")
+            target.write_bytes(png_bytes)
         elif format == "pdf":
+            # No matplotlib PDF path exists; route through cairosvg
+            # via to_pdf().
             self.to_pdf(str(target))
         elif format == "ascii":
             target.write_text(self.to_ascii())
