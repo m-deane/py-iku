@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { ConvertPage } from "../features/conversion/ConvertPage";
 
 function PlaceholderPage({
   title,
@@ -76,16 +77,7 @@ export function AppRouter(): JSX.Element {
       <Routes>
         <Route element={<RootLayout />}>
           <Route path="/" element={<HomePage />} />
-          <Route
-            path="/convert"
-            element={
-              <PlaceholderPage
-                title="Convert"
-                milestone="M4b"
-                hint="Monaco editor and conversion controls."
-              />
-            }
-          />
+          <Route path="/convert" element={<ConvertPage />} />
           <Route
             path="/flow/:id"
             element={<PlaceholderPage title="Flow viewer" milestone="M5" />}

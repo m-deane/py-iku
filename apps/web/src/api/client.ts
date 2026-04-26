@@ -158,9 +158,66 @@ function tryToast(level: "error" | "warning", title: string, description: string
   }
 }
 
+/**
+ * Local TS shape mirrors of `apps/api` Pydantic models.
+ *
+ * NOTE: These are stand-ins until `packages/types` codegen ships in the next
+ * wave. When that lands, swap these for the generated types and delete the
+ * `Local*` aliases. Keeping them here means the convert page can be typed
+ * end-to-end today without the codegen blocker.
+ */
+
+export type ConversionMode = "rule" | "llm";
+
+export interface ConvertOptions {
+  provider?: "anthropic" | "openai";
+  model?: string;
+  /** Free-form passthrough — server ignores unknown keys. */
+  [key: string]: unknown;
+}
+
+export interface ConvertRequest {
+  code: string;
+  mode: ConversionMode;
+  options?: ConvertOptions;
+}
+
+export interface FlowScore {
+  complexity: number;
+  recipe_count: number;
+  dataset_count: number;
+  cost_estimate?: number;
+  breakdown?: Array<{ key: string; value: number }>;
+}
+
+export interface ConvertResponse {
+  /** Raw `DataikuFlow.to_dict()` payload. M5 swaps this for the codegen type. */
+  flow: Record<string, unknown>;
+  score: FlowScore;
+  warnings: string[];
+}
+
+export interface RecipeCatalogEntry {
+  type: string;
+  name: string;
+  category: string;
+  icon?: string;
+  description?: string;
+}
+
 export const client = {
   health(opts?: ClientOptions): Promise<HealthResponse> {
     return request<HealthResponse>("/health", { method: "GET" }, opts);
+  },
+  convert(req: ConvertRequest, opts?: ClientOptions): Promise<ConvertResponse> {
+    return request<ConvertResponse>(
+      "/convert",
+      { method: "POST", body: JSON.stringify(req) },
+      opts,
+    );
+  },
+  getRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
+    return request<RecipeCatalogEntry[]>("/catalog/recipes", { method: "GET" }, opts);
   },
   /** Generic escape hatch for not-yet-typed endpoints (M5+ will expand). */
   request,

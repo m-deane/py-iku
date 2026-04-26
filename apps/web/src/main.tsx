@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Providers } from "./app/providers";
 import { AppRouter } from "./app/router";
+import "./features/editor/monacoWorkers";
 import "./styles/tokens.css";
 import "./styles/global.css";
 

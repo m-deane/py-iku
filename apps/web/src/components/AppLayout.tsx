@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "./ThemeToggle";
+import { SettingsDrawer } from "../features/settings/SettingsDrawer";
+import { useUiStore } from "../state/uiStore";
 import styles from "./AppLayout.module.css";
 
 export interface AppLayoutProps {
@@ -8,6 +10,8 @@ export interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps): JSX.Element {
+  const openSettings = useUiStore((s) => s.openSettingsDrawer);
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -25,12 +29,23 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
         </nav>
         <div className={styles.headerActions}>
           <ThemeToggle />
-          <Link to="/settings" aria-label="Settings" className={styles.iconBtn}>
+          <button
+            type="button"
+            onClick={openSettings}
+            aria-label="Open settings"
+            className={styles.iconBtn}
+            style={{
+              background: "transparent",
+              cursor: "pointer",
+              fontSize: "1rem",
+            }}
+          >
             ⚙
-          </Link>
+          </button>
         </div>
       </header>
       <main className={styles.main}>{children}</main>
+      <SettingsDrawer />
     </div>
   );
 }
