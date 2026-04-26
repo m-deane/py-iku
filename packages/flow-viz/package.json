@@ -17,6 +17,7 @@
     "format": "prettier --write src/ stories/"
   },
   "peerDependencies": {
+    "@py-iku-studio/types": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "reactflow": "^11.0.0"
@@ -24,9 +25,11 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "d3-shape": "^3.2.0",
-    "elkjs": "^0.9.3"
+    "elkjs": "^0.9.3",
+    "jspdf": "^2.5.2"
   },
   "devDependencies": {
+    "@py-iku-studio/types": "workspace:*",
     "@storybook/addon-essentials": "^8.3.5",
     "@storybook/react": "^8.3.5",
     "@storybook/react-vite": "^8.3.5",
@@ -38,6 +41,8 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
     "@vitest/ui": "^2.1.2",
+    "concurrently": "^8.2.2",
+    "http-server": "^14.1.1",
     "jsdom": "^25.0.1",
     "playwright": "^1.47.2",
     "prettier": "^3.3.0",
@@ -48,6 +53,7 @@
     "tsx": "^4.19.1",
     "typescript": "^5.4.5",
     "vite": "^5.4.8",
-    "vitest": "^2.1.2"
+    "vitest": "^2.1.2",
+    "wait-on": "^9.0.5"
   }
 }

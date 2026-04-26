@@ -64,6 +64,7 @@ export function SnippetPicker(props: SnippetPickerProps): JSX.Element {
       <button
         ref={triggerRef}
         type="button"
+        data-testid="snippet-picker-trigger"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -122,10 +123,11 @@ export function SnippetPicker(props: SnippetPickerProps): JSX.Element {
                 No snippets match.
               </li>
             ) : (
-              filtered.map((s) => (
+              filtered.map((s, idx) => (
                 <li key={s.id} role="option" aria-selected={false}>
                   <button
                     type="button"
+                    data-testid={idx === 0 ? "snippet-picker-first-item" : undefined}
                     onClick={() => choose(s)}
                     style={{
                       width: "100%",

@@ -5,8 +5,11 @@
   "packageManager": "pnpm@8.15.9",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail \"pnpm --filter apps/web dev\" \"pnpm --filter apps/api dev\" \"pnpm --filter docs dev\"",
+    "dev:all": "concurrently --kill-others-on-fail \"pnpm --filter apps-web dev\" \"cd apps/api && uvicorn app.main:app --reload --port 8000\"",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --if-present test",
+    "test:e2e": "bash scripts/e2e.sh",
+    "e2e": "bash scripts/e2e.sh",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "typecheck": "tsc -b",

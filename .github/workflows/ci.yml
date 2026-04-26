@@ -45,22 +45,154 @@ jobs:
       - name: Test
         run: pnpm -r --if-present test
 
-  e2e:
-    name: E2E (placeholder)
+  types-drift:
+    name: Types drift check
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # continue-on-error until all PRs have been rebased (flip to false in M2)
+    continue-on-error: true
     needs: [node]
     steps:
       - uses: actions/checkout@v4
-      - name: Playwright placeholder
-        run: echo "playwright placeholder — real Playwright config arrives in M8"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Node dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Install Python deps (API)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+
+      - name: Check for openapi.json drift
+        run: pnpm --filter @py-iku-studio/types check-drift
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    # continue-on-error until M8 hardens the full suite
+    continue-on-error: true
+    needs: [node]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Cache pnpm store
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      # Cache Playwright browsers
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Install Python deps (API)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+
+      - name: Install Playwright browsers
+        run: pnpm --filter apps-web exec playwright install --with-deps chromium webkit
+
+      - name: Run E2E tests
+        env:
+          CI: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        run: bash scripts/e2e.sh --project=chromium
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
 
   storybook:
-    name: Storybook (placeholder)
+    name: Storybook (flow-viz)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # continue-on-error until M8 hardens the visual baseline
+    continue-on-error: true
     needs: [node]
     steps:
       - uses: actions/checkout@v4
-      - name: Storybook placeholder
-        run: echo "storybook visual regression placeholder — real config arrives in M8"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Cache Playwright browsers (for test-storybook)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('packages/flow-viz/package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Build Storybook static site
+        run: pnpm --filter @py-iku-studio/flow-viz build-storybook
+
+      - name: Install Playwright for test-storybook
+        run: pnpm --filter @py-iku-studio/flow-viz exec playwright install --with-deps chromium
+
+      - name: Run Storybook tests against static build
+        run: |
+          pnpm --filter @py-iku-studio/flow-viz exec concurrently \
+            --kill-others \
+            --success first \
+            "pnpm --filter @py-iku-studio/flow-viz exec http-server storybook-static --port 6006 --silent" \
+            "pnpm --filter @py-iku-studio/flow-viz exec wait-on http://localhost:6006 && pnpm --filter @py-iku-studio/flow-viz exec test-storybook --url http://localhost:6006"
+        continue-on-error: true

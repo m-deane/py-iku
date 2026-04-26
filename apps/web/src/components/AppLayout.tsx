@@ -31,6 +31,7 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
           <ThemeToggle />
           <button
             type="button"
+            data-testid="settings-open-trigger"
             onClick={openSettings}
             aria-label="Open settings"
             className={styles.iconBtn}

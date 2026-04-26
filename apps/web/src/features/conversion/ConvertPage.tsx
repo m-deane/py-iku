@@ -59,7 +59,10 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         options: mode === "llm" ? { provider, model } : undefined,
       });
       setResponse(result);
-      setFlow(result.flow);
+      // Cast: local ConvertResponse.flow is Record<string,unknown> for M4 compat;
+      // DataikuFlow typing is enforced in flowStore. M5 will tighten ConvertResponse.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setFlow(result.flow as any);
       setStatus("done");
       if (result.warnings.length > 0) {
         toast.message(
@@ -142,6 +145,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           <ModeToggle mode={mode} onChange={setMode} />
           <button
             type="button"
+            data-testid="convert-submit"
             onClick={onConvert}
             disabled={inFlight || llmDisabled}
             aria-disabled={inFlight || llmDisabled}
@@ -211,7 +215,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         />
 
         {response ? (
-          <div>
+          <div data-testid="response-panel">
             <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem" }}>
               Flow JSON{" "}
               <span style={{ fontSize: 12, color: "var(--color-grid, #888)" }}>
@@ -275,9 +279,10 @@ function StatusPanel(props: {
   error: { title: string; detail?: string; status: number } | null;
 }): JSX.Element {
   const { status, mode, response, error } = props;
-  const card = (label: string, value: string | number) => (
+  const card = (label: string, value: string | number, testId?: string) => (
     <div
       key={label}
+      data-testid={testId}
       style={{
         padding: "0.6rem 0.8rem",
         borderRadius: 6,
@@ -321,7 +326,7 @@ function StatusPanel(props: {
         style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
       >
         {card("Mode", mode)}
-        {card("Complexity", response.score.complexity)}
+        {card("Complexity", response.score.complexity, "stat-complexity")}
         {card("Recipes", response.score.recipe_count)}
         {card("Datasets", response.score.dataset_count)}
         {response.warnings.length > 0 ? card("Warnings", response.warnings.length) : null}

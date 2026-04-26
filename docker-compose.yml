@@ -1,36 +1,77 @@
 version: "3.9"
 
+# ── Services ──────────────────────────────────────────────────────────────────
+
 services:
   api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/api/Dockerfile
     ports:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-    volumes:
-      - ./apps/api:/app
-      - ./py2dataiku:/py2dataiku
+      - ENV=development
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   web:
     build:
-      context: ./apps/web
+      context: apps/web
       dockerfile: Dockerfile
     ports:
       - "5173:5173"
     depends_on:
-      - api
-    volumes:
-      - ./apps/web:/app
-      - /app/node_modules
+      api:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://api:8000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
 
   docs:
     build:
-      context: ./docs
+      context: docs
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    profiles:
+      - docs
+
+  # ── E2E profile ─────────────────────────────────────────────────────────────
+  # Run with: docker compose --profile e2e up --abort-on-container-exit --exit-code-from e2e
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.44.0-jammy
+    working_dir: /repo
     volumes:
-      - ./docs:/app
-      - /app/node_modules
+      - .:/repo
+      - /repo/apps/web/node_modules
+      - /repo/packages/flow-viz/node_modules
+      - /repo/packages/types/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      - BASE_URL=http://web:5173
+      - API_URL=http://api:8000
+      - CI=true
+    command: >
+      bash -c "
+        cd /repo &&
+        npm install -g pnpm@8.15.9 &&
+        pnpm install --ignore-scripts &&
+        pnpm --filter apps-web exec playwright install --with-deps chromium &&
+        pnpm --filter apps-web exec playwright test --project=chromium
+      "
+    profiles:
+      - e2e

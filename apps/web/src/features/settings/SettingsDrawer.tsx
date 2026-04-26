@@ -196,6 +196,7 @@ export function SettingsDrawer(): JSX.Element | null {
             <Field label="Theme">
               <select
                 value={draft.theme}
+                data-testid="settings-theme-select"
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, theme: e.target.value as ThemePref }))
                 }

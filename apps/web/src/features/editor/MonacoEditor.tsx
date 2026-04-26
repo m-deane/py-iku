@@ -116,25 +116,27 @@ export function MonacoEditor(props: MonacoEditorProps): JSX.Element {
   }
 
   return (
-    <Editor
-      height={props.height ?? "60vh"}
-      defaultLanguage="python"
-      language="python"
-      value={localValue}
-      theme={theme}
-      onMount={handleMount}
-      onChange={handleChange}
-      options={{
-        minimap: { enabled: false },
-        fontSize: 14,
-        tabSize: 4,
-        automaticLayout: true,
-        wordWrap: "on",
-        scrollBeyondLastLine: false,
-        readOnly: props.readOnly ?? false,
-        renderWhitespace: "selection",
-        fixedOverflowWidgets: true,
-      }}
-    />
+    <div data-testid="monaco-editor">
+      <Editor
+        height={props.height ?? "60vh"}
+        defaultLanguage="python"
+        language="python"
+        value={localValue}
+        theme={theme}
+        onMount={handleMount}
+        onChange={handleChange}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          tabSize: 4,
+          automaticLayout: true,
+          wordWrap: "on",
+          scrollBeyondLastLine: false,
+          readOnly: props.readOnly ?? false,
+          renderWhitespace: "selection",
+          fixedOverflowWidgets: true,
+        }}
+      />
+    </div>
   );
 }

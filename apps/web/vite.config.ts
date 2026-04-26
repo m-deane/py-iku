@@ -26,7 +26,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Route API calls through the Vite proxy. The /api prefix is used as
+      // a namespace to avoid conflicts with SPA client-side routes.
       "/api": "http://localhost:8000",
+      // Also proxy /health so the e2e wait-for-port check can use the web port.
+      "/health": "http://localhost:8000",
     },
   },
   test: {
