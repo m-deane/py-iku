@@ -5,6 +5,7 @@ import { SnippetPicker } from "../editor/SnippetPicker";
 import { JsonView } from "../../components/JsonView";
 import { ExportButtons } from "../export/ExportButtons";
 import { ValidationPanel } from "../validation/ValidationPanel";
+import { NodeInspector } from "../inspector/NodeInspector";
 import {
   client,
   ApiError,
@@ -403,11 +404,62 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
               key={validationOpen ? "open" : "closed"}
               clientImpl={cli}
             />
+            <NodeList flow={response.flow} />
+            <NodeInspector />
             <JsonView value={response.flow} />
           </div>
         ) : null}
       </div>
     </section>
+  );
+}
+
+/** Compact, accessible list of recipe nodes for click-to-inspect. */
+function NodeList(props: { flow: Record<string, unknown> }): JSX.Element | null {
+  const setSelectedNodeId = useFlowStore((s) => s.setSelectedNodeId);
+  const selectedId = useFlowStore((s) => s.selectedNodeId);
+  const recipes = ((props.flow.recipes as Array<{ name: string; type: string }>) ?? []).filter(
+    (r) => typeof r?.name === "string",
+  );
+  if (recipes.length === 0) return null;
+  return (
+    <nav
+      data-testid="node-list"
+      aria-label="Flow nodes"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "0.4rem",
+        margin: "0.5rem 0",
+      }}
+    >
+      {recipes.map((r) => {
+        const active = selectedId === r.name;
+        return (
+          <button
+            key={r.name}
+            type="button"
+            data-testid={`node-list-item-${r.name}`}
+            aria-pressed={active}
+            onClick={() => setSelectedNodeId(active ? null : r.name)}
+            style={{
+              padding: "0.25rem 0.6rem",
+              borderRadius: 999,
+              border: "1px solid var(--color-grid, #e0e0e0)",
+              background: active
+                ? "var(--color-connectionhover, #1976d2)"
+                : "transparent",
+              color: active ? "white" : "inherit",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            <strong>{r.name}</strong>
+            <span style={{ marginLeft: 6, opacity: 0.7 }}>{r.type}</span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 

@@ -26,6 +26,33 @@ jobs:
       - name: Type check
         run: mypy py2dataiku/
 
+  api:
+    name: API (FastAPI) coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python deps
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+      - name: Run pytest with coverage
+        run: |
+          pytest apps/api/tests \
+            --cov=apps/api/app \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=80
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage-xml
+          path: coverage.xml
+          retention-days: 14
+
   node:
     name: Node 20
     runs-on: ubuntu-latest
@@ -42,14 +69,24 @@ jobs:
         run: pnpm install --ignore-scripts
       - name: Build
         run: pnpm -r --if-present build
-      - name: Test
-        run: pnpm -r --if-present test
+      - name: Test (with web coverage gate)
+        run: |
+          pnpm --filter @py-iku-studio/types --if-present test
+          pnpm --filter @py-iku-studio/flow-viz --if-present test
+          pnpm --filter apps-web run test:coverage
+      - name: Upload web coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
+          retention-days: 14
 
   types-drift:
     name: Types drift check
     runs-on: ubuntu-latest
-    # continue-on-error until all PRs have been rebased (flip to false in M2)
-    continue-on-error: true
+    # Snapshot is current as of M7 — flip on M8 (test-engineer milestone).
+    continue-on-error: false
     needs: [node]
     steps:
       - uses: actions/checkout@v4
@@ -81,8 +118,6 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
-    # continue-on-error until M8 hardens the full suite
-    continue-on-error: true
     needs: [node]
     steps:
       - uses: actions/checkout@v4
@@ -100,7 +135,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Cache pnpm store
       - name: Get pnpm store directory
         id: pnpm-cache
         run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
@@ -111,7 +145,6 @@ jobs:
           key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: pnpm-${{ runner.os }}-
 
-      # Cache Playwright browsers
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
@@ -130,11 +163,11 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter apps-web exec playwright install --with-deps chromium webkit
 
-      - name: Run E2E tests
+      - name: Run E2E + Visual + A11y suites
         env:
           CI: "true"
           PYTHONPATH: ${{ github.workspace }}
-        run: bash scripts/e2e.sh --project=chromium
+        run: bash scripts/e2e.sh --project=chromium --project=visual --project=a11y
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -144,11 +177,17 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 14
 
+      - name: Upload Playwright test-results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results/
+          retention-days: 14
+
   storybook:
     name: Storybook (flow-viz)
     runs-on: ubuntu-latest
-    # continue-on-error until M8 hardens the visual baseline
-    continue-on-error: true
     needs: [node]
     steps:
       - uses: actions/checkout@v4
@@ -195,4 +234,13 @@ jobs:
             --success first \
             "pnpm --filter @py-iku-studio/flow-viz exec http-server storybook-static --port 6006 --silent" \
             "pnpm --filter @py-iku-studio/flow-viz exec wait-on http://localhost:6006 && pnpm --filter @py-iku-studio/flow-viz exec test-storybook --url http://localhost:6006"
-        continue-on-error: true
+
+      - name: Upload Storybook visual diff outputs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: storybook-test-output
+          path: |
+            packages/flow-viz/storybook-static/
+            packages/flow-viz/test-results/
+          retention-days: 14

@@ -1,0 +1,11 @@
+# Visual baselines (chromium-only)
+#
+# This directory holds the canonical PNG screenshots used by the
+# `visual` Playwright project. To (re)generate baselines locally, run:
+#
+#     pnpm --filter apps-web run test:visual:update
+#
+# Baselines are committed alongside source. CI compares each run against the
+# committed PNG with a `maxDiffPixelRatio` of 0.02. Cross-browser screenshots
+# (e.g. webkit) are intentionally NOT captured here to avoid font-rendering
+# drift; the project config locks the visual project to chromium only.

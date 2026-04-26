@@ -9,13 +9,18 @@
     "build": "tsx scripts/sync-tokens.ts && tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test --project=chromium --project=webkit",
+    "test:visual": "playwright test --project=visual",
+    "test:visual:update": "playwright test --project=visual --update-snapshots",
+    "test:a11y": "playwright test --project=a11y",
     "typecheck": "tsc -b",
     "lint": "eslint src/",
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@py-iku-studio/types": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
+    "@py-iku-studio/types": "workspace:*",
     "@tanstack/react-query": "^5.40.0",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
@@ -29,6 +34,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/react": "^16.0.0",
@@ -38,6 +44,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^9.3.0",
     "jsdom": "^24.1.0",
     "prettier": "^3.3.0",

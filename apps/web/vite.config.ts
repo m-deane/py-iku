@@ -38,5 +38,29 @@ export default defineConfig({
     globals: true,
     include: ["tests/**/*.test.{ts,tsx}"],
     setupFiles: ["./tests/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json-summary"],
+      reportsDirectory: "coverage",
+      // Only measure the production app, not tooling scripts.
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.d.ts",
+        "src/main.tsx",
+        // Boot/wire-up shells: trivial JSX with no logic to assert against.
+        "src/app/router.tsx",
+        "src/app/providers.tsx",
+        "src/components/AppLayout.tsx",
+        "src/components/ThemeToggle.tsx",
+        // Monaco workers are environment-only setup.
+        "src/features/editor/monacoWorkers.ts",
+        // WebSocket client is exercised end-to-end (see useConvertStream).
+        "src/api/ws.ts",
+      ],
+      thresholds: {
+        lines: 80,
+        statements: 80,
+      },
+    },
   },
 });
