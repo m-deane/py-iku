@@ -2,7 +2,7 @@
 
 ## What you'll learn
 
-How `FlowOptimizer` rewrites a freshly-generated flow to fold redundant recipes together, why those rewrites are graph operations rather than list operations, and which structural property of the flow — the fan-out count of an intermediate dataset — decides whether two recipes can merge. The chapter walks through the two merge passes (PREPARE and WINDOW) on the running example, including the case where the optimizer correctly leaves recipes alone.
+This chapter explains how `FlowOptimizer` rewrites a freshly-generated flow to fold redundant recipes together, why those rewrites are graph operations rather than list operations, and which structural property of the flow — the fan-out count of an intermediate dataset — decides whether two recipes can merge. The chapter walks through the two merge passes (PREPARE and WINDOW) on the running example, including the case where the optimizer correctly leaves recipes alone.
 
 ## What the optimizer is for
 
@@ -41,11 +41,13 @@ The `len(downstream_indices) != 1` check is the fan-out guard. It is what makes 
 
 Two PREPARE recipes on a linear path are equivalent to one combined PREPARE: every prepare step is pure with respect to the dataset (it does not read external state), the merged recipe sees the same inputs and produces the same outputs, and any dataset between them is intermediate.
 
-The same is not true across a fan-out. Suppose `recipe1` is a PREPARE that produces `cleaned_orders`, and two downstream recipes — `recipe2` (a JOIN) and `recipe3` (a SPLIT) — both consume `cleaned_orders`. Merging `recipe1` into `recipe2` would absorb the prepare steps into the JOIN's input pipeline, but `recipe3` still expects to read `cleaned_orders` as its own input. The merge would either change `recipe3`'s input to a name that no longer exists, or it would leave `cleaned_orders` orphaned with the prepare steps no longer running before `recipe3` consumes it. Either way, the flow is no longer equivalent to the input.
+The same is not true across a fan-out. Suppose `recipe1` is a PREPARE that produces `cleaned_orders`, and two downstream recipes — `recipe2` (a JOIN) and `recipe3` (a SPLIT) — both consume `cleaned_orders`. Merging `recipe1` into `recipe2` would absorb the prepare steps into the JOIN's input pipeline, but `recipe3` still expects to read `cleaned_orders` as its own input.
+
+The merge would either change `recipe3`'s input to a name that no longer exists, or it would leave `cleaned_orders` orphaned with the prepare steps no longer running before `recipe3` consumes it. Either way, the flow is no longer equivalent to the input.
 
 The guard is one line: `if len(downstream_indices) != 1: continue`. It refuses to merge whenever the intermediate dataset has more than one consumer. The library would rather leave a redundant recipe in place than emit an unsound flow.
 
-A worked example. Consider a small extension to V1 of the running example where `orders_clean` feeds two downstream PREPARE recipes:
+A worked example. Consider a small extension to V1 of the running example where `orders_clean` feeds two structural recipes — a JOIN with `customers` and a row-filter SPLIT — so the intermediate dataset has two consumers:
 
 ```python
 import pandas as pd
@@ -54,23 +56,25 @@ from py2dataiku import convert
 source = """
 import pandas as pd
 orders = pd.read_csv('orders.csv')
+customers = pd.read_csv('customers.csv')
 orders['discount_pct'] = orders['discount_pct'].fillna(0.0)
 orders['revenue'] = orders['quantity'] * orders['unit_price'] * (1 - orders['discount_pct'])
 orders_clean = orders
 
-# Two downstream consumers of orders_clean — fan-out:
-audit = orders_clean.rename(columns={'order_date': 'audit_date'})
-working = orders_clean.rename(columns={'order_date': 'ordered_at'})
+# Two downstream consumers of orders_clean — fan-out via structural recipes:
+enriched = orders_clean.merge(customers, on='customer_id', how='left')
+high_value = orders_clean[orders_clean.revenue > 1000]
 """
 
 flow = convert(source)
-prepare_count = sum(1 for r in flow.recipes if r.recipe_type.value == "prepare")
-# orders -> orders_clean (PREPARE) cannot merge with either downstream rename,
-# because orders_clean fans out to two consumers.
-assert prepare_count == 3
+recipe_types = [r.recipe_type.value for r in flow.recipes]
+# The PREPARE that produces orders_clean cannot fold into either downstream
+# recipe because orders_clean fans out to two consumers. The flow keeps three
+# distinct recipes: PREPARE, JOIN, SPLIT.
+assert recipe_types == ["prepare", "join", "split"]
 ```
 
-Without fan-out, the same source pattern collapses to a single PREPARE. With it, all three PREPARE recipes survive optimization. The recipe count is the diagnostic.
+Without fan-out, the chained PREPARE steps would collapse into one. With it, the PREPARE recipe survives because it has more than one downstream consumer — the JOIN and the SPLIT each read `orders_clean` directly. The recipe-type sequence is the diagnostic.
 
 ## Merging PREPARE recipes
 
@@ -142,6 +146,7 @@ from py2dataiku import convert
 source = """
 import pandas as pd
 orders = pd.read_csv('orders.csv')
+orders = orders.rename(columns={'order_date': 'ordered_at'})
 orders = orders.sort_values(['customer_id', 'ordered_at'])
 orders['rolling_30d_sum'] = (
     orders.groupby('customer_id')['revenue']
@@ -196,7 +201,9 @@ For clarity:
 - It does not eliminate dead recipes whose outputs no consumer reads. Orphan dataset removal is in scope (`_apply_remove_orphan_datasets`); orphan recipe removal is not.
 - It does not coalesce non-WINDOW non-PREPARE recipes. Two consecutive SORT recipes, for example, will not merge — the optimizer has no rule for that case, and the right rewrite is conditional on whether the second SORT's keys are a prefix of the first's, which is a non-trivial check.
 
-The point of leaving these out is that the optimizer is the most-trusted component of the pipeline: every flow that comes out of `convert()` has been through it. A cautious set of rewrites is more useful than an aggressive one, because the production reader cares more about "this flow does what the source does" than about "this flow has the minimum possible recipe count."
+The point of leaving these out is that the optimizer is the most-trusted component of the pipeline: every flow that comes out of `convert()` has been through it.
+
+A cautious set of rewrites is more useful than an aggressive one, because the production reader cares more about "this flow does what the source does" than about "this flow has the minimum possible recipe count."
 
 ## Further reading
 

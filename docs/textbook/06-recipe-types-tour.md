@@ -2,7 +2,7 @@
 
 ## What you'll learn
 
-How the eight most common non-PREPARE recipe types behave as algebraic primitives over datasets — what each one's input and output arity is, what pandas idiom triggers it, and how the running example walks through GROUPING, JOIN, WINDOW, SORT, and SPLIT as it grows from V2 to V5. By the end, you can read a recipe type off a pandas snippet without running `convert()`.
+This chapter shows how the eight most common non-PREPARE recipe types behave as algebraic primitives over datasets — what each one's input and output arity is, what pandas idiom triggers it, and how the running example walks through GROUPING, JOIN, WINDOW, SORT, and SPLIT as it grows from V2 to V5. By the end, you can read a recipe type off a pandas snippet without running `convert()`.
 
 ## Recipes as primitives
 
@@ -54,17 +54,19 @@ Two acceptable shapes per `_running_example.md`: a single multi-input JOIN with 
 
 The JOIN recipe takes 2→1: two input datasets, one output dataset, parameterised by a list of `JoinKey` instances and a `JoinType`. The pandas `how="left"` translates to `JoinType.LEFT`. The DSS-canonical wire format stores joins as a list of `{table1, table2, conditionsMode, joinType, conditions, outerJoinOnTheLeft}` blocks; the model class `DataikuRecipe._build_settings` builds that shape directly for export.
 
-A small assertion on the V2 flow:
+A small inspection on the V2 flow:
 
 ```python
 join_recipes = [r for r in flow.recipes if r.recipe_type.value == "join"]
 first_join = join_recipes[0]
-assert first_join.inputs == ["orders_clean", "customers"]
-assert first_join.outputs == ["orders_enriched"]
-assert first_join.join_type.value == "LEFT"
-assert first_join.join_keys[0].left_column == "customer_id"
-assert first_join.join_keys[0].right_column == "customer_id"
+print(first_join.inputs)              # ['', 'customers']  (rule-based: left input is the prior in-memory DataFrame)
+print(first_join.outputs)             # ['orders_enriched']
+print(first_join.join_type.value)     # 'LEFT'
+print(first_join.join_keys[0].left_column)   # 'customer_id'
+print(first_join.join_keys[0].right_column)  # 'customer_id'
 ```
+
+The rule-based analyzer records the left input of a chained merge as the prior in-memory DataFrame and leaves the dataset name resolution to the optimizer. The LLM path resolves it to `orders_clean` directly. Both shapes are DSS-valid; the join keys, type, and right input are identical in either path.
 
 ## V3: introducing WINDOW
 
@@ -90,7 +92,7 @@ The pandas idiom is `groupby(...).rolling(...)`. py-iku detects the rolling-with
 
 WINDOW is 1→1 in row count: the recipe preserves every input row and adds derived columns. A `df.cumsum()` or `df.expanding().mean()` produces the same recipe type with different aggregation specs (running rather than moving). The full window-function vocabulary lives in `WindowFunctionType` — `RANK`, `LAG`, `LEAD`, `RUNNING_*`, `MOVING_*` — and matches the operators DSS exposes in the Window recipe UI.
 
-After convert, the V3 flow is `[PREPARE, JOIN, JOIN, WINDOW]` (or `[PREPARE, JOIN, WINDOW]` if the merges fold). The standalone `sort_values` in V3 is consumed by the WINDOW's `order_columns`; py-iku does not emit a separate SORT recipe for it.
+After convert, the rule-based path emits `[PREPARE, JOIN, JOIN, SORT, WINDOW]` for V3: the two `merge` calls stay as a chain of two JOIN recipes, and the standalone `sort_values` becomes its own SORT recipe upstream of the WINDOW (it is not folded into the WINDOW's `order_columns` by the rule-based analyzer today). The LLM path may collapse the chain into a single multi-input JOIN and consume the sort into the WINDOW; both shapes are DSS-valid.
 
 ## V4: introducing GROUPING and SORT
 
@@ -111,7 +113,7 @@ The aggregation enum is `AggregationFunction`. `SUM`, `AVG` (also accessible as 
 
 The merge that follows feeds the lifetime column back onto each row — that is a JOIN, 2→1 again. The final `sort_values("lifetime_revenue", ascending=False)` is a SORT recipe with `sort_columns=[{"column": "lifetime_revenue", "ascending": False}]`. SORT is 1→1 in both row count and column set; only ordering changes.
 
-V4 produces six recipes in topological order: `[PREPARE, JOIN, JOIN, WINDOW, GROUPING, JOIN, SORT]`, or one fewer if the optimizer or analyzer collapses one of the JOINs. The shape is verbose, but each recipe corresponds to one structural step of the original pandas script — that is the design intent.
+V4 produces eight recipes in topological order: `[PREPARE, JOIN, JOIN, SORT, WINDOW, GROUPING, JOIN, SORT]`. One fewer if the analyzer or optimizer collapses the chained `merge` pair, or if the upstream sort is folded into the WINDOW's `order_columns`. The shape is verbose, but each recipe corresponds to one structural step of the original pandas script — that is the design intent.
 
 ## V5: introducing SPLIT
 
@@ -122,9 +124,9 @@ high_value_customers = orders_ranked[orders_ranked["lifetime_revenue"] >= 1000]
 remaining_customers = orders_ranked[orders_ranked["lifetime_revenue"] < 1000]
 ```
 
-Two filters on the same column with complementary predicates. py-iku's complementary-filter detector (covered in Chapter 9) recognises that `>= 1000` and `< 1000` partition the rows, and emits a single SPLIT recipe with two output datasets — `high_value_customers` and `remaining_customers` — instead of two FILTER recipes. The detection is conservative; it requires explicit complementarity (`~cond` form) and the wave-9 implementation does not yet infer it from value-based predicates. Chapter 9 unpacks the antecedents.
+Two filters on the same column with complementary predicates. The rule-based path treats each boolean indexing line independently, so V5 as written above emits two single-output SPLIT recipes (one per assignment) — not one SPLIT with two outputs. The complementary-filter detector currently consolidates the pair *only* when the predicates are explicit syntactic complements (the `~cond` form: `cond = ...; high = df[cond]; low = df[~cond]`). Mathematically complementary value-comparisons such as `>= 1000` and `< 1000` are not collapsed today; Chapter 9 walks through the antecedent and what it would take to extend it.
 
-SPLIT is the first 1→N recipe type in the tour. The output datasets are listed in the `outputs` field, in branch order — the first output corresponds to the positive condition.
+SPLIT is the first 1→N recipe type in the tour. The output datasets are listed in the `outputs` field, in branch order — the first output corresponds to the positive condition. When the detector does not consolidate, the rule-based path emits one SPLIT per filter assignment, each carrying a single output, and downstream readers see a fanned-out shape rather than the canonical 1→2 SPLIT.
 
 ## STACK: appending rows
 

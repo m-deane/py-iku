@@ -12,7 +12,7 @@ A **dataset** is a named, schemaful collection of rows. In DSS it is the unit of
 
 A **recipe** is a transformation node. It takes one or more input datasets, applies a single declarative transformation, and writes one or more output datasets. A JOIN takes two inputs and produces one output; a SPLIT takes one input and produces two; a PREPARE takes one input and produces one. Recipes are the unit DSS schedules: each recipe is its own job, with its own retry, its own engine binding, and its own logs (see [dataiku-api-client-python source](https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py) for the recipe-creator class hierarchy and [Dataiku docs: Recipes](https://doc.dataiku.com/dss/latest/recipes/index.html) for the user-facing concept).
 
-A **processor** is a step *within* a single PREPARE recipe. PREPARE is the only recipe type that holds a processor list; the other 36 recipe types are configured by their `RecipeSettings` payload, not by a sequence of processors. py-iku's `ProcessorType` enum enumerates 122 processor types — column renamers, filters, formulas, value fillers, type casters, and so on (see [Dataiku docs: Prepare recipe](https://doc.dataiku.com/dss/latest/preparation/index.html) for the user-facing catalog). A PREPARE recipe with five processors is one DSS job that runs five operations in sequence inside a single execution context.
+A **processor** is a step *within* a single PREPARE recipe. PREPARE is the only recipe type that holds a processor list; the other 36 recipe types are configured by their `RecipeSettings` payload, not by a sequence of processors. py-iku's `ProcessorType` enum enumerates 100 canonical processor types — column renamers, filters, formulas, value fillers, type casters, and so on (see [Dataiku docs: Prepare recipe](https://doc.dataiku.com/dss/latest/preparation/index.html) for the user-facing catalog). A PREPARE recipe with five processors is one DSS job that runs five operations in sequence inside a single execution context.
 
 The distinction between recipes and processors is the central translation problem. Most pandas transforms are *element-wise*: rename, fillna, type cast, round, abs, clip, simple equality filter. These all become processors inside a single PREPARE recipe. A few pandas transforms are *structural*: groupby, merge, concat, sort, top-n, window. These become their own recipe types because their input and output arities differ from 1→1 (a JOIN is 2→1; a SPLIT is 1→2; a STACK is N→1) and because DSS schedules each one as a separate job.
 
@@ -45,11 +45,14 @@ print(len(flow.datasets), len(flow.recipes))
 print([d.name for d in flow.input_datasets])
 # ['orders']
 
+print([d.name for d in flow.intermediate_datasets])
+# ['orders_prepared_prepared']
+
 print([d.name for d in flow.output_datasets])
-# ['orders_clean']
+# []
 ```
 
-`flow.input_datasets`, `flow.output_datasets`, and `flow.intermediate_datasets` are properties that filter `flow.datasets` by `dataset_type`. They are not separate lists — mutating `flow.datasets` reflects in all three.
+`flow.input_datasets`, `flow.output_datasets`, and `flow.intermediate_datasets` are properties that filter `flow.datasets` by `dataset_type`. They are not separate lists — mutating `flow.datasets` reflects in all three. The rule-based analyzer auto-names the produced dataset `orders_prepared_prepared` (the doubled `_prepared` suffix is a known artifact of the current naming pass) and classifies it as an intermediate because the script does not write it back through a recognised sink; the LLM path in Chapter 7 handles output-dataset naming differently.
 
 The flow also exposes a `get_dataset(name)` lookup and a `get_recipe(name)` lookup, plus `get_recipes_by_type(...)` for filtering by `RecipeType`:
 
@@ -77,14 +80,14 @@ graph = flow.graph
 # Topological sort: a flat list of node names, each before its successors
 order = graph.topological_sort()
 print(order)
-# ['orders', 'prepare_recipe_1', 'orders_clean']
+# ['orders', 'recipe:prepare_merged_prepare_1', 'orders_prepared_prepared']
 
 # Cycle detection
 print(graph.detect_cycles())
 # []
 ```
 
-The topological sort uses Kahn's algorithm: it walks nodes in order of incoming-edge count, removing edges as it goes. The result is a flat list of node names that respects every edge in the DAG; for V1 with one recipe, the order is input → recipe → output. For V5 it is seven names long, but it is still flat, and the order is what every downstream tool that needs to iterate the flow uses.
+The topological sort uses Kahn's algorithm: it walks nodes in order of incoming-edge count, removing edges as it goes. The result is a flat list of node names that respects every edge in the DAG; for V1 with one recipe, the order is input dataset → recipe node (recipe nodes are prefixed `recipe:` in the topological output) → produced dataset. For V5 it is seven names long, but it is still flat, and the order is what every downstream tool that needs to iterate the flow uses.
 
 Cycle detection runs depth-first from every node. For a flow produced by `convert(...)` the result is always empty — the rule-based generator emits a DAG by construction — but cycle detection is still useful when constructing flows by hand or when round-tripping through formats that allow malformed input.
 
@@ -107,16 +110,16 @@ A `DataikuRecipe` is the per-node configuration. It carries:
 recipe = flow.recipes[0]
 
 print(recipe.name)
-# 'prepare_recipe_1'
+# 'prepare_merged_prepare_1'
 
 print(recipe.recipe_type, recipe.recipe_type.value)
 # RecipeType.PREPARE prepare
 
 print(recipe.inputs, recipe.outputs)
-# ['orders'] ['orders_clean']
+# ['orders'] ['orders_prepared_prepared']
 
 print(len(recipe.steps))
-# 3
+# 2
 ```
 
 The `settings` attribute is the typed payload that DSS reads to configure the recipe at runtime. For PREPARE the settings are minimal — most of the configuration is in the steps list — but for JOIN, GROUPING, WINDOW, SORT, SPLIT, TOP_N, STACK, and DISTINCT, the settings are where the join keys, partition columns, sort directions, and split conditions live. Chapter 6 walks each of those settings types; for now, the contract to remember is: every recipe has a settings object, and the settings object is typed.
@@ -127,7 +130,7 @@ The `settings` attribute is the typed payload that DSS reads to configure the re
 
 A `PrepareStep` is the configuration of a single processor within a PREPARE recipe. It carries:
 
-- `processor_type` — a `ProcessorType` enum value (one of 122).
+- `processor_type` — a `ProcessorType` enum value (one of 100 canonical processor types).
 - `params` — a dict of processor-specific parameters.
 - `name` — an optional human-readable label.
 - `disabled` — a boolean flag; DSS skips disabled steps at runtime.
@@ -135,10 +138,11 @@ A `PrepareStep` is the configuration of a single processor within a PREPARE reci
 ```python
 for step in recipe.steps:
     print(step.processor_type.value, step.params)
-# FillEmptyWithValue {'columns': ['discount_pct'], 'value': '0.0'}
-# CreateColumnWithGREL {'column': 'revenue', 'expression': 'numval(quantity) * numval(unit_price) * (1 - numval(discount_pct))'}
+# FillEmptyWithValue {'column': 'discount_pct', 'value': '0.0'}
 # ColumnRenamer {'renamings': [{'from': 'order_date', 'to': 'ordered_at'}]}
 ```
+
+The current rule-based analyzer emits two steps for V1 — the `discount_pct` fill and the `order_date` rename — and does not synthesise a `CreateColumnWithGREL` step for the `revenue` arithmetic; arithmetic-derived columns are handled by the LLM path covered in Chapter 7. The shape that matters for this chapter is the typed-record-per-step structure, not the exact step count.
 
 The exact structure of `params` is processor-specific. The `ProcessorCatalog` class (covered in Chapter 5) is the source-of-truth for what each processor accepts. For now, the shape to remember is: each step is a small typed record, and the recipe's behavior is the ordered composition of those records.
 
@@ -151,11 +155,11 @@ The order matters. A `ColumnRenamer` placed before a `FillEmptyWithValue` refere
 ```python
 for ds in flow.datasets:
     print(ds.name, ds.dataset_type.value, ds.connection_type.value)
-# orders input filesystem
-# orders_clean output filesystem
+# orders input Filesystem
+# orders_prepared_prepared intermediate Filesystem
 ```
 
-`dataset_type` is a three-valued enum (`INPUT`, `INTERMEDIATE`, `OUTPUT`). `connection_type` reflects how the dataset is materialised; for V1 it defaults to `filesystem` because the input came from `pd.read_csv(...)`. DSS supports many connection types — SQL databases, S3, HDFS, Azure Blob, and so on — and Chapter 11 covers how `Py2DataikuConfig` controls the default.
+`dataset_type` is a three-valued enum (`INPUT`, `INTERMEDIATE`, `OUTPUT`). `connection_type` reflects how the dataset is materialised; for V1 it defaults to `Filesystem` because the input came from `pd.read_csv(...)`. DSS supports many connection types — SQL databases, S3, HDFS, Azure Blob, and so on — and Chapter 11 covers how `Py2DataikuConfig` controls the default.
 
 The optional column schema lives at `ds.columns` as a list of `ColumnSchema` records. The rule-based analyzer fills the schema where it can infer types from the script (the `discount_pct` fillna pins it to a numeric column, for example) and leaves it empty otherwise. Schema enrichment is not a focus of py-iku — DSS will infer schemas from the input data at runtime — but the field exists so that hand-built or LLM-built flows can carry full column-level metadata.
 

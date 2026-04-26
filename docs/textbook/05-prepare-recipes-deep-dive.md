@@ -1,8 +1,8 @@
-# Chapter 5 — Prepare Recipes Deep Dive
+# Chapter 5 — PREPARE Recipes Deep Dive
 
 ## What you'll learn
 
-How a single PREPARE recipe composes many small transforms into one ordered pipeline of `PrepareStep` instances; why step ordering changes output schemas; how the optimizer flushes the prepare-step buffer when a structural recipe interrupts the chain. By the end, the V1 running example will read line-by-line as a sequence of processors with named parameters.
+This chapter explains how a single PREPARE recipe composes many small transforms into one ordered pipeline of `PrepareStep` instances, why step ordering changes output schemas, and how the optimizer flushes the prepare-step buffer when a structural recipe interrupts the chain. By the end, the V1 running example will read line-by-line as a sequence of processors with named parameters.
 
 ## The shape of a PREPARE recipe
 
@@ -23,7 +23,7 @@ print(step.to_dict())
 
 The `metaType` and string-valued `type` come straight from the DSS wire format used by the official client (see [dataiku-api-client-python: `PrepareRecipe`](https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py)). py-iku's job is to assemble these dictionaries; DSS executes them.
 
-The 122 processor types are enumerated as `ProcessorType` values. A handful (`FillEmptyWithValue`, `ColumnRenamer`, `ColumnsSelector`, `Formula`, `FilterOnValue`, `FilterOnNumericRange`, `FilterOnFormula`, `RemoveDuplicates`, `RemoveRowsOnEmpty`, `StringTransformer`, `NumericalTransformer`, `TypeSetter`, `DateParser`) cover the bulk of pandas idioms; the rest handle specialized text, geography, JSON, and conditional-logic cases. The full list is documented at [Dataiku docs: Processors reference](https://doc.dataiku.com/dss/latest/preparation/processors/index.html).
+The 100 canonical processor types are enumerated as `ProcessorType` values (122 names total once phantom aliases are counted, all collapsing to one of the 100 canonical members). A handful (`FillEmptyWithValue`, `ColumnRenamer`, `ColumnsSelector`, `Formula`, `FilterOnValue`, `FilterOnNumericRange`, `FilterOnFormula`, `RemoveDuplicates`, `RemoveRowsOnEmpty`, `StringTransformer`, `NumericalTransformer`, `TypeSetter`, `DateParser`) cover the bulk of pandas idioms; the rest handle specialized text, geography, JSON, and conditional-logic cases. The full list is documented at [Dataiku docs: Processors reference](https://doc.dataiku.com/dss/latest/preparation/processors/index.html).
 
 ## Why one PREPARE, not N
 
@@ -45,10 +45,10 @@ orders_clean = orders.rename(columns={"order_date": "ordered_at"})
 flow = convert(source)
 assert len(flow.recipes) == 1
 assert flow.recipes[0].recipe_type.value == "prepare"
-print(len(flow.recipes[0].steps))  # 3
+print(len(flow.recipes[0].steps))  # 2
 ```
 
-One recipe, three steps. The rule that produces this shape: a step is element-wise (touches columns within a row, preserves row count and ordering) versus structural (groups, joins, sorts, splits, or reshapes the dataset). Element-wise transforms become processors inside an active PREPARE buffer; structural transforms flush the buffer and emit their own recipe nodes.
+One recipe, two steps — a `FillEmptyWithValue` for the `fillna(0.0)` and a `ColumnRenamer` for the rename. The current rule-based analyzer does not emit a separate GREL formula step for the arithmetic-derived `revenue` column, so the count is two rather than three; if a future revision adds GREL emission for column-arithmetic assignments, the count will rise to three without changing the recipe shape. The rule that produces this shape: a step is element-wise (touches columns within a row, preserves row count and ordering) versus structural (groups, joins, sorts, splits, or reshapes the dataset). Element-wise transforms become processors inside an active PREPARE buffer; structural transforms flush the buffer and emit their own recipe nodes.
 
 The economic reason for collapsing into one recipe: in DSS, every recipe is a unit of scheduling, partitioning, and cache invalidation. A flow with three sequential PREPARE recipes has three intermediate datasets, three partition spaces, and three places a downstream consumer might read from. Collapsing them produces a single intermediate dataset and a single execution unit. The DSS scheduler does not pay for the steps individually — it pays for the recipe.
 
@@ -104,10 +104,10 @@ agg = agg.rename(columns={"revenue": "total_revenue"})
 """
 flow = convert(source)
 types = [r.recipe_type.value for r in flow.recipes]
-print(types)  # ['prepare', 'grouping', 'prepare']
+print(types)  # ['prepare', 'grouping']
 ```
 
-Two PREPARE recipes, separated by a GROUPING. They cannot be merged into one PREPARE because the GROUPING changes the row dimensionality between them; the second PREPARE operates on a different dataset shape than the first.
+The current rule-based analyzer folds the post-GROUPING `rename(...)` into the GROUPING recipe's output schema rather than emitting a trailing PREPARE; the principle still holds in general — a PREPARE buffer flushes whenever a structural recipe interrupts the chain, and any element-wise steps after the structural recipe would land in a fresh PREPARE — but for this particular pattern the second PREPARE is collapsed away. A snippet that mixed several element-wise steps after the GROUPING (rather than a single rename of an aggregation output) would surface a `[prepare, grouping, prepare]` shape.
 
 ## Walking V1 of the running example
 
@@ -121,11 +121,10 @@ orders = orders.rename(columns={"order_date": "ordered_at"})
 orders_clean = orders
 ```
 
-becomes one PREPARE recipe with three steps, in this order:
+becomes one PREPARE recipe with two steps, in this order (the current rule-based analyzer does not emit a separate GREL formula step for arithmetic-derived columns; the `revenue = ...` line is recorded but does not surface as its own processor, so the count is two rather than three):
 
-1. `FILL_EMPTY_WITH_VALUE` on `discount_pct` with value `0.0`. The `fillna(0.0)` translates directly. Params: `{"column": "discount_pct", "value": "0.0"}`.
-2. A column-creation step for `revenue = quantity * unit_price * (1 - discount_pct)`. The expression is multiplicative across columns and is emitted as a formula step (typically `CREATE_COLUMN_WITH_GREL` or `FORMULA` depending on the analyzer's translation path). Params include the new column name and the GREL expression.
-3. `COLUMN_RENAMER` mapping `order_date` to `ordered_at`. Params: `{"renamings": [{"from": "order_date", "to": "ordered_at"}]}`.
+1. `FillEmptyWithValue` on `discount_pct` with value `0.0`. The `fillna(0.0)` translates directly. Params: `{"column": "discount_pct", "value": "0.0"}`.
+2. `ColumnRenamer` mapping `order_date` to `ordered_at`. Params: `{"renamings": [{"from": "order_date", "to": "ordered_at"}]}`.
 
 Run it end-to-end:
 
@@ -147,10 +146,10 @@ assert recipe.inputs == ["orders"]
 assert recipe.outputs == ["orders_clean"]
 processor_types = [s.processor_type.value for s in recipe.steps]
 print(processor_types)
-# ['FillEmptyWithValue', 'CreateColumnWithGREL' (or 'Formula'), 'ColumnRenamer']
+# ['FillEmptyWithValue', 'ColumnRenamer']
 ```
 
-The order in `processor_types` is the order DSS will execute them. If the optimizer reorders them, the rename moves to the end (where it already is), the fill stays before the formula (since the formula reads `discount_pct` after the fill), and nothing else changes.
+The order in `processor_types` is the order DSS will execute them. The optimizer would move any rename to the end of the buffer (where it already is) and any column-deletion or type-setter to the front; with two steps and the rename last, no reordering is needed.
 
 ## Inspecting the params dict
 
@@ -175,22 +174,24 @@ print(step.params)
 # {'columns': ['email'], 'keep': False, 'mode': 'remove'}
 ```
 
-Without `keep: False` the processor defaults to KEEP and silently inverts intent — a real footgun documented in the class docstring. py-iku's factory methods exist precisely so users do not have to remember these defaults.
+Without `keep: False` the processor defaults to KEEP and silently inverts intent — a documented default-inversion behaviour noted in the class docstring. py-iku's factory methods exist precisely so users do not have to remember these defaults.
 
 ## Discovering processors at runtime
 
-The 122 processor types are enumerated in `ProcessorType`, but a richer catalog with metadata lives in `ProcessorCatalog`:
+The 100 canonical processor types are enumerated in `ProcessorType`, but a richer catalog with metadata lives in `ProcessorCatalog`:
 
 ```python
 from py2dataiku.mappings.processor_catalog import ProcessorCatalog
 
 catalog = ProcessorCatalog()
 all_processors = catalog.list_processors()
-print(len(all_processors))  # 122
+print(len(all_processors))  # 101
 
-renamer = catalog.get_processor("COLUMN_RENAMER")
+renamer = catalog.get_processor("ColumnRenamer")
 print(renamer)  # canonical entry: type, params schema, category
 ```
+
+The catalog is keyed by PascalCase processor names (matching the DSS wire-format `type` field), not the upper-snake enum names. `catalog.get_processor("COLUMN_RENAMER")` returns `None`; `catalog.get_processor("ColumnRenamer")` returns the entry.
 
 The catalog is instance-based, not a flat dict, and is the right place to look up which params a processor expects. The enum is the right place to look up which processors exist. Use both in tandem: enum for type-safe references in code, catalog for runtime introspection or auto-generation of documentation.
 
@@ -208,7 +209,7 @@ The merge is conservative on purpose. Merging across a fan-out can change semant
 PREPARE is the first recipe type the textbook treats as a composite object. A recipe is the unit DSS schedules; a step is the unit DSS composes inside the recipe's runtime. Two consequences follow:
 
 - The granularity of orchestration is the recipe, not the step. Adding a fourth fillna to a 3-step PREPARE does not introduce a new scheduling unit; adding a groupby does.
-- The order of steps inside a PREPARE is part of the recipe's identity. Two PREPARE recipes with the same steps in different orders are not equal — they describe different transformations. Round-trip serialization preserves the order, and the optimizer is the only mechanism allowed to reorder steps, under the four-bucket rule above.
+- The order of steps inside a PREPARE is part of the recipe's identity. Two PREPARE recipes with the same steps in different orders are not equal — they describe different transformations. Round-trip serialization preserves the order, and the optimizer is the only mechanism allowed to reorder steps, under the five-bucket rule above.
 
 A reader who internalizes the buffer-and-flush model can predict the recipe count of any pandas script before running `convert()`: count the structural transformations, add one for each leading or trailing run of element-wise steps, and that is the recipe count of the post-optimization flow.
 

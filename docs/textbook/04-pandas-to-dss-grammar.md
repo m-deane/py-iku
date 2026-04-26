@@ -60,26 +60,28 @@ source = open("running_example_v2.py").read()
 flow = convert(source)
 
 print(len(flow.recipes))
-# 2
+# 3
 
 print([r.recipe_type.value for r in flow.recipes])
-# ['prepare', 'join']
+# ['prepare', 'join', 'join']
 
 print([d.name for d in flow.datasets])
-# ['orders', 'customers', 'products', 'orders_clean', 'orders_enriched']
+# ['orders', 'orders_prepared_prepared', 'customers', 'products', '', 'orders_enriched']
 ```
 
-V2 is two recipes — one PREPARE and one JOIN — even though the script has two `merge(...)` calls. That is because the optimizer recognises that the two merges produce a single multi-input JOIN recipe with two join clauses, one for `customers` on `customer_id` and one for `products` on `product_id`. This is the optimizer pass's signature behaviour for join chains; the running-example contract documents both shapes (two-recipe and three-recipe) as acceptable, but the default and the post-optimization shape is two recipes.
+V2 is three recipes — one PREPARE and two JOINs — even after the default optimizer pass. The current optimizer collapses adjacent PREPAREs but does not (yet) fuse the two JOINs into a single multi-clause JOIN; that is a planned optimization rather than the present behaviour. The running-example contract documents both shapes (two-recipe and three-recipe) as acceptable, and what `convert()` returns today is the three-recipe shape.
 
-If you want the unmerged shape — useful for debugging or for building a flow where each JOIN runs on a different engine — pass `optimize=False`:
+If you want the fully unoptimized shape — useful for debugging or for building a flow where each PREPARE/JOIN runs on a different engine — pass `optimize=False`:
 
 ```python
 unoptimized = convert(source, optimize=False)
+print(len(unoptimized.recipes))
+# 4
 print([r.recipe_type.value for r in unoptimized.recipes])
-# ['prepare', 'join', 'join']
+# ['prepare', 'prepare', 'join', 'join']
 ```
 
-The unoptimized shape has three recipes: one PREPARE for the element-wise operations on `orders`, and two JOINs for the two merges. The optimizer pass merges the two adjacent JOINs into one because they share the same upstream dataset and produce a chain that DSS can express as a single multi-clause JOIN recipe. Chapter 10 walks the optimizer's full set of merging rules.
+The unoptimized shape has four recipes: two PREPAREs (the analyzer initially emits one per element-wise run before merging) and two JOINs for the two merges. The optimizer pass collapses the two adjacent PREPAREs into one because they share the same single edge with no fan-out; that is the merging rule that lifts the count from four to three. Chapter 10 walks the optimizer's full set of merging rules.
 
 ## The reference table
 
@@ -111,18 +113,18 @@ The table below is the canonical mapping the rule-based analyzer applies. The so
 | `df.rename(columns={...})`                  | `ColumnRenamer`         |
 | `df.fillna({...})` / `df["c"].fillna(v)`    | `FillEmptyWithValue`    |
 | `df.dropna(subset=...)`                     | `RemoveRowsOnEmpty`     |
-| `df.drop(columns=...)`                      | `ColumnsRemover`        |
-| `df.astype({...})`                          | `ColumnTypeChanger`     |
+| `df.drop(columns=...)`                      | `ColumnsSelector` (use `keep=False`) |
+| `df.astype({...})`                          | `TypeSetter`            |
 | `df["c"] = expr` (arithmetic)               | `CreateColumnWithGREL`  |
 | `df["c"].str.lower()` / `.upper()` / etc.   | `StringTransformer`     |
 | `df["c"].str.strip()` / `.replace(...)`     | `StringTransformer`     |
 | `df["c"].str.contains(...)`                 | `FilterOnRegex` (predicate) |
 | `df["c"].round(n)` / `.abs()` / `.clip(...)`| `NumericalTransformer`  |
 | `df["c"] == v` (equality predicate)         | `FilterOnValue`         |
-| `df["c"] > v` / `< v` (numeric range)       | `FilterOnNumericalRange`|
+| `df["c"] > v` / `< v` (numeric range)       | `FilterOnNumericRange`|
 | `df["c"].isin([...])`                       | `FilterOnValue` (multi) |
 | `pd.to_datetime(df["c"])`                   | `DateParser`            |
-| `df["c"].dt.year` / `.dt.month`             | `ExtractDate`           |
+| `df["c"].dt.year` / `.dt.month`             | `DateComponentExtractor`|
 
 ### The non-obvious cases
 
@@ -148,6 +150,8 @@ The same pandas operation can produce different flow shapes depending on what su
 df_a = df[df["country"] == "US"]
 df_a["normalized_country"] = "USA"
 ```
+
+Out-of-running-example schema (`country`, `normalized_country`) is used here because the running-example `customers` table does not carry a country column; the principle is unaffected.
 
 ```python
 # Complementary filter pair — structural, becomes a SPLIT recipe
@@ -186,7 +190,7 @@ The grammar this chapter describes applies to *both* paths. The LLM is given the
 
 Three special cases get dedicated chapters because they are too involved to fit here.
 
-- **Filter predicates** (Chapter 8). The line `df[df["c"] == "x"]` becomes one of `FilterOnValue`, `FilterOnNumericalRange`, `FilterOnRegex`, `FilterOnEmpty`, or several others depending on the predicate's operator and operand types. The chapter walks the routing logic.
+- **Filter predicates** (Chapter 8). The line `df[df["c"] == "x"]` becomes one of `FilterOnValue`, `FilterOnNumericRange`, `FilterOnRegex`, `FilterOnEmpty`, or several others depending on the predicate's operator and operand types. The chapter walks the routing logic.
 - **Complementary splits** (Chapter 9). The detection that turns two filters on `>= 1000` and `< 1000` into a single SPLIT recipe is a small theorem with a specific antecedent; the chapter states the theorem and its limits.
 - **Optimizer merging** (Chapter 10). The pass that turns three sequential PREPAREs into one PREPARE-with-three-steps, and that turns two adjacent JOINs into one multi-clause JOIN, runs after the analyzer and is DAG-aware: it does not merge across fan-outs because doing so would change semantics.
 

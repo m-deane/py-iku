@@ -58,7 +58,7 @@ A single step inside a PREPARE recipe. Each step has a `processor_type` and a se
 
 ### Processor
 
-A unit of element-wise transformation that runs inside a PREPARE recipe, as opposed to a recipe, which is a top-level flow node. DSS 14 defines 122 processor types; py-iku exposes them through the `ProcessorType` enum. The recipe-vs-processor distinction is the central translation choice the library makes; Chapter 3 explains it.
+A unit of element-wise transformation that runs inside a PREPARE recipe, as opposed to a recipe, which is a top-level flow node. DSS 14 defines 100 canonical processor types; py-iku exposes them through the `ProcessorType` enum. The recipe-vs-processor distinction is the central translation choice the library makes; Chapter 3 explains it.
 
 ### Recipe
 
@@ -66,11 +66,11 @@ A top-level node in a DSS flow that consumes one or more input datasets and prod
 
 ### RecipeType
 
-The enum in `models/dataiku_recipe.py` whose values are the names of recipe categories that DSS supports. The values used most often in the book are `PREPARE`, `GROUPING`, `JOIN`, `SORT`, `TOP_N`, `WINDOW`, `SPLIT`, `STACK`, `DISTINCT`, `FILTER`, `SAMPLING`, and `PYTHON`. The enum is the canonical authority — chapters always use enum values, never raw strings.
+The enum in `models/dataiku_recipe.py` whose values are the names of recipe categories that DSS supports. The values used most often in the book are `PREPARE`, `GROUPING`, `JOIN`, `SORT`, `TOP_N`, `WINDOW`, `SPLIT`, `STACK`, `DISTINCT`, `SAMPLING`, and `PYTHON`. There are 37 `RecipeType` members in total; note that `FILTER` is **not** one of them — filtering is either a processor inside a `PREPARE` recipe (e.g. `FilterOnValue`, `FilterOnNumericRange`, `FilterOnFormula`) or, for complementary predicates, a multi-output `SPLIT` recipe. The enum is the canonical authority — chapters always use enum values, never raw strings.
 
 ### ProcessorType
 
-The enum in `models/prepare_step.py` whose values are the 122 processor categories that DSS 14 supports. High-frequency entries are `COLUMN_RENAMER`, `COLUMN_REMOVER`, `FILL_EMPTY_WITH_VALUE`, `FILTER_ON_VALUE`, `FILTER_ON_NUMERICAL_RANGE`, `NUMERIC_TRANSFORM`, `STRING_TRANSFORMER`, `FORMULA`, and `FOLD_MULTIPLE_COLUMNS`.
+The enum in `models/prepare_step.py` whose values are the 100 canonical processor categories that DSS 14 supports (122 names appear in `__members__` once phantom aliases are counted, but they collapse to the 100 canonical members). High-frequency entries are `COLUMN_RENAMER`, `COLUMN_REMOVER`, `FILL_EMPTY_WITH_VALUE`, `FILTER_ON_VALUE`, `FILTER_ON_NUMERIC_RANGE`, `NUMERIC_TRANSFORM`, `STRING_TRANSFORMER`, `FORMULA`, and `FOLD_MULTIPLE_COLUMNS`.
 
 ### Sampling
 
@@ -90,7 +90,7 @@ A unary recipe that produces an output dataset with rows ordered by one or more 
 
 ### Split
 
-A unary recipe with multiple output datasets, produced when complementary filter predicates are detected on the same source dataframe. py-iku's complementary-filter detection turns `high = df[df["x"] > 10]; low = df[df["x"] <= 10]` into a single `SPLIT` recipe rather than two `FILTER` recipes. Chapter 9 covers the detection logic.
+A unary recipe with multiple output datasets, produced when complementary filter predicates are detected on the same source dataframe. py-iku's complementary-filter detection turns `high = df[df["x"] > 10]; low = df[df["x"] <= 10]` into a single `SPLIT` recipe rather than two separate filter PREPARE recipes (DSS has no `RecipeType.FILTER`). Chapter 9 covers the detection logic.
 
 ### Stack
 

@@ -46,7 +46,7 @@ Three concrete examples make this concrete.
 
 First, three sequential `df.assign(...)` calls and a single `df.assign(...)` with three keyword arguments produce different scripts and produce *the same* PREPARE recipe with three steps. The translator has to recognise that these are equivalent.
 
-Second, a `df[df["x"] == "a"]` filter looks identical at the AST level to a `df[df["x"] > 100]` filter, but the first becomes a `FILTER_ON_VALUE` processor and the second becomes a `FILTER_ON_NUMERICAL_RANGE`. DSS uses distinct processor types for distinct operator classes (see [Dataiku docs: Visual recipes](https://doc.dataiku.com/dss/latest/preparation/index.html)). The translator has to inspect the operator and the operand types, not only the syntactic shape.
+Second, a `df[df["x"] == "a"]` filter looks identical at the AST level to a `df[df["x"] > 100]` filter, but the first becomes a `FILTER_ON_VALUE` processor and the second becomes a `FILTER_ON_NUMERIC_RANGE`. DSS uses distinct processor types for distinct operator classes (see [Dataiku docs: Visual recipes](https://doc.dataiku.com/dss/latest/preparation/index.html)). The translator has to inspect the operator and the operand types, not only the syntactic shape.
 
 Third, a script that filters one dataframe twice on complementary predicates (`df[col >= 1000]` and `df[col < 1000]`) is semantically a SPLIT — one input, two outputs — but the script itself looks like two independent filters. A direct line-by-line translation produces two FILTER recipes; the better translation recognises the complementarity and produces one SPLIT recipe with two output branches.
 
@@ -69,15 +69,17 @@ This narrow scope is intentional. Anything py-iku claims to do, it does on the c
 
 py-iku ships with two ways to turn the input script into a `DataikuFlow`: a rule-based path and an LLM-based path. They share the output model — both produce `DataikuFlow` — but they reach it differently, and both exist for a reason.
 
-The rule-based path is an AST walker. It parses the script with Python's `ast` module, classifies each statement against a fixed pattern table, and emits the corresponding recipes. It is deterministic by construction (the same input produces the same output, byte for byte), it is fast, and it has no external dependencies. It is also limited: it can only recognise patterns it has been programmed to recognise. A `df.merge(...)` call is in the pattern table; an idiomatic but unusual `pd.concat([df.query("a==b"), other], axis=0).pipe(custom_fn)` may not be. When the rule-based path encounters something it cannot classify, it either falls back to a `PYTHON` recipe (which preserves correctness but loses lineage) or raises `InvalidPythonCodeError` (which preserves correctness more aggressively, at the cost of forcing the user to fix the input).
+The rule-based path is an AST walker. It parses the script with Python's `ast` module, classifies each statement against a fixed pattern table, and emits the corresponding recipes. It is deterministic by construction (the same input produces the same output, byte for byte), it is fast, and it has no external dependencies.
+
+It is also limited: it can only recognise patterns it has been programmed to recognise. A `df.merge(...)` call is in the pattern table; an idiomatic but unusual `pd.concat([df.query("a==b"), other], axis=0).pipe(custom_fn)` may not be. When the rule-based path encounters something it cannot classify, it either falls back to a `PYTHON` recipe (which preserves correctness but loses lineage) or raises `InvalidPythonCodeError` (which preserves correctness more aggressively, at the cost of forcing the user to fix the input).
 
 The LLM-based path uses an Anthropic or OpenAI model behind a single `LLMCodeAnalyzer` interface. The model's job is to read the script, identify each transformation, and emit a structured analysis result that the same flow generator turns into recipes. With temperature pinned to zero and a fixed system prompt, this path is also deterministic in the sense that matters for CI: the same script and the same prompt produce the same output across runs. It costs tokens, it requires an API key, and it will not always agree with the rule-based path on borderline cases — but it handles ambiguous code, conditional logic, and non-standard idioms that the rule-based path misclassifies. Chapter 7 covers the LLM path in detail.
 
-The library defaults to LLM mode when an API key is configured and falls back to rule-based otherwise. A reader who only ever wants the rule-based path can skip Chapter 7 entirely; the rest of the book exercises both paths through the same `convert(...)` and `convert_with_llm(...)` entry points.
+The two paths are exposed as separate, explicit entry points: `convert(...)` always runs the rule-based AST analyzer, and `convert_with_llm(...)` always runs the LLM analyzer. There is no automatic mode-switching, no `llm=` keyword on `convert(...)`, and no environment-variable trigger that promotes one to the other. A reader who only ever wants the rule-based path can skip Chapter 7 entirely and call `convert(...)`; a reader who wants the LLM path calls `convert_with_llm(...)` and supplies an API key.
 
 ## A teaser
 
-The smallest interesting input the rest of the book uses is V1 of the running example — a five-line pandas script that fills a missing column, derives a revenue column, and renames a date column. The output is a single PREPARE recipe with three processor steps. Here is the input:
+The smallest interesting input the rest of the book uses is V1 of the running example — a five-line pandas script that fills a missing column, derives a revenue column, and renames a date column. The output, on the rule-based path, is a single PREPARE recipe with two processor steps (the `revenue` arithmetic is currently handled only on the LLM path covered in Chapter 7). Here is the input:
 
 ```python
 import pandas as pd

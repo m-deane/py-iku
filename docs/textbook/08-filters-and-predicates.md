@@ -2,7 +2,7 @@
 
 ## What you'll learn
 
-Why DSS provides three distinct processor types — `FilterOnValue`, `FilterOnNumericRange`, and `FilterOnFormula` — instead of one general-purpose filter, and how py-iku routes each pandas predicate to the correct one based on its operator class. The chapter unpacks the `matchingMode` field on `FilterOnValue` and the GREL escape hatch in `FilterOnFormula` that compound predicates compile to.
+This chapter explains why DSS provides three distinct processor types — `FilterOnValue`, `FilterOnNumericRange`, and `FilterOnFormula` — instead of one general-purpose filter, and how py-iku routes each pandas predicate class to the correct one. It unpacks the `matchingMode` field on `FilterOnValue` and the GREL escape hatch in `FilterOnFormula` that compound predicates compile to. A practical caveat up front: the rule-based analyzer today emits a SPLIT recipe (not a PREPARE+`FilterOn*` step) for any *standalone* boolean-indexing assignment. The processor-level dispatch in this chapter governs how a predicate is encoded *once you are inside* a PREPARE recipe — for example, when a custom analyzer plugin chooses the processor route, when the LLM path emits one, or when a future revision routes single-output filters back to PREPARE. The mapping itself is the load-bearing knowledge; the routing layer that decides between SPLIT and PREPARE is covered in the closing section.
 
 ## The framing
 
@@ -29,82 +29,61 @@ The predicate-to-processor routing lives in `pattern_matcher.match_filter`. The 
 - `<`, `<=` (`lt`, `lte`) → `FILTER_ON_NUMERIC_RANGE` with `max` set.
 - `formula` / `expression` / `grel` → `FILTER_ON_FORMULA` with the GREL string.
 
-The dispatch table is exhaustive over single-clause predicates. Compound predicates (AND, OR, negation of compounds) take the formula branch. The wave-7 audit established the mapping by checking each `matchingMode` value against the official client's source — earlier versions of the library had emitted `GREATER_THAN`, `LESS_THAN`, and `IN` strings on `FilterOnValue`, which DSS rejects on import.
+The dispatch table is exhaustive over single-clause predicates. Compound predicates (AND, OR, negation of compounds) take the formula branch. An earlier audit established the mapping by checking each `matchingMode` value against the official client's source — previous versions of the library had emitted `GREATER_THAN`, `LESS_THAN`, and `IN` strings on `FilterOnValue`, which DSS rejects on import.
 
 ## Four predicates, four processors
 
-The cleanest way to internalise the dispatch is to walk four predicates side by side.
+The cleanest way to internalise the dispatch is to walk four predicates side by side, each constructed as a step inside a PREPARE recipe via the factory helpers. The factories are the canonical way to *build* a `FilterOn*` step regardless of whether the rule-based analyzer chose to emit one for a particular pandas snippet.
 
 ### Predicate 1: equality on a string column
 
 ```python
-import pandas as pd
-from py2dataiku import convert
+from py2dataiku.models.prepare_step import PrepareStep
 
-source = """
-import pandas as pd
-customers = pd.read_csv("customers.csv")
-gold_customers = customers[customers["tier"] == "gold"]
-"""
-flow = convert(source)
-recipe = flow.recipes[0]
-step = recipe.steps[0]
+step = PrepareStep.filter_on_value(column="tier", values=["gold"], keep=True)
 print(step.processor_type.value)       # 'FilterOnValue'
 print(step.params["matchingMode"])     # 'FULL_STRING'
 print(step.params["values"])           # ['gold']
 print(step.params["keep"])             # True
 ```
 
-The operator is `==`, the operand is a string literal. The processor is `FilterOnValue`, the matching mode is `FULL_STRING` — DSS performs whole-cell equality and keeps matching rows.
+The operator class is `==`, the operand is a string literal. The processor is `FilterOnValue`, the matching mode is `FULL_STRING` — DSS performs whole-cell equality and keeps matching rows.
 
 ### Predicate 2: numeric comparison
 
 ```python
-source = """
-import pandas as pd
-orders = pd.read_csv("orders.csv")
-big_orders = orders[orders["revenue"] > 100]
-"""
-flow = convert(source)
-recipe = flow.recipes[0]
-step = recipe.steps[0]
+from py2dataiku.models.prepare_step import PrepareStep
+
+step = PrepareStep.filter_on_numeric_range(column="revenue", min=100, keep=True)
 print(step.processor_type.value)   # 'FilterOnNumericRange'
 print(step.params.get("min"))      # 100
 print(step.params.get("max"))      # None / not present
 print(step.params["keep"])         # True
 ```
 
-The operator is `>`. The processor is *not* `FilterOnValue` with some imagined `GREATER_THAN` mode — that would emit invalid DSS JSON. It is `FilterOnNumericRange` with `min=100`. The bound is inclusive at the DSS layer; the strict `>` versus non-strict `>=` distinction is collapsed at this level. The factory's docstring on `filter_on_numeric_range` is explicit: DSS does not natively distinguish strict vs. non-strict at the configuration layer, and a strict `>` is encoded by the same `min` bound that `>=` would use.
+The operator class is `>`. The processor is *not* `FilterOnValue` with some imagined `GREATER_THAN` mode — that would emit invalid DSS JSON. It is `FilterOnNumericRange` with `min=100`. The bound is inclusive at the DSS layer; the strict `>` versus non-strict `>=` distinction is collapsed at this level. The factory's docstring on `filter_on_numeric_range` is explicit: DSS does not natively distinguish strict vs. non-strict at the configuration layer, and a strict `>` is encoded by the same `min` bound that `>=` would use.
 
 ### Predicate 3: set membership
 
 ```python
-source = """
-import pandas as pd
-customers = pd.read_csv("customers.csv")
-ranked = customers[customers["tier"].isin(["gold", "silver"])]
-"""
-flow = convert(source)
-recipe = flow.recipes[0]
-step = recipe.steps[0]
+from py2dataiku.models.prepare_step import PrepareStep
+
+step = PrepareStep.filter_on_value(column="tier", values=["gold", "silver"], keep=True)
 print(step.processor_type.value)      # 'FilterOnValue'
 print(step.params["values"])          # ['gold', 'silver']
 print(step.params["matchingMode"])    # 'FULL_STRING'
 ```
 
-`isin` becomes `FilterOnValue` with a list of values and `matchingMode="FULL_STRING"`. DSS treats the values as alternatives; a row matches if any element of `values` equals the cell. There is a separate `FILTER_ON_MULTIPLE_VALUES` processor type, but the conventional route for `isin` is the single-processor multi-value form, because it round-trips cleanly through the official client and nests inside a multi-clause filter without complication.
+`isin` corresponds to `FilterOnValue` with a list of values and `matchingMode="FULL_STRING"`. DSS treats the values as alternatives; a row matches if any element of `values` equals the cell. There is a separate `FILTER_ON_MULTIPLE_VALUES` processor type, but the conventional route for `isin` is the single-processor multi-value form, because it round-trips cleanly through the official client and nests inside a multi-clause filter without complication.
 
 ### Predicate 4: substring match
 
 ```python
-source = """
-import pandas as pd
-customers = pd.read_csv("customers.csv")
-gmail_customers = customers[customers["email"].str.contains("@gmail.com")]
-"""
-flow = convert(source)
-recipe = flow.recipes[0]
-step = recipe.steps[0]
+from py2dataiku.models.prepare_step import PrepareStep
+
+step = PrepareStep.filter_on_value(
+    column="email", values=["@gmail.com"], matching_mode="SUBSTRING", keep=True
+)
 print(step.processor_type.value)     # 'FilterOnValue'
 print(step.params["matchingMode"])   # 'SUBSTRING'
 print(step.params["values"])         # ['@gmail.com']
@@ -122,25 +101,23 @@ The `FilterOnValue.matchingMode` field is a string-match-style selector; it is n
 
 None of those have a numeric ordering. There is no place in `FilterOnValue` to say "the cell is greater than 100" — that would require an ordering relation, and `FilterOnValue` deliberately does not have one. The right processor for ordered comparison is `FilterOnNumericRange`. Treating `matchingMode` as an operator selector is a category error that produces JSON DSS rejects at import.
 
-The wave-7 finding documented in the project's review log was exactly this: an earlier version of the library used `matchingMode` as if it were an operator selector. Verification against the official client source confirmed only the three string-match values are accepted, and the dispatch was rewritten to route numeric comparisons to `FilterOnNumericRange` instead.
+An earlier finding documented in the project's review log was exactly this: a previous version of the library used `matchingMode` as if it were an operator selector. Verification against the official client source confirmed only the three string-match values are accepted, and the dispatch was rewritten to route numeric comparisons to `FilterOnNumericRange` instead.
 
 ## Multi-clause predicates: the formula branch
 
 Pandas combines predicates with `&` (AND) and `|` (OR), with optional `~` for negation. None of these compose neatly inside a single `FilterOnValue` or `FilterOnNumericRange` step — the parameter shape supports either one column at a time or a single ordered range.
 
-For compound predicates, py-iku translates the AST to GREL and emits a `FilterOnFormula` step.
+For compound predicates, py-iku translates the AST to a GREL string. That string is the building block: it can sit on a `FilterOnFormula` step inside a PREPARE recipe, or on the `split_condition` of a SPLIT recipe — the same translator feeds both. Building a `FilterOnFormula` step directly:
 
 ```python
-source = """
-import pandas as pd
-orders = pd.read_csv("orders.csv")
-target = orders[(orders["revenue"] > 100) & (orders["quantity"] < 50)]
-"""
-flow = convert(source)
-recipe = flow.recipes[0]
-step = recipe.steps[0]
+from py2dataiku.models.prepare_step import PrepareStep
+
+step = PrepareStep.filter_on_formula(
+    formula='(val("revenue") > 100) && (val("quantity") < 50)',
+    keep=True,
+)
 print(step.processor_type.value)   # 'FilterOnFormula'
-print(step.params["formula"])      # something like '(val("revenue") > 100) && (val("quantity") < 50)'
+print(step.params["formula"])      # '(val("revenue") > 100) && (val("quantity") < 50)'
 print(step.params["keep"])         # True
 ```
 
@@ -168,21 +145,22 @@ This chapter does *not* claim that DSS uses different *runtime* implementations 
 
 ## Filter as processor versus filter as recipe
 
-A small detail that frequently confuses readers new to the library: a filter inside a PREPARE recipe (`FILTER_ON_VALUE`, `FILTER_ON_NUMERIC_RANGE`, `FILTER_ON_FORMULA`) is a *processor* — a step inside a 1→1 recipe. A SPLIT recipe is also rooted in filtering, but it is a *recipe* with arity 1→N. The two are not interchangeable.
+A small detail that frequently confuses readers new to the library: a filter inside a PREPARE recipe (`FILTER_ON_VALUE`, `FILTER_ON_NUMERIC_RANGE`, `FILTER_ON_FORMULA`) is a *processor* — a step inside a 1→1 recipe. A SPLIT recipe is also rooted in filtering, but it is a *recipe* with arity 1→N (or 1→1 with a single output, when the recipe carries only one branch). The two are not interchangeable.
 
-- A single filter that drops rows and keeps one output dataset is a PREPARE-with-filter-step pattern. The output is a strict subset of the input.
-- A pair of filters whose conditions partition the input and whose outputs are both downstream-relevant is a SPLIT pattern. The two outputs together cover the input.
+- A filter step inside PREPARE is a row-filter that keeps the recipe at 1→1 over rows. Its strength is composition: adjacent element-wise transforms merge into the same prepare buffer, and one recipe node hosts the whole sequence.
+- A SPLIT recipe is a structural filter at the recipe layer. Its strength is partitioning: when the same input flows into two complementary outputs, one SPLIT replaces two filters.
 
-The translator only emits SPLIT when the complementary-filter detector confirms the partition (Chapter 9 covers the antecedent in detail). Without that detection, two complementary filters become two PREPARE recipes — semantically correct but wasteful, since SPLIT does the same thing in one node.
+How the rule-based analyzer routes today: any boolean-indexing assignment (`df[cond]`) becomes a SPLIT recipe at the recipe layer, regardless of clause count or operator class. Each `FilterOn*` processor described above is still the canonical way to express the predicate *inside* a PREPARE recipe — that is what the LLM path emits, what custom analyzer plugins emit, and what the factory helpers build for direct construction. The chapter's processor-level dispatch table is independent of which recipe layer hosts the filter; the SPLIT-vs-PREPARE choice happens one level up.
 
 ## What py-iku does not do
 
-The translator is conservative on purpose. Two cases it deliberately punts on:
+The translator is conservative on purpose. Three cases it deliberately punts on:
 
 - **Strict vs. non-strict at the DSS layer.** A predicate `df["x"] > 5` and `df["x"] >= 5` produce the same `FilterOnNumericRange` configuration with `min=5`. DSS's range bounds are inclusive, and emitting an "almost equal" bound on a float would be semantically suspect. The rule-based path accepts the boundary collapse; the LLM path can opt for a `FilterOnFormula` with explicit `> 5` to preserve strictness.
-- **Inferred complementarity from value comparisons.** `df[df.x >= 1000]` and `df[df.x < 1000]` are mathematically complementary, but the detector currently only recognises the explicit `~cond` form. Inferring complementarity from value comparisons risks false positives when the two predicates differ in subtle ways (open versus closed bounds, integer versus float comparison). The conservative choice is to not collapse them — they end up as two PREPARE recipes rather than one SPLIT, which is correct if not optimal.
+- **Inferred complementarity from value comparisons.** `df[df.x >= 1000]` and `df[df.x < 1000]` are mathematically complementary, but the rule-based detector currently does not collapse them — both lines are processed independently and each emits its own SPLIT recipe. The conservative choice is to not collapse: inferring complementarity from value comparisons risks false positives when the two predicates differ in subtle ways (open versus closed bounds, integer versus float comparison). The explicit `cond = ...; df[cond]; df[~cond]` form *is* recognised and produces a single SPLIT recipe with two outputs.
+- **Routing single-output filters back to PREPARE.** Even when a boolean-indexing assignment is the only consumer of its source DataFrame, the rule-based path emits a SPLIT recipe (with one output) rather than a PREPARE recipe with a `FilterOn*` step. The output is DSS-valid; it is simply more verbose than the PREPARE+processor form a custom analyzer or the LLM path would produce.
 
-Both cases are documented in the project's review log under "outstanding items" and are candidates for a future revision. The textbook surfaces them so users do not over-promise the library to their teams.
+All three are documented in the project's review log under "outstanding items" and are candidates for a future revision. The textbook surfaces them so users do not over-promise the library to their teams.
 
 ## Theory anchor: distinct processor types for distinct operator classes
 

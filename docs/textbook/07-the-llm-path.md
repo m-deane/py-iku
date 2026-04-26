@@ -2,13 +2,15 @@
 
 ## What you'll learn
 
-How `convert_with_llm()` translates Python source into a `DataikuFlow`, why temperature=0 and prompt caching are the two settings that decide whether the LLM path is fit for CI, and how to read `AnalysisResult.usage` to keep per-conversion cost predictable. The chapter ends with the failure modes worth catching by name and a calibration of where the LLM path beats the rule-based path and where it does not.
+This chapter explains how `convert_with_llm()` translates Python source into a `DataikuFlow`, why temperature=0 and prompt caching are the two settings that decide whether the LLM path is fit for CI, and how to read `AnalysisResult.usage` to keep per-conversion cost predictable. The chapter ends with the failure modes worth catching by name and a calibration of where the LLM path beats the rule-based path and where it does not.
 
 ## Why two paths exist
 
 The library ships two analyzers. The rule-based path (`convert()`) walks the AST and applies a fixed mapping table; the LLM path (`convert_with_llm()`) sends the source to an LLM and parses a structured JSON response back into the same flow model. Both terminate in the same `DataikuFlow` object — only the front half of the pipeline differs.
 
-Rule-based wins on three axes: it is offline, it is microseconds-fast, and it has no per-call cost. LLM-based wins on one axis: it recognizes patterns the AST mapping has not been written for. This is not a hypothetical advantage. The `scripts/llm_smoke_test.py` corpus contains snippets — `df['rolling_avg'] = df['value'].rolling(7).mean()`, `top10 = df.nlargest(10, 'spend')`, `df[(df['amount'] > 1000) & (df['country'] != 'US')]` — that the rule-based path can mis-shelf into a generic PREPARE recipe. The LLM path routes them to WINDOW, TOP_N, and either SPLIT or PREPARE+`FilterOnFormula` respectively, because those rules are stated explicitly in the system prompt.
+Rule-based wins on three axes: it is offline, it is microseconds-fast, and it has no per-call cost. LLM-based wins on one axis: it recognizes patterns the AST mapping has not been written for. This is not a hypothetical advantage.
+
+The `scripts/llm_smoke_test.py` corpus contains snippets — `df['rolling_avg'] = df['value'].rolling(7).mean()`, `top10 = df.nlargest(10, 'spend')`, `df[(df['amount'] > 1000) & (df['country'] != 'US')]` — that the rule-based path can mis-shelf into a generic PREPARE recipe. The LLM path routes them to WINDOW, TOP_N, and either SPLIT or PREPARE+`FilterOnFormula` respectively, because those rules are stated explicitly in the system prompt.
 
 A short decision rule:
 
@@ -31,6 +33,7 @@ from py2dataiku import convert_with_llm
 source = """
 import pandas as pd
 orders = pd.read_csv('orders.csv')
+orders = orders.rename(columns={'order_date': 'ordered_at'})
 orders = orders.sort_values(['customer_id', 'ordered_at'])
 orders['rolling_30d_revenue'] = (
     orders.groupby('customer_id')['revenue']
@@ -114,7 +117,7 @@ The first call in a session shows a non-zero `cache_creation_input_tokens` and z
 
 ## The system prompt is generated, not authored
 
-`ANALYSIS_SYSTEM_PROMPT` is built once at import time by `_build_analysis_system_prompt()`. The processor catalog section comes from `ProcessorCatalog.PROCESSORS` and is regenerated whenever the catalog changes; the prompt cannot drift away from the actual code. Around it, the prompt carries:
+`ANALYSIS_SYSTEM_PROMPT` is built once at import time by `_build_analysis_system_prompt()`. The processor catalog section comes from `ProcessorCatalog.PROCESSORS` and is regenerated whenever the catalog changes; the prompt cannot drift away from the actual code. The prompt carries:
 
 - A short list of Dataiku recipe types with one-line descriptions.
 - A `## Mapping Rules` section enumerating the non-obvious cases — `df.melt()` routes to PREPARE+`FoldMultipleColumns` (not the PIVOT recipe), `df[df.x > N]` routes to PREPARE+`FilterOnNumericRange` (not `FilterOnValue`, which is for string matching), `df[cond]` and `df[~cond]` collapse to a single multi-output SPLIT, and so on.
@@ -185,7 +188,7 @@ The LLM path is not always the better path. The review log records two specific 
 
 Both are documented in the project's outstanding-items log as "decisions accepted as not-bugs" rather than defects. They are the kind of artifact a reader should expect to find when comparing the two paths against each other.
 
-The other tradeoff is the one the rest of this chapter has been about: cost. A typical V5-sized script costs roughly the input-token count of the source plus the system prompt, billed at the provider's input rate, plus a few hundred output tokens. Prompt caching makes the system prompt nearly free after the first call; without caching, the system prompt dominates per-call cost.
+The other tradeoff is cost. A typical V5-sized script costs roughly the input-token count of the source plus the system prompt, billed at the provider's input rate, plus a few hundred output tokens. Prompt caching makes the system prompt nearly free after the first call; without caching, the system prompt dominates per-call cost.
 
 ## Comparing the two paths against the running example
 

@@ -19,7 +19,7 @@ orders = orders.rename(columns={"order_date": "ordered_at"})
 orders_clean = orders
 ```
 
-The script does three things to the `orders` table: it fills missing values in `discount_pct` with `0.0`, it derives a `revenue` column from `quantity`, `unit_price`, and `discount_pct`, and it renames `order_date` to `ordered_at`. The result is assigned to `orders_clean`, which becomes the output dataset name.
+The script does three things to the `orders` table: it fills missing values in `discount_pct` with `0.0`, it derives a `revenue` column from `quantity`, `unit_price`, and `discount_pct`, and it renames `order_date` to `ordered_at`. Two of those three operations — the fill and the rename — are recognised by the current rule-based analyzer and become processors in a PREPARE recipe; the arithmetic-derived `revenue` column is not yet emitted as a `CreateColumnWithGREL` step on the rule-based path and is handled by the LLM path in Chapter 7.
 
 ## One call
 
@@ -57,10 +57,10 @@ print([r.recipe_type.value for r in flow.recipes])
 # ['prepare']
 
 print([d.name for d in flow.datasets])
-# ['orders', 'orders_clean']
+# ['orders', 'orders_prepared_prepared']
 ```
 
-The flow has exactly one recipe — a PREPARE — and two datasets, one input (`orders`) and one output (`orders_clean`). This matches the V1 specification in the running-example contract: V1 is a single PREPARE with `orders` as the input and `orders_clean` as the output.
+The flow has exactly one recipe — a PREPARE — and two datasets, one input (`orders`) and one auto-named produced dataset (`orders_prepared_prepared`; the doubled `_prepared` suffix is an artifact of the current naming pass and is not load-bearing). The script's final assignment `orders_clean = orders` is a plain Python rebinding the rule-based analyzer treats as a no-op, so the variable name does not propagate into a dataset name; the LLM path in Chapter 7 sometimes preserves the variable name. The structural V1 contract — one PREPARE, one input dataset, one produced dataset — holds either way.
 
 The recipe itself is a `DataikuRecipe`. Its type is the `RecipeType.PREPARE` enum value, and because it is a PREPARE recipe it carries an ordered list of `PrepareStep` instances under `recipe.steps`.
 
@@ -70,19 +70,18 @@ print(recipe.recipe_type.value)
 # 'prepare'
 
 print(len(recipe.steps))
-# 3
+# 2
 
 print([s.processor_type.value for s in recipe.steps])
-# ['FillEmptyWithValue', 'CreateColumnWithGREL', 'ColumnRenamer']
+# ['FillEmptyWithValue', 'ColumnRenamer']
 ```
 
-The exact `ProcessorType` values come from the `ProcessorType` enum defined in `py2dataiku.models.prepare_step`. The three values above correspond to the three operations the script performed, in the same order:
+The exact `ProcessorType` values come from the `ProcessorType` enum defined in `py2dataiku.models.prepare_step`. The two values above correspond to two of the three operations the script performed, in source order:
 
 1. `FillEmptyWithValue` for `orders["discount_pct"].fillna(0.0)`.
-2. `CreateColumnWithGREL` (the GREL-formula processor, the catalog entry py-iku currently emits for derived columns built from arithmetic on existing columns) for the `revenue` assignment.
-3. `ColumnRenamer` for the `rename(columns={"order_date": "ordered_at"})` call.
+2. `ColumnRenamer` for the `rename(columns={"order_date": "ordered_at"})` call.
 
-The processor names DSS uses internally are different from the enum names; the running-example contract calls the second processor `CREATE_COLUMN_WITH_FORMULA`, and the catalog entry name in current py-iku is `CreateColumnWithGREL`. Both are accepted shapes for V1 — what matters is that the `revenue` derivation comes out as a single formula step rather than as multiple arithmetic steps.
+The `revenue` arithmetic does not produce a step on the rule-based path: the current AST analyzer does not recognise pandas arithmetic-on-columns as a `CreateColumnWithGREL` formula and skips it. The LLM path in Chapter 7 does emit a `CreateColumnWithGREL` step for that line, with the GREL expression `numval(quantity) * numval(unit_price) * (1 - numval(discount_pct))`. The verifier at `tests/test_py2dataiku/test_textbook_examples.py` pins the rule-based shape (one PREPARE, two steps) against this chapter so any future change to the analyzer that closes the gap will fail the test and prompt a doc update.
 
 ## Input and output dataset views
 
@@ -93,13 +92,13 @@ print([d.name for d in flow.input_datasets])
 # ['orders']
 
 print([d.name for d in flow.intermediate_datasets])
-# []
+# ['orders_prepared_prepared']
 
 print([d.name for d in flow.output_datasets])
-# ['orders_clean']
+# []
 ```
 
-V1 has no intermediates because the script's three element-wise operations all collapse into one PREPARE recipe; the only datasets that survive are the read input and the assigned output. V2 in the next chapter introduces the first intermediate — `orders_clean` becomes an intermediate dataset in V2 because it is read by the JOIN that produces `orders_enriched`.
+V1 produces one input dataset and one intermediate dataset; `output_datasets` is empty because the rule-based analyzer only marks a dataset as an output when the script explicitly writes it to a recognised sink (e.g. `to_csv`, `to_parquet`). The trailing `orders_clean = orders` rebinding does not register as a sink, so the produced dataset is classified as intermediate and named `orders_prepared_prepared`. V2 in the next chapter writes through a `to_csv` call and the dataset roles shift accordingly.
 
 These properties are convenience views, not separate collections. Mutating `flow.datasets` is reflected in all three. They exist so that downstream code that wants to render only the inputs (a flow header) or only the outputs (a flow tail) does not have to filter the list by hand.
 
@@ -112,13 +111,13 @@ from py2dataiku import RecipeType
 
 assert len(flow.recipes) == 1
 assert flow.recipes[0].recipe_type == RecipeType.PREPARE
-assert len(flow.recipes[0].steps) == 3
+assert len(flow.recipes[0].steps) == 2
 
 dataset_names = {d.name for d in flow.datasets}
-assert dataset_names == {"orders", "orders_clean"}
+assert dataset_names == {"orders", "orders_prepared_prepared"}
 ```
 
-These four assertions encode the entire V1 contract. The same code runs as a `pytest` test, as a script, or as a notebook cell. If a future change to the rule-based analyzer broke V1's expected shape, every one of these assertions would fail in a way that pinpoints the breakage.
+These four assertions encode the V1 contract as the rule-based analyzer currently produces it. The same code runs as a `pytest` test, as a script, or as a notebook cell. If a future change to the rule-based analyzer broke V1's expected shape — or closed the `CreateColumnWithGREL` gap and bumped the step count — every one of these assertions would fail in a way that pinpoints the breakage.
 
 ## Round-tripping the flow
 
@@ -160,7 +159,7 @@ Path("v1_flow.svg").write_text(svg, encoding="utf-8")
 flow.save("v1_flow.svg")
 ```
 
-For V1 the rendered SVG shows two dataset nodes connected by a single PREPARE recipe node: `orders → PREPARE → orders_clean`. The visualizer dispatches to a format-specific class (`SVGVisualizer`, `HTMLVisualizer`, `ASCIIVisualizer`, `PlantUMLVisualizer`) depending on the `format` argument; the SVG path is the one that produces the pixel-accurate Dataiku styling.
+For V1 the rendered SVG shows two dataset nodes connected by a single PREPARE recipe node: `orders → PREPARE → orders_prepared_prepared`. The visualizer dispatches to a format-specific class (`SVGVisualizer`, `HTMLVisualizer`, `ASCIIVisualizer`, `PlantUMLVisualizer`) depending on the `format` argument; the SVG path is the one that produces the pixel-accurate Dataiku styling.
 
 The ASCII variant is useful in terminal contexts where loading an image viewer would be heavy:
 
@@ -180,13 +179,15 @@ The LLM path establishes the same property under different conditions: temperatu
 
 ## A note on dataset names
 
-py-iku reads input dataset names from `pd.read_csv("orders.csv")` calls and output dataset names from the final assignment in the script. In V1 the input is `orders` (the CSV name minus the extension) and the output is `orders_clean` (the variable name on the last assignment). Subsequent chapters add more inputs (`customers`, `products`) and more named intermediates (`orders_enriched`, `orders_windowed`, `orders_ranked`), all of which match the dataset names declared in the running-example contract.
+py-iku reads input dataset names from `pd.read_csv("orders.csv")` calls. In V1 the input is `orders` (the CSV name minus the extension); the produced dataset is auto-named `orders_prepared_prepared` because the script does not write to an explicit sink and the rule-based naming pass appends a `_prepared` suffix per PREPARE recipe (the doubled suffix here is the merged-prepare optimizer's contribution). Subsequent chapters add more inputs (`customers`, `products`) and more named intermediates (`orders_enriched`, `orders_windowed`, `orders_ranked`), all of which match the dataset names declared in the running-example contract once an explicit sink is introduced.
 
-The library does not invent dataset names. If the script does not name an intermediate, py-iku will name it after the last variable that referenced it, but every name in the produced flow can be traced back to the source.
+The library invents a name only when the script does not provide one through a recognised write call. Where the script does write — V2 onward, via `to_csv` — the produced dataset takes its name from the path argument. Either way, every name in the produced flow can be traced back to the source.
 
 ## What this leaves out
 
-V1 exercises one recipe type (PREPARE) and three processors. That is enough to demonstrate the conversion shape but not enough to exercise the model: PREPARE alone does not show how the DAG is built, the optimizer pass has nothing to optimize, and there is no JOIN, GROUPING, WINDOW, SORT, or SPLIT to compare against. Chapter 3 takes V1's flow object and walks every attribute on it, including the `flow.graph` accessor that becomes load-bearing for the rest of the book. Chapter 4 introduces V2, which adds two `merge(...)` calls and produces the first multi-recipe flow.
+V1 exercises one recipe type (PREPARE) and two processors. That is enough to demonstrate the conversion shape but not enough to exercise the model: PREPARE alone does not show how the DAG is built, the optimizer pass has nothing structural to merge across, and there is no JOIN, GROUPING, WINDOW, SORT, or SPLIT to compare against.
+
+Chapter 3 takes V1's flow object and walks every attribute on it, including the `flow.graph` accessor that becomes load-bearing for the rest of the book. Chapter 4 introduces V2, which adds two `merge(...)` calls and produces the first multi-recipe flow.
 
 ## Further reading
 

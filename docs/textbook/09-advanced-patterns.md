@@ -2,13 +2,13 @@
 
 ## What you'll learn
 
-The two structural inferences py-iku makes from local AST patterns: complementary-filter detection (which collapses `df[cond]` and `df[~cond]` into a single SPLIT recipe), and GREL formula compilation (which turns compound predicates and column expressions into formula-driven steps). The chapter walks V5 of the running example and is explicit about the patterns the library does *not* yet detect.
+This chapter covers the two structural inferences py-iku makes from local AST patterns: complementary-filter detection (which collapses an explicit `df[cond]` / `df[~cond]` pair into a single SPLIT recipe with two outputs), and GREL formula compilation (which turns compound predicates and column expressions into formula-driven steps). It walks V5 of the running example and is explicit about the patterns the rule-based path does *not* yet detect — chiefly, bare value-comparison pairs (`>=` against `<`) that are mathematically complementary but syntactically distinct.
 
 ## Two inferences, two antecedents
 
 Most pandas-to-DSS translation is local: each statement maps to one processor or recipe based on its operator and operand types. A few translations are non-local — they depend on a relationship between two statements. py-iku currently makes two such inferences:
 
-- **Complementary-filter detection.** When two boolean indexings on the same DataFrame use complementary conditions, the analyzer collapses them into one SPLIT recipe with two output datasets instead of two FILTER processors with separate output datasets.
+- **Complementary-filter detection.** When two boolean indexings on the same DataFrame use *syntactically explicit* complementary conditions (the `~cond` form), the analyzer collapses them into one SPLIT recipe with two output datasets instead of two single-output SPLIT recipes. Bare value-comparison pairs (`>= N` against `< N`) are not consolidated today.
 - **Compound-predicate compilation.** When a predicate uses bitwise AND/OR or unary negation, the analyzer compiles the AST to a GREL formula and emits a `FilterOnFormula` step (or a SPLIT recipe with a GREL `split_condition`).
 
 Both inferences have explicit antecedents — small theorems that the library can prove from the syntactic shape. Surfacing the antecedents is what makes the tool predictable: a reader who knows which patterns trigger which inference can predict the output flow without running it.
@@ -63,38 +63,47 @@ flow = convert(source)
 splits = [r for r in flow.recipes if r.recipe_type.value == "split"]
 ```
 
-Two assertions worth running on the result:
+Inspect the result rather than assert a specific shape:
 
 ```python
-assert len(splits) == 1, "expected exactly one SPLIT recipe"
-split = splits[0]
-assert split.inputs == ["orders_ranked"]
-assert set(split.outputs) == {"high_value_customers", "remaining_customers"}
+print([r.recipe_type.value for r in flow.recipes])
+# rule-based today: ['prepare', 'join', 'join', 'sort', 'window',
+#                    'grouping', 'join', 'sort', 'split', 'split']
+print(len(splits))                                          # 2
+print([s.outputs for s in splits])
+# [['high_value_customers'], ['remaining_customers']]
 ```
 
-One SPLIT recipe, one input dataset, two output datasets — the canonical shape for a partitioned filter in DSS.
+Two single-output SPLIT recipes — one per assignment — rather than one SPLIT with two outputs. The rule-based detector does *not* currently consolidate value-comparison complementary filters; it processes each `df[cond]` line independently. The canonical 1→2 shape (one SPLIT, two outputs) is what the explicit `~cond` form produces; see the next section.
 
 ## The detector's antecedent
 
 The detector — `_merge_complementary_filters` in the AST analyzer — runs as a post-pass over the list of transformations the visitor has produced. Its rule is deliberately narrow:
 
-> Match two consecutive FILTER transformations where the conditions are explicit complements of each other (one wraps the other in a unary `~` or `not`). Replace the pair with a single FILTER carrying `parameters["complementary_outputs"] = [target_a, target_b]`. The flow generator turns that flag into a SPLIT recipe.
+> Match two FILTER transformations where the conditions are explicit syntactic complements of each other (one wraps the other in a unary `~` or `not`). Replace the pair with a single FILTER carrying `parameters["complementary_outputs"] = [target_a, target_b]`. The flow generator turns that flag into a SPLIT recipe with two outputs.
 
 What "explicit complement" means in code: the detector compares condition strings after stripping whitespace. If one condition starts with `~` (or `~(`) and the inner expression equals the other condition, they are complements. If both are bare expressions, they are *not* complements — even if they happen to be mathematically opposite.
 
-V5 uses bare comparisons (`>= 1000` and `< 1000`), not `~cond` and `cond`. In current py-iku, the V5 SPLIT detection works because the *condition strings* the analyzer records for the two filters are recognised as complementary by an extended check on the comparison operator pair (`>=` against `<` on the same column with the same boundary value). The textbook reads this as "the explicit-complement rule plus a small extension for mirror-image numeric comparisons on the same column and boundary".
+V5 as written uses bare comparisons (`>= 1000` and `< 1000`), not `~cond` and `cond`. The detector does *not* recognise the two as complements today, so V5 emits two single-output SPLIT recipes rather than one 1→2 SPLIT. The canonical 1→2 shape is produced by the explicit `~cond` form:
 
-For predicates the detector does not handle — for example, `df[df.x > 100]` and `df[df.x <= 99]`, which are complementary in integer arithmetic but not in float — the two filters stay separate. That conservatism is the whole point: a wrong SPLIT silently drops or duplicates rows; two correct FILTERs are merely verbose.
+```python
+# This form *is* consolidated into one SPLIT recipe with two outputs
+cond = orders_ranked["lifetime_revenue"] >= 1000
+high_value_customers = orders_ranked[cond]
+remaining_customers = orders_ranked[~cond]
+```
+
+For predicates the detector does not handle — bare value-compare pairs like `df.x >= 1000` against `df.x < 1000`, or integer-domain pairs like `df.x > 100` against `df.x <= 99` — each filter stays in its own SPLIT recipe. That conservatism is the whole point: a wrong consolidation silently drops or duplicates rows; multiple correct SPLITs are merely verbose.
 
 ## Why a single SPLIT is the right shape
 
-The two-FILTER form and the one-SPLIT form are not equivalent in DSS. They differ in three operationally relevant ways:
+The two-single-output-SPLIT form (what the rule-based path emits today for V5's bare value-comparisons) and the one-1→2-SPLIT form (what the `~cond` form produces) are not equivalent in DSS. They differ in three operationally relevant ways:
 
-- **Reads of the input dataset.** Two FILTER recipes each scan `orders_ranked` independently. One SPLIT recipe scans it once and dispatches each row to the matching output. For a large input dataset that doesn't fit in memory, the SPLIT form halves the I/O cost.
-- **Number of recipes in the flow.** The SPLIT form has one fewer flow node. A reader scanning the flow visually sees "split into high-value and remaining" rather than "filter for high-value, filter for remaining" — the structural intent is more legible.
-- **Cache invalidation.** The two FILTER form has two cache slots, one per output. If `orders_ranked` changes upstream, both must be invalidated. The SPLIT form has one cache slot for the recipe, two for the outputs.
+- **Reads of the input dataset.** Two SPLIT recipes each scan `orders_ranked` independently. One 1→2 SPLIT scans it once and dispatches each row to the matching output. For a large input dataset that doesn't fit in memory, the consolidated form halves the I/O cost.
+- **Number of recipes in the flow.** The consolidated form has one fewer flow node. A reader scanning the flow visually sees "split into high-value and remaining" rather than "filter for high-value, filter for remaining" — the structural intent is more legible.
+- **Cache invalidation.** The two-recipe form has two cache slots, one per output recipe. If `orders_ranked` changes upstream, both must be invalidated. The consolidated form has one cache slot for the recipe, two for the outputs.
 
-DSS's SPLIT recipe natively supports the partition pattern; the [recipe overview](https://doc.dataiku.com/dss/latest/other_recipes/index.html) lists it under partition-style recipes. The library follows DSS's lead: when the source code expresses a partition, the flow expresses a partition.
+DSS's SPLIT recipe natively supports the partition pattern; the [recipe overview](https://doc.dataiku.com/dss/latest/other_recipes/index.html) lists it under partition-style recipes. The library follows DSS's lead when it can: when the source code expresses a partition *syntactically* (via `~cond`), the flow expresses a partition.
 
 ## GREL formula generation
 
@@ -202,7 +211,7 @@ The lambda inside `assign` is not arbitrary Python — it is the row-wise expres
 
 The textbook should not over-promise. Two patterns the library does not yet detect, both noted as open items in the project's review log:
 
-- **Complementary filters that are mathematically but not syntactically opposite.** `df[df.x >= 1000]` and `df[df.x < 1000]` are complementary on the integer domain; py-iku's detector currently does not collapse them into a SPLIT (the V5 case works because of the extended numeric-mirror rule, but predicates with different boundary types or off-by-one shifts do not). Two PREPARE recipes are emitted instead. The output is correct, only verbose.
+- **Complementary filters that are mathematically but not syntactically opposite.** `df[df.x >= 1000]` and `df[df.x < 1000]` are mathematically complementary, but the rule-based detector compares condition strings rather than comparison-operator pairs — so it does not collapse them. The V5 source as written produces two single-output SPLIT recipes rather than one 1→2 SPLIT. Users who want the consolidated shape today must rewrite the source to the explicit `cond = ...; df[cond]; df[~cond]` form, which the detector *does* handle. The output of the bare-comparison form is correct, only verbose.
 - **Branches with side-effecting code.** A control-flow branch whose body contains anything other than DataFrame assignments — print statements, file writes, environment lookups — defeats the static analysis. The library falls back to a Python recipe for the branch. This is a feature, not a bug: faking a visual recipe for code that has side effects would mislead a flow auditor.
 
 Both gaps are tractable in principle; both are deferred until the detection logic can be tested against a wider corpus without producing false positives. Users who hit either case can write a custom analyzer plugin (Chapter 12) or fall back to the LLM path (Chapter 7), which often spots the partition by reading the intent of the code.
@@ -211,7 +220,7 @@ Both gaps are tractable in principle; both are deferred until the detection logi
 
 The two inferences in this chapter are not heuristics in the loose sense; they are small theorems with explicit antecedents:
 
-- *Antecedent for complementary-filter detection*: two FILTER transformations on the same source DataFrame, with conditions related by explicit unary negation (or the extended numeric-mirror form on the same column and boundary). *Consequent*: collapse to one SPLIT recipe with two output datasets.
+- *Antecedent for complementary-filter detection*: two FILTER transformations on the same source DataFrame, with conditions related by explicit unary negation (the `~cond` form). *Consequent*: collapse to one SPLIT recipe with two output datasets. Bare value-comparison pairs that happen to be mathematically opposite do not satisfy this antecedent and stay as separate single-output SPLIT recipes.
 - *Antecedent for GREL formula compilation*: an AST node whose class is one of the supported operators (Compare, BinOp/BitAnd, BinOp/BitOr, UnaryOp/Not, UnaryOp/Invert, Call/isin), and whose operands recursively translate. *Consequent*: emit the GREL string and route to `FilterOnFormula` (for predicates) or `CREATE_COLUMN_WITH_GREL` (for column expressions).
 
 Each antecedent is checkable in code, and the library checks it before applying the inference. Patterns that fail the antecedent get the conservative fallback — two FILTER recipes, or a Python recipe — rather than a guess. That conservatism is the property that makes the library predictable in CI: the same input produces the same output, and the same input never produces a flow that drops or duplicates rows compared to the original pandas script.

@@ -2,7 +2,7 @@
 
 ## What you'll learn
 
-How to wire `convert()` into a CI pipeline so that the produced flow is asserted-against on every commit, how to load API credentials from `.env.local` without leaking them into shell history or git, how to monitor LLM-path cost via `AnalysisResult.usage`, and how `DSSFlowDeployer` carries a flow object the rest of the way to a running DSS instance. The chapter ends with a worked `pytest` example covering V3 of the running example.
+This chapter covers how to wire `convert()` into a CI pipeline so that the produced flow is asserted-against on every commit, how to load API credentials from `.env.local` without leaking them into shell history or git, how to monitor LLM-path cost via `AnalysisResult.usage`, and how `DSSFlowDeployer` carries a flow object the rest of the way to a running DSS instance. The chapter ends with a worked `pytest` example covering V3 of the running example.
 
 ## The production contract
 
@@ -12,7 +12,7 @@ The first commitment is determinism. Chapter 2 established that the rule-based p
 
 The second commitment is asserted output. The library does not promise that every conversion is correct; it promises that the conversion is reproducible and inspectable. A team running py-iku in production picks the assertions they care about — recipe count, recipe types in topological order, specific processor types in a specific PREPARE step — and writes them into the test suite.
 
-The third commitment is credentials hygiene. The LLM path needs an API key. A production runbook that exposes that key in shell history, in a CI log, or in the git tree is going to leak it eventually. The patterns in this chapter exist because the project's own smoke test uses them.
+The third commitment is credentials hygiene. The LLM path needs an API key. A production runbook that exposes that key in shell history, in a CI log, or in the git tree will leak it eventually. The patterns in this chapter exist because the project's own smoke test uses them.
 
 ## Bare-file CLI form
 
@@ -67,7 +67,13 @@ if key:
     os.environ["ANTHROPIC_API_KEY"] = key
 ```
 
-The pattern has three properties worth being explicit about. The key never enters the shell history (no `export ANTHROPIC_API_KEY=...`), it never enters the git history (`.env.local` is gitignored — see the committed `.env.example` for the template), and it never enters the conversation transcript (the loader only logs the variable name, never the value). Every CI runner this codebase has been used in supports the same pattern: load the secret from the runner's secret manager into `.env.local` at job start, run the test, and discard the file at job end.
+The pattern has three properties worth being explicit about:
+
+- The key never enters the shell history (no `export ANTHROPIC_API_KEY=...`).
+- The key never enters the git history (`.env.local` is gitignored — see the committed `.env.example` for the template).
+- The key never enters the conversation transcript (the loader only logs the variable name, never the value).
+
+Every CI runner this codebase has been used in supports the same pattern: load the secret from the runner's secret manager into `.env.local` at job start, run the test, and discard the file at job end.
 
 For shell-style `export` use, prefer the runner's secret-injection mechanism (GitHub Actions `secrets`, GitLab CI `variables`) over a manual `export`. The point is the same: the key should live in one place — the secret manager — and reach the process only through `os.environ`.
 
@@ -178,7 +184,11 @@ def test_v3_recipe_count():
 
 def test_v3_recipe_types_topological():
     flow = convert(V3_SOURCE)
-    types = [r.recipe_type for r in flow.graph.topological_sort_recipes()]
+    # flow.recipes is already in build (topological) order; for an explicit
+    # graph-based check, filter topological_sort() to recipe nodes:
+    #   ordered = flow.graph.topological_sort()
+    #   recipes = [n for n in ordered if flow.graph.get_node(n).is_recipe()]
+    types = [r.recipe_type for r in flow.recipes]
     assert types == [RecipeType.PREPARE, RecipeType.JOIN, RecipeType.WINDOW]
 
 

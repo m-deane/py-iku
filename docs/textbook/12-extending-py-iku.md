@@ -2,7 +2,7 @@
 
 ## What you'll learn
 
-How `PluginRegistry` keeps the library's authoring surface small while making the extension surface — pandas-method handlers, recipe handlers, processor handlers — tractable for teams with domain-specific code. The chapter walks through the three registration entry points (`register_pandas_mapping`, `register_recipe_handler`, `register_processor_handler`), then uses scikit-learn's `StandardScaler` as a worked case study because that is the clearest example of code the core library deliberately does not handle.
+This chapter explains how `PluginRegistry` keeps the library's authoring surface small while making the extension surface — pandas-method handlers, recipe handlers, processor handlers — tractable for teams with domain-specific code. The chapter walks through the three registration entry points (`register_pandas_mapping`, `register_recipe_handler`, `register_processor_handler`), then uses scikit-learn's `StandardScaler` as a worked case study because that is the clearest example of code the core library deliberately does not handle.
 
 ## The extension contract
 
@@ -229,7 +229,7 @@ assert PluginRegistry._get_default().find_recipe_mapping("inner_match") is None
 
 A custom recipe handler that emits a PREPARE recipe participates in the merge passes from Chapter 10 by virtue of having `recipe_type == RecipeType.PREPARE`. The optimizer does not care which handler emitted the recipe — only that the merge predicates hold (matching dataset edges, single fan-out, both recipes being PREPARE).
 
-A handler that emits a custom recipe type — say, the team registered a new `RecipeType` value via a contributor PR and now wants the optimizer to merge two adjacent instances — has to carry its own merge logic. The default optimizer has no rule for unknown types, which means custom recipes are passed through unchanged. This is the right default: a wrong merge is worse than a missing merge, and the team that introduced the type knows the merge predicate.
+A handler that emits a custom recipe type — for example, when a team has registered a new `RecipeType` value via a contributor PR and now wants the optimizer to merge two adjacent instances — has to carry its own merge logic. The default optimizer has no rule for unknown types, which means custom recipes are passed through unchanged. This is the right default: a wrong merge is worse than a missing merge, and the team that introduced the type knows the merge predicate.
 
 For the more common case — a plugin that emits PREPARE and processor steps — the optimizer requires no special configuration. The running example V1's three PREPARE recipes still merge into one even if the third was emitted by a custom handler instead of the rule-based path.
 

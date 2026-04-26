@@ -95,7 +95,7 @@ The 13 you'll see most often inside a PREPARE recipe:
 - `CreateColumnWithGREL`, `Binner`, `CategoricalEncoder`
 - `RemoveDuplicates`, `FoldMultipleColumns`, `Unfold`
 
-The full catalog (~89 unique canonical names) is at `py2dataiku/mappings/processor_catalog.py`.
+There are 100 canonical processor types in the `ProcessorType` enum; the catalog at `py2dataiku/mappings/processor_catalog.py` exposes 101 entries, which deduplicate to ~89 unique canonical names after collapsing phantom aliases.
 
 ---
 

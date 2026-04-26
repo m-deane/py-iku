@@ -6,9 +6,9 @@ The ten errors a user is most likely to hit when running py-iku, ordered roughly
 
 ### ConfigurationError: missing API key
 
-**Symptom**: `convert(code, llm="anthropic")` raises `py2dataiku.exceptions.ConfigurationError: ANTHROPIC_API_KEY not set`. The same call without `llm=...` succeeds.
+**Symptom**: `convert_with_llm(code, provider="anthropic")` raises `py2dataiku.exceptions.ConfigurationError: ANTHROPIC_API_KEY not set`. The rule-based `convert(code)` call (no API key required) succeeds against the same source.
 
-**Cause**: The LLM analyzer requires a provider API key. The library reads `ANTHROPIC_API_KEY` (for Anthropic) or `OPENAI_API_KEY` (for OpenAI) from the process environment, from a `.env.local` file in the working directory, or from a `Py2DataikuConfig` instance passed to `convert`. None of those sources had a value.
+**Cause**: The LLM analyzer requires a provider API key. The library reads `ANTHROPIC_API_KEY` (for Anthropic) or `OPENAI_API_KEY` (for OpenAI) from the process environment, from a `.env.local` file in the working directory, or from the `api_key=` keyword passed directly to `convert_with_llm`. None of those sources had a value.
 
 **Fix**: Set the key in a `.env.local` next to the script:
 
@@ -16,21 +16,20 @@ The ten errors a user is most likely to hit when running py-iku, ordered roughly
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Or pass a configured `Py2DataikuConfig`:
+Or pass it explicitly to `convert_with_llm`:
 
 ```python
-from py2dataiku import Py2DataikuConfig, convert
-cfg = Py2DataikuConfig(anthropic_api_key="sk-ant-...")
-flow = convert(source, llm="anthropic", config=cfg)
+from py2dataiku import convert_with_llm
+flow = convert_with_llm(source, provider="anthropic", api_key="sk-ant-...")
 ```
 
-Hard-coding the key in source is a known anti-pattern — prefer the env-var or config-file form.
+Hard-coding the key in source is a known anti-pattern — prefer the env-var or `.env.local` form.
 
 **Related**: Chapter 11 covers configuration precedence in detail.
 
 ### LLMResponseParseError: provider returned non-conforming JSON
 
-**Symptom**: `convert(..., llm="anthropic")` raises `LLMResponseParseError: response did not match expected schema`. The exception's `raw_response` attribute holds the provider's reply.
+**Symptom**: `convert_with_llm(..., provider="anthropic")` raises `LLMResponseParseError: response did not match expected schema`. The exception's `raw_response` attribute holds the provider's reply.
 
 **Cause**: The LLM produced a reply that did not parse against the structured-output schema the library handed it. With temperature=0 this is uncommon but happens when the input code is unusually short, unusually long, or contains characters that interact badly with the system prompt.
 
@@ -38,7 +37,7 @@ Hard-coding the key in source is a known anti-pattern — prefer the env-var or 
 
 ```python
 try:
-    flow = convert(source, llm="anthropic")
+    flow = convert_with_llm(source, provider="anthropic")
 except LLMResponseParseError:
     flow = convert(source)  # rule-based fallback
 ```
@@ -66,7 +65,7 @@ If the source is genuinely invalid Python (not magics), the underlying `SyntaxEr
 
 ### ProviderError: rate-limited by the LLM provider
 
-**Symptom**: `convert(..., llm="anthropic")` raises `ProviderError: rate limit exceeded (429)`. The exception holds the provider's retry-after hint.
+**Symptom**: `convert_with_llm(..., provider="anthropic")` raises `ProviderError: rate limit exceeded (429)`. The exception holds the provider's retry-after hint.
 
 **Cause**: The provider's per-minute or per-day token budget for the API key has been exceeded. This is most common when batch-converting an entire codebase in a single run.
 
@@ -78,7 +77,7 @@ from py2dataiku.exceptions import ProviderError
 for path in paths:
     while True:
         try:
-            flow = convert(open(path).read(), llm="anthropic")
+            flow = convert_with_llm(open(path).read(), provider="anthropic")
             break
         except ProviderError as e:
             time.sleep(e.retry_after or 30)
@@ -105,13 +104,13 @@ def _handler(step):
 
 **Related**: Chapter 7 (LLM failure modes), Chapter 12 (extension surface).
 
-### Filter became a Python recipe instead of a FILTER processor
+### Filter became a Python recipe instead of a PREPARE filter processor
 
-**Symptom**: A pandas line `df = df[df["a"] > 0 & (df["b"].isin(["x", "y"]))]` produced a `PYTHON` recipe wrapping the original code instead of a `FILTER` recipe with a multi-clause predicate.
+**Symptom**: A pandas line `df = df[df["a"] > 0 & (df["b"].isin(["x", "y"]))]` produced a `PYTHON` recipe wrapping the original code instead of a `PREPARE` recipe with the appropriate filter processors (or a `SPLIT` recipe in the complementary-filter case).
 
 **Cause**: The compound predicate did not match any of the AST patterns the rule-based analyzer recognises for predicates. The fallback for an unrecognised filter is a `PYTHON` recipe — correct, but invisible to lineage. The most common cause is operator precedence: `a > 0 & b.isin(...)` parses as `a > (0 & b.isin(...))` because `&` has higher precedence than `>` in Python.
 
-**Fix**: Add explicit parentheses: `(df["a"] > 0) & (df["b"].isin(["x", "y"]))`. The corrected predicate matches the multi-clause pattern and the filter becomes a `FILTER` recipe with two `FilterOnValue`/`FilterOnNumericalRange` clauses.
+**Fix**: Add explicit parentheses: `(df["a"] > 0) & (df["b"].isin(["x", "y"]))`. The corrected predicate matches the multi-clause pattern and the filter becomes a `PREPARE` recipe with `FilterOnValue` and `FilterOnNumericRange` processor steps (or a single `FilterOnFormula` step for compound conditions). Note: there is no `RecipeType.FILTER` — filtering is always either a processor inside `PREPARE` or, for complementary predicates, a `SPLIT` recipe with multiple outputs.
 
 **Related**: Chapter 8.
 
@@ -153,7 +152,7 @@ Or use a format that does not require them: `flow.visualize(format="svg")`, `flo
 
 ### Slow conversion on large files (token budget)
 
-**Symptom**: `convert(source, llm="anthropic")` takes 60+ seconds for a single file or raises `ProviderError: context length exceeded`.
+**Symptom**: `convert_with_llm(source, provider="anthropic")` takes 60+ seconds for a single file or raises `ProviderError: context length exceeded`.
 
 **Cause**: The LLM analyzer sends the full source as input. For files over roughly 1500 lines the token budget approaches the provider's context limit, latency grows, and a few-thousand-line file does not fit at all.
 
@@ -161,7 +160,7 @@ Or use a format that does not require them: `flow.visualize(format="svg")`, `flo
 
 ```python
 chunks = split_by_top_level_def(source)
-flows = [convert(c, llm="anthropic") for c in chunks]
+flows = [convert_with_llm(c, provider="anthropic") for c in chunks]
 final = flows[0]
 for f in flows[1:]:
     final = final.merge(f)
