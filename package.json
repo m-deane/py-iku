@@ -21,7 +21,8 @@
   },
   "pnpm": {
     "overrides": {
-      "webpack": "5.99.9"
+      "webpack": "5.99.9",
+      "@testing-library/jest-dom": "6.6.3"
     }
   }
 }
