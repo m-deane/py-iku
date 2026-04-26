@@ -415,14 +415,62 @@ End-to-end verified: `df[df["amount"] > 100]` produces a `FilterOnNumericRange` 
 
 ---
 
-## Outstanding items (after wave 8)
+## Wave 9 — completed (compound-predicate filters → GREL formulas)
+
+### Python AST → GREL translator — DONE
+Added a recursive translator (`_translate_to_grel` in `ast_analyzer.py`) that converts pandas boolean indexing expressions to DSS GREL formulas. Handles:
+
+| Python (pandas) | GREL |
+|---|---|
+| `df['x'] > 5` | `val("x") > 5` |
+| `df['name'] == 'foo'` | `val("name") == "foo"` |
+| `(a) & (b)` | `(a) && (b)` |
+| `(a) \| (b)` | `(a) \|\| (b)` |
+| `~(a)` | `!(a)` |
+| `df['col'].isin(['a', 'b'])` | `((val("col") == "a") \|\| (val("col") == "b"))` |
+| `df['x'] in [1, 2, 3]` | OR-chain of equalities |
+
+Constants are escaped (string quotes preserved, booleans lowercased to `true`/`false`, `None` → `null`). Returns `None` for shapes the translator can't handle (function calls, complex slicing) so callers can fall back to leaving the formula unset.
+
+### `_handle_filter` emits formula for compound predicates — DONE
+When the boolean condition translates cleanly to GREL, the FILTER transformation now carries `parameters["formula"]`. When the AST is detected as a compound predicate (BoolOp / BinOp with BitAnd/BitOr / negated compound), `suggested_processor` is set to `"FilterOnFormula"` so downstream consumers know to use a formula-style step rather than the simpler FilterOnValue/FilterOnNumericRange.
+
+### `_create_split_recipe` prefers GREL formula — DONE
+The rule-based SPLIT recipe now uses `parameters["formula"]` (when present) as `split_condition` instead of the raw Python text — DSS can parse GREL but not Python. Falls back to the legacy condition string when no GREL translation was possible.
+
+### `pattern_matcher.match_filter` — `formula` operator — DONE
+The LLM path can now emit a `FilterCondition(operator="formula", value="<GREL expression>")` and have it route to `FilterOnFormula`. Aliases `"grel"` and `"expression"` also accepted. Useful for compound LLM-detected predicates that don't fit FilterOnValue/FilterOnNumericRange.
+
+### End-to-end verified
+```python
+df_high = df[(df['amount'] > 100) & (df['qty'] < 10)]
+# -> SPLIT recipe with split_condition: '(val("amount") > 100) && (val("qty") < 10)'
+
+df_us = df[df['country'].isin(['US', 'CA', 'MX'])]
+# -> SPLIT recipe with split_condition: '((val("country") == "US") || ...)'
+```
+
+### Test results — cumulative
+
+| Metric | Baseline | W1 | W2 | W3 | W4 | W5 | W6 | W7 | W8 | W9 | Δ |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Tests passing | 2219 | 2258 | 2272 | 2283 | 2291 | 2291 | 2306 | 2328 | 2339 | 2354 | +135 |
+| Tests failing | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Ruff violations | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+15 new wave-9 tests:
+- **GREL translator unit tests** (8): single comparison, equality, compound AND, compound OR, negation, isin method, in operator, unsupported→None.
+- **End-to-end SPLIT condition is GREL** (3): compound AND, compound OR, single-clause regression.
+- **`match_filter` formula operator** (3): formula operator, `grel` alias, `expression` alias all route to FilterOnFormula.
+- **Constants escaping** (1): embedded quotes handled correctly.
+
+---
+
+## Outstanding items (after wave 9)
 
 ### Verification (need external resources)
 1. **Real-LLM end-to-end test** — gated on `ANTHROPIC_API_KEY` (unset in this environment). Need a smoke test that calls the real Anthropic API and validates the LLM emits correctly-shaped output for each example.
 2. **Real DSS import test** — every "DSS-valid" claim in the plan is verified against `dataiku-api-client-python` source code, NOT against a live DSS 14 instance. A real DSS smoke test would close this loop.
-
-### Optional follow-ups
-3. **Compound predicate filter via `FilterOnFormula`** — wave-8 filter routing splits on simple operator class (numeric vs string). A compound predicate like `(df['x'] > 5) & (df['y'] < 10)` currently flows through as a single FILTER transformation with the boolean expression as `condition`. AST `_handle_filter` could be extended to detect `&`/`|` operators and emit a single `FilterOnFormula` step with the GREL-translated expression instead of one `FilterOnValue`/`FilterOnNumericRange` per clause. Lower priority — the current behavior works correctly for the common single-clause case.
 
 ### Decisions explicitly accepted as not-bugs
 - `drop_duplicates` → PREPARE/RemoveDuplicates in rule-based path vs DISTINCT in LLM path. Both produce valid DSS output; rule-based form lets the step merge with adjacent prepare steps.

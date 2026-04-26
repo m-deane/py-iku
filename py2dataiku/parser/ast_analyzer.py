@@ -1640,11 +1640,36 @@ class CodeAnalyzer:
                 )
                 return
 
-        # Row filtering (boolean condition)
+        # Row filtering (boolean condition).
+        # Try to translate the condition to a GREL formula. Compound predicates
+        # (`(df['x'] > 5) & (df['y'] < 10)`) and pandas-Series boolean ops can't
+        # be expressed by a single FilterOnValue / FilterOnNumericRange step —
+        # they need FilterOnFormula. The translator returns None when the
+        # expression isn't statically translatable, and we fall back to the
+        # legacy Python-text condition (still useful as documentation in the
+        # generated recipe even if DSS itself ignores it).
         condition = ast.unparse(node.slice) if hasattr(ast, "unparse") else "condition"
-        self.transformations.append(
-            Transformation.filter_rows(df_name, target, condition, self.current_line)
+        grel = _translate_to_grel(slice_node, df_name)
+        is_compound = _is_compound_predicate(slice_node)
+
+        params: dict[str, Any] = {"condition": condition}
+        if grel is not None:
+            params["formula"] = grel
+        suggested_processor = (
+            "FilterOnFormula" if is_compound and grel is not None else None
         )
+        trans = Transformation.filter_rows(df_name, target, condition, self.current_line)
+        # Augment the filter_rows-built Transformation with our compound-aware
+        # metadata. The original `condition` parameter stays for any caller
+        # that reads it.
+        trans.parameters.update(params)
+        if suggested_processor is not None:
+            trans.suggested_processor = suggested_processor
+            if grel is not None:
+                trans.notes = list(trans.notes or []) + [
+                    f"Compound predicate -> FilterOnFormula with GREL: {grel}"
+                ]
+        self.transformations.append(trans)
 
     def _handle_concat(self, node: ast.Call, target: str) -> None:
         """Handle pd.concat() calls."""
@@ -2686,3 +2711,201 @@ class CodeAnalyzer:
                 notes=[f"sklearn {obj_name}.{method_name}()"],
             )
         )
+
+
+# ---------------------------------------------------------------------------
+# GREL translator for compound boolean predicates
+# ---------------------------------------------------------------------------
+#
+# pandas boolean indexing uses bitwise operators (`&` / `|` / `~`) on Series.
+# In Python AST these appear as ``ast.BinOp`` with ``ast.BitAnd`` / ``ast.BitOr``
+# operators (or ``ast.UnaryOp`` with ``ast.Invert``) — NOT as ``ast.BoolOp``
+# with ``ast.And`` / ``ast.Or``.
+#
+# DSS's GREL formula language uses ``&&`` for AND, ``||`` for OR, ``!`` for NOT,
+# and ``val("col")`` for column references. Comparison operators (`>`, `<`, etc.)
+# are the same.
+#
+# This translator handles the common predicate shapes — single comparison,
+# compound bitwise AND/OR, negation, ``isin`` membership — and returns
+# ``None`` for anything it can't translate so the caller can fall back to
+# leaving the formula unset.
+
+_COMPARE_OP_MAP = {
+    ast.Eq: "==",
+    ast.NotEq: "!=",
+    ast.Lt: "<",
+    ast.LtE: "<=",
+    ast.Gt: ">",
+    ast.GtE: ">=",
+}
+
+
+def _is_compound_predicate(node: ast.expr) -> bool:
+    """True when the predicate combines clauses with ``&`` / ``|`` / ``~``.
+
+    Used to decide whether to suggest ``FilterOnFormula`` over the
+    simpler ``FilterOnValue`` / ``FilterOnNumericRange`` processors.
+    """
+    if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.BitAnd, ast.BitOr)):
+        return True
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Invert):
+        # ``~(...)`` may wrap a single comparison (handled by complementary
+        # filter detection) or a compound — only call it compound when the
+        # operand is itself compound or non-trivial.
+        return _is_compound_predicate(node.operand)
+    if isinstance(node, ast.BoolOp) and isinstance(node.op, (ast.And, ast.Or)):
+        return True
+    return False
+
+
+def _column_ref(node: ast.expr, df_name: str) -> Optional[str]:
+    """Translate ``df['col']`` or ``df.col`` into a GREL ``val("col")`` ref.
+
+    Returns the column reference string, or None if the node isn't a
+    recognized column accessor. The leading DataFrame name is dropped —
+    GREL formulas operate on the current row, so column references are
+    bare ``val("col")`` regardless of which Python variable the column
+    came from.
+    """
+    # df['col']
+    if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Constant):
+        if isinstance(node.slice.value, str):
+            return f'val("{node.slice.value}")'
+    # df.col attribute access (rare in idiomatic pandas, but supported)
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        # Skip method-y attributes; only treat lowercase identifiers as columns.
+        if node.attr.isidentifier():
+            return f'val("{node.attr}")'
+    return None
+
+
+def _grel_constant(node: ast.Constant) -> str:
+    """Render a Python constant as a GREL literal."""
+    v = node.value
+    if isinstance(v, str):
+        # Escape embedded quotes
+        escaped = v.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{escaped}"'
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    return str(v)
+
+
+def _translate_compare(node: ast.Compare, df_name: str) -> Optional[str]:
+    """Translate ``ast.Compare`` (e.g. ``df['x'] > 5``) into GREL.
+
+    Only handles single-operator comparisons (``a > b``, not chained
+    ``a < b < c``) — chained comparisons are uncommon in pandas
+    boolean indexing.
+    """
+    if len(node.ops) != 1 or len(node.comparators) != 1:
+        return None
+    op = node.ops[0]
+    grel_op = _COMPARE_OP_MAP.get(type(op))
+    if grel_op is None:
+        # ``in`` / ``not in`` etc. — handle ``in [...]`` as a chained ``||``
+        # for small lists, otherwise punt.
+        if isinstance(op, ast.In) and isinstance(node.comparators[0], ast.List):
+            left = _translate_grel_node(node.left, df_name)
+            if left is None:
+                return None
+            elts = node.comparators[0].elts
+            literals = []
+            for e in elts:
+                if isinstance(e, ast.Constant):
+                    literals.append(_grel_constant(e))
+                else:
+                    return None
+            if not literals:
+                return None
+            clauses = [f"({left} == {lit})" for lit in literals]
+            return "(" + " || ".join(clauses) + ")"
+        return None
+
+    left = _translate_grel_node(node.left, df_name)
+    right = _translate_grel_node(node.comparators[0], df_name)
+    if left is None or right is None:
+        return None
+    return f"{left} {grel_op} {right}"
+
+
+def _translate_grel_node(node: ast.expr, df_name: str) -> Optional[str]:
+    """Recursive AST → GREL translator. Returns None on unsupported nodes."""
+    # Column reference: df['col'] or df.col
+    col = _column_ref(node, df_name)
+    if col is not None:
+        return col
+
+    # Constant literal
+    if isinstance(node, ast.Constant):
+        return _grel_constant(node)
+
+    # Comparison: df['x'] > 5
+    if isinstance(node, ast.Compare):
+        return _translate_compare(node, df_name)
+
+    # Bitwise AND/OR (pandas ``&`` / ``|``)
+    if isinstance(node, ast.BinOp):
+        if isinstance(node.op, ast.BitAnd):
+            left = _translate_grel_node(node.left, df_name)
+            right = _translate_grel_node(node.right, df_name)
+            if left is None or right is None:
+                return None
+            return f"({left}) && ({right})"
+        if isinstance(node.op, ast.BitOr):
+            left = _translate_grel_node(node.left, df_name)
+            right = _translate_grel_node(node.right, df_name)
+            if left is None or right is None:
+                return None
+            return f"({left}) || ({right})"
+
+    # Logical AND/OR (rare in pandas — usually short-circuits at row-eval)
+    if isinstance(node, ast.BoolOp):
+        if isinstance(node.op, (ast.And, ast.Or)):
+            translated = [_translate_grel_node(v, df_name) for v in node.values]
+            if any(t is None for t in translated):
+                return None
+            sep = " && " if isinstance(node.op, ast.And) else " || "
+            return "(" + sep.join(translated) + ")"
+
+    # Unary not / invert
+    if isinstance(node, ast.UnaryOp):
+        if isinstance(node.op, (ast.Invert, ast.Not)):
+            inner = _translate_grel_node(node.operand, df_name)
+            if inner is None:
+                return None
+            return f"!({inner})"
+
+    # Method calls: df['col'].isin([...]), df['col'].str.contains(...)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        method = node.func.attr
+        # df['col'].isin([a, b, c]) -> (col == "a" || col == "b" || col == "c")
+        if method == "isin" and node.args and isinstance(node.args[0], ast.List):
+            target_ref = _translate_grel_node(node.func.value, df_name)
+            if target_ref is None:
+                return None
+            elts = node.args[0].elts
+            literals = []
+            for e in elts:
+                if isinstance(e, ast.Constant):
+                    literals.append(_grel_constant(e))
+                else:
+                    return None
+            if not literals:
+                return None
+            clauses = [f"({target_ref} == {lit})" for lit in literals]
+            return "(" + " || ".join(clauses) + ")"
+
+    return None
+
+
+def _translate_to_grel(node: ast.expr, df_name: str) -> Optional[str]:
+    """Public entrypoint: translate a pandas boolean indexing expression to GREL.
+
+    Returns ``None`` for unsupported expression shapes so callers can
+    fall back to leaving the formula unset.
+    """
+    return _translate_grel_node(node, df_name)

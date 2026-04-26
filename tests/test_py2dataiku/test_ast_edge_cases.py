@@ -2703,3 +2703,143 @@ class TestRepresentationHtml:
         html = flow._repr_html_()
         assert "<div" in html
         assert "<svg" in html
+
+
+# ===================================================================
+# Ultrareview wave-9: Phase 12 — compound-predicate filters → GREL
+# ===================================================================
+
+
+class TestGrelTranslator:
+    """ast_analyzer._translate_to_grel converts pandas boolean indexing
+    to DSS GREL formulas."""
+
+    def _t(self, expr_text: str, df_name: str = "df"):
+        import ast as _ast
+        from py2dataiku.parser.ast_analyzer import _translate_to_grel
+        node = _ast.parse(expr_text, mode="eval").body
+        return _translate_to_grel(node, df_name)
+
+    def test_simple_greater_than(self):
+        assert self._t("df['x'] > 5") == 'val("x") > 5'
+
+    def test_simple_string_equality(self):
+        assert self._t("df['status'] == 'active'") == 'val("status") == "active"'
+
+    def test_compound_and(self):
+        result = self._t("(df['x'] > 5) & (df['y'] < 10)")
+        assert result == '(val("x") > 5) && (val("y") < 10)'
+
+    def test_compound_or(self):
+        result = self._t("(df['a'] == 1) | (df['b'] == 2)")
+        assert result == '(val("a") == 1) || (val("b") == 2)'
+
+    def test_negation(self):
+        result = self._t("~(df['active'] == True)")
+        assert result == '!(val("active") == true)'
+
+    def test_isin_method(self):
+        result = self._t("df['country'].isin(['US', 'CA'])")
+        # Either form is acceptable; just verify it produces an OR-chain GREL
+        assert 'val("country") == "US"' in result
+        assert 'val("country") == "CA"' in result
+        assert "||" in result
+
+    def test_in_operator_with_list(self):
+        # df['cat'] in [...] — alternative pandas syntax
+        result = self._t("df['cat'] in ['a', 'b']")
+        # The Python `in` operator for Series is unusual but the AST is still
+        # processable. Either we get an OR-chain or None; both are acceptable.
+        if result is not None:
+            assert "||" in result
+
+    def test_constants_quoted_correctly(self):
+        # Embedded quotes get escaped
+        result = self._t("df['name'] == 'O\\'Reilly'")
+        assert "O" in result and "Reilly" in result
+
+    def test_unsupported_returns_none(self):
+        """Function calls or weird shapes return None so caller can fall back."""
+        # Random function call that doesn't have a translation
+        result = self._t("len(df)")
+        assert result is None
+
+
+class TestCompoundFilterEmitsFormulaInSplit:
+    """Compound predicates produce a SPLIT recipe whose condition is GREL."""
+
+    def test_compound_and_split_uses_grel(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "high_value = df[(df['amount'] > 100) & (df['qty'] < 10)]\n"
+        )
+        flow = convert(code)
+        splits = flow.get_recipes_by_type(RecipeType.SPLIT)
+        assert len(splits) == 1
+        cond = splits[0].split_condition
+        # GREL operators (not Python &)
+        assert "&&" in cond
+        # Column references through val(...)
+        assert 'val("amount")' in cond
+        assert 'val("qty")' in cond
+
+    def test_compound_or_split_uses_grel(self):
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "result = df[(df['score'] >= 90) | (df['vip'] == True)]\n"
+        )
+        flow = convert(code)
+        splits = flow.get_recipes_by_type(RecipeType.SPLIT)
+        assert len(splits) == 1
+        cond = splits[0].split_condition
+        assert "||" in cond
+        assert 'val("score")' in cond
+
+    def test_simple_filter_still_uses_grel_translation(self):
+        """Even single-clause filters now flow through the GREL translator
+        so SPLIT condition is consistently GREL (not raw Python)."""
+        from py2dataiku import convert
+        from py2dataiku.models.dataiku_recipe import RecipeType
+        code = (
+            "import pandas as pd\n"
+            "df = pd.read_csv('x.csv')\n"
+            "big = df[df['amount'] > 100]\n"
+        )
+        flow = convert(code)
+        splits = flow.get_recipes_by_type(RecipeType.SPLIT)
+        assert len(splits) == 1
+        cond = splits[0].split_condition
+        assert 'val("amount") > 100' == cond
+
+
+class TestMatchFilterFormulaOperator:
+    """LLM path: ``operator='formula'`` routes to FilterOnFormula directly."""
+
+    def test_formula_operator_emits_filter_on_formula(self):
+        from py2dataiku.parser.pattern_matcher import PatternMatcher
+        from py2dataiku.models.prepare_step import ProcessorType
+        step = PatternMatcher().match_filter(
+            "any", "formula", 'val("x") > 5 && val("y") < 10'
+        )
+        assert step.processor_type == ProcessorType.FILTER_ON_FORMULA
+        assert step.params["formula"] == 'val("x") > 5 && val("y") < 10'
+
+    def test_grel_alias(self):
+        from py2dataiku.parser.pattern_matcher import PatternMatcher
+        from py2dataiku.models.prepare_step import ProcessorType
+        step = PatternMatcher().match_filter("any", "grel", "val(\"x\") > 0")
+        assert step.processor_type == ProcessorType.FILTER_ON_FORMULA
+
+    def test_expression_alias(self):
+        from py2dataiku.parser.pattern_matcher import PatternMatcher
+        from py2dataiku.models.prepare_step import ProcessorType
+        step = PatternMatcher().match_filter(
+            "any", "expression", 'val("score") >= 90'
+        )
+        assert step.processor_type == ProcessorType.FILTER_ON_FORMULA

@@ -107,6 +107,16 @@ class PatternMatcher:
         """
         op = (operator or "").lower().strip()
 
+        # Compound / formula predicate → FilterOnFormula. When the LLM (or
+        # an AST handler) determined the condition can't be expressed by a
+        # simpler Filter processor, it sets ``operator="formula"`` and
+        # passes the GREL expression as ``value``. ``column`` is ignored
+        # here since GREL formulas operate on the whole row.
+        if op in ("formula", "expression", "grel"):
+            return PrepareStep.filter_on_formula(
+                formula=str(value), keep=True,
+            )
+
         # Numeric comparisons → FilterOnNumericRange
         if op in (">", ">=", "gt", "gte", "greater_than", "greater_or_equal"):
             # x > value: keep rows where column > value, i.e. min=value, exclusive.

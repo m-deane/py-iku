@@ -609,10 +609,23 @@ class FlowGenerator(BaseFlowGenerator):
         we emit ONE multi-output SPLIT recipe with both outputs (the DSS
         canonical shape for partitioned filtering) instead of two
         single-output SPLITs.
+
+        When the AST analyzer translated the boolean condition to a GREL
+        formula (``parameters["formula"]``, set for compound predicates
+        like ``(df['x'] > 5) & (df['y'] < 10)``), prefer that formula as
+        the SPLIT condition so DSS can parse it. Falls back to the
+        Python-source ``condition`` text when no GREL translation was
+        available.
         """
         self.recipe_counter += 1
 
-        condition = trans.parameters.get("condition", "")
+        # Prefer the GREL-translated formula when the AST analyzer was able
+        # to produce one (compound predicates can't be parsed by DSS as
+        # raw Python text); fall back to the literal condition string.
+        condition = (
+            trans.parameters.get("formula")
+            or trans.parameters.get("condition", "")
+        )
         complement_outputs = trans.parameters.get("complementary_outputs")
 
         if complement_outputs and len(complement_outputs) >= 2:
