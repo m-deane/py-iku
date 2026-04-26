@@ -245,6 +245,62 @@ export interface ListProcessorsOptions extends ClientOptions {
   category?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Persistence + sharing + audit (M7)
+// ---------------------------------------------------------------------------
+
+export interface SaveFlowRequest {
+  flow: Record<string, unknown>;
+  name: string;
+  tags?: string[];
+}
+
+export interface CreatedFlowResponse {
+  id: string;
+  created_at: string;
+}
+
+export interface SavedFlowResponse {
+  id: string;
+  name: string;
+  flow: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+}
+
+export interface ShareFlowRequest {
+  ttl_seconds?: number;
+  scopes?: string[];
+}
+
+export interface ShareFlowResponse {
+  token: string;
+  url: string;
+  expires_at: string;
+}
+
+export interface AuditEvent {
+  actor: string;
+  action: string;
+  resource_type: string;
+  resource_id: string;
+  details: Record<string, unknown>;
+  ts: string;
+}
+
+export interface AuditListResponse {
+  events: AuditEvent[];
+  next_cursor: string | null;
+}
+
+export interface ListAuditOptions extends ClientOptions {
+  since?: string;
+  actor?: string;
+  limit?: number;
+  cursor?: string;
+}
+
 export type ExportFormat = "zip" | "json" | "yaml" | "svg" | "png" | "pdf";
 
 export interface ExportResult {
@@ -374,6 +430,48 @@ export const client = {
       `flow.${format}`,
     );
     return { blob, filename, contentType };
+  },
+  saveFlow(payload: SaveFlowRequest, opts?: ClientOptions): Promise<CreatedFlowResponse> {
+    return request<CreatedFlowResponse>(
+      "/flows",
+      { method: "POST", body: JSON.stringify(payload) },
+      opts,
+    );
+  },
+  getFlow(id: string, opts?: ClientOptions): Promise<SavedFlowResponse> {
+    return request<SavedFlowResponse>(
+      `/flows/${encodeURIComponent(id)}`,
+      { method: "GET" },
+      opts,
+    );
+  },
+  shareFlow(
+    id: string,
+    body?: ShareFlowRequest,
+    opts?: ClientOptions,
+  ): Promise<ShareFlowResponse> {
+    return request<ShareFlowResponse>(
+      `/flows/${encodeURIComponent(id)}/share`,
+      { method: "POST", body: JSON.stringify(body ?? {}) },
+      opts,
+    );
+  },
+  getShared(token: string, opts?: ClientOptions): Promise<SavedFlowResponse> {
+    return request<SavedFlowResponse>(
+      `/share/${encodeURIComponent(token)}`,
+      { method: "GET" },
+      opts,
+    );
+  },
+  listAuditEvents(opts?: ListAuditOptions): Promise<AuditListResponse> {
+    const params = new URLSearchParams();
+    if (opts?.since) params.set("since", opts.since);
+    if (opts?.actor) params.set("actor", opts.actor);
+    if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
+    if (opts?.cursor) params.set("cursor", opts.cursor);
+    const qs = params.toString();
+    const path = qs ? `/audit?${qs}` : "/audit";
+    return request<AuditListResponse>(path, { method: "GET" }, opts);
   },
   /** Generic escape hatch for not-yet-typed endpoints (M5+ will expand). */
   request,

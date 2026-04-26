@@ -1,8 +1,11 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
+import { AuditPage } from "../features/audit/AuditPage";
 import { CatalogPage } from "../features/catalog/CatalogPage";
 import { ConvertPage } from "../features/conversion/ConvertPage";
 import { DiffPage } from "../features/diff/DiffPage";
+import { SharePage } from "../features/share/SharePage";
+import { SnippetGallery } from "../features/snippets/SnippetGallery";
 
 function PlaceholderPage({
   title,
@@ -86,11 +89,9 @@ export function AppRouter(): JSX.Element {
           />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/diff" element={<DiffPage />} />
-          <Route
-            path="/share/:token"
-            element={<PlaceholderPage title="Read-only share view" milestone="M7" />}
-          />
-          <Route path="/audit" element={<PlaceholderPage title="Audit log" milestone="M7" />} />
+          <Route path="/snippets" element={<SnippetGallery />} />
+          <Route path="/share/:token" element={<SharePage />} />
+          <Route path="/audit" element={<AuditPage />} />
           <Route
             path="/settings"
             element={<PlaceholderPage title="Settings" milestone="M4b/M5" />}

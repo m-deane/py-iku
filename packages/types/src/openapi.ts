@@ -184,10 +184,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Persist a flow */
+        post: operations["post_flow_flows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/flows/{flow_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a saved flow */
+        get: operations["get_flow_flows__flow_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch a saved flow */
+        patch: operations["patch_flow_flows__flow_id__patch"];
+        trace?: never;
+    };
+    "/flows/{flow_id}/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mint a signed share token for a flow */
+        post: operations["post_share_flows__flow_id__share_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/share/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public read-only view of a shared flow */
+        get: operations["get_share_share__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List audit-log events */
+        get: operations["get_audit_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AuditEventModel
+         * @description A single audit log entry returned by ``GET /audit``.
+         */
+        AuditEventModel: {
+            /** Actor */
+            actor: string;
+            /** Action */
+            action: string;
+            /** Resource Type */
+            resource_type: string;
+            /** Resource Id */
+            resource_id: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            };
+            /** Ts */
+            ts: string;
+        };
+        /**
+         * AuditListResponse
+         * @description Paginated audit response.
+         */
+        AuditListResponse: {
+            /** Events */
+            events: components["schemas"]["AuditEventModel"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
         /**
          * ColumnSchemaModel
          * @description Mirrors ColumnSchema.to_dict().
@@ -308,6 +424,16 @@ export interface components {
             score: components["schemas"]["ComplexityScore"];
             /** Warnings */
             warnings?: string[];
+        };
+        /**
+         * CreatedFlowResponse
+         * @description Slim response from ``POST /flows``.
+         */
+        CreatedFlowResponse: {
+            /** Id */
+            id: string;
+            /** Created At */
+            created_at: string;
         };
         /**
          * DataikuDatasetModel
@@ -795,6 +921,62 @@ export interface components {
             sampleSize?: number | null;
         };
         /**
+         * SaveFlowRequest
+         * @description Request body for ``POST /flows``.
+         */
+        SaveFlowRequest: {
+            flow: components["schemas"]["DataikuFlowModel"];
+            /** Name */
+            name: string;
+            /** Tags */
+            tags?: string[];
+        };
+        /**
+         * SavedFlowResponse
+         * @description Full saved-flow record.
+         */
+        SavedFlowResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            flow: components["schemas"]["DataikuFlowModel"];
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Tags */
+            tags?: string[];
+        };
+        /**
+         * ShareFlowRequest
+         * @description Body for ``POST /flows/{id}/share``.
+         */
+        ShareFlowRequest: {
+            /**
+             * Ttl Seconds
+             * @description Token validity in seconds (default: server-configured TTL).
+             */
+            ttl_seconds?: number | null;
+            /**
+             * Scopes
+             * @description Token scopes (default: ['read']).
+             */
+            scopes?: string[] | null;
+        };
+        /**
+         * ShareFlowResponse
+         * @description Response from ``POST /flows/{id}/share``.
+         */
+        ShareFlowResponse: {
+            /** Token */
+            token: string;
+            /** Url */
+            url: string;
+            /** Expires At */
+            expires_at: string;
+        };
+        /**
          * SortSettingsModel
          * @description Mirrors SortSettings.to_dict(): sortColumns.
          */
@@ -863,6 +1045,17 @@ export interface components {
             topN: number;
             /** Rankingcolumn */
             rankingColumn?: string | null;
+        };
+        /**
+         * UpdateFlowRequest
+         * @description Request body for ``PATCH /flows/{id}`` — every field is optional.
+         */
+        UpdateFlowRequest: {
+            flow?: components["schemas"]["DataikuFlowModel"] | null;
+            /** Name */
+            name?: string | null;
+            /** Tags */
+            tags?: string[] | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1181,6 +1374,236 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    post_flow_flows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveFlowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_flow_flows__flow_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_flow_flows__flow_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFlowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_share_flows__flow_id__share_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                flow_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareFlowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareFlowResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_share_share__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedFlowResponse"];
+                };
+            };
+            /** @description Token signature is invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token references an unknown flow */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token expired */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_audit_audit_get: {
+        parameters: {
+            query?: {
+                /** @description ISO timestamp lower bound */
+                since?: string | null;
+                /** @description Filter to a single actor */
+                actor?: string | null;
+                limit?: number;
+                /** @description Pagination cursor */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

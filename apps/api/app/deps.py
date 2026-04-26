@@ -1,14 +1,17 @@
-"""FastAPI dependencies: settings, request-id."""
+"""FastAPI dependencies: settings, request-id, repositories."""
 
 from __future__ import annotations
 
 import uuid
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Header, Request
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from .store import AuditRepo, FlowsRepo
 
 
 class Settings(BaseSettings):
@@ -51,12 +54,46 @@ class Settings(BaseSettings):
         default=None,
         description="Default LLM model name (provider default if None)",
     )
+    flows_dir: Path = Field(
+        default=Path("./.py-iku-flows"),
+        description="Directory used to persist saved flows and audit log",
+    )
+    share_default_ttl_seconds: int = Field(
+        default=24 * 60 * 60,
+        description="Default share-link TTL (24 hours)",
+    )
+    share_rate_limit_per_minute: int = Field(
+        default=10,
+        description="Per-IP rate limit for GET /share/{token}",
+    )
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return the cached application settings singleton."""
     return Settings()
+
+
+@lru_cache(maxsize=1)
+def get_flows_repo() -> FlowsRepo:
+    """Return the singleton ``FlowsRepo`` rooted under ``settings.flows_dir``."""
+    settings = get_settings()
+    return FlowsRepo(base_dir=settings.flows_dir)
+
+
+@lru_cache(maxsize=1)
+def get_audit_repo() -> AuditRepo:
+    """Return the singleton ``AuditRepo`` rooted under ``settings.flows_dir``."""
+    settings = get_settings()
+    return AuditRepo(base_dir=settings.flows_dir)
+
+
+def reset_repo_singletons() -> None:
+    """Clear the cached repo singletons.  Used by the test suite to re-bind to
+    a freshly created ``flows_dir`` per test.
+    """
+    get_flows_repo.cache_clear()
+    get_audit_repo.cache_clear()
 
 
 def get_request_id(x_request_id: Annotated[str | None, Header()] = None) -> str:

@@ -4,6 +4,7 @@ import { MonacoEditor } from "../editor/MonacoEditor";
 import { SnippetPicker } from "../editor/SnippetPicker";
 import { JsonView } from "../../components/JsonView";
 import { ExportButtons } from "../export/ExportButtons";
+import { ValidationPanel } from "../validation/ValidationPanel";
 import {
   client,
   ApiError,
@@ -33,6 +34,8 @@ export interface ConvertPageProps {
   useRestOnly?: boolean;
   /** Test seam — swap in a stub client for the export buttons. */
   exportClientImpl?: typeof client;
+  /** Test seam — full client used for save/share calls. */
+  shareClientImpl?: typeof client;
 }
 
 export function ConvertPage(props: ConvertPageProps): JSX.Element {
@@ -53,6 +56,9 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     null,
   );
   const [editorValue, setEditorValue] = useState<string | undefined>(undefined);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [savedFlowId, setSavedFlowId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   // Streaming hook (always-on for M5 unless explicitly disabled by tests).
   const useStreamHook = props.streamConvertImpl ?? useConvertStream;
@@ -114,6 +120,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     }
     setError(null);
     setResponse(null);
+    setSavedFlowId(null);
 
     // REST path (legacy / test compatibility).
     if (props.useRestOnly || props.convertImpl) {
@@ -166,6 +173,43 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     stream.cancel();
   };
 
+  const cli = props.shareClientImpl ?? client;
+
+  const onShare = async (): Promise<void> => {
+    if (!response) return;
+    setSharing(true);
+    try {
+      let flowId = savedFlowId;
+      if (!flowId) {
+        const saved = await cli.saveFlow({
+          flow: response.flow,
+          name:
+            (response.flow as { flow_name?: string }).flow_name ||
+            "shared-flow",
+        });
+        flowId = saved.id;
+        setSavedFlowId(flowId);
+      }
+      const shared = await cli.shareFlow(flowId, {
+        ttl_seconds: 24 * 60 * 60,
+        scopes: ["read"],
+      });
+      try {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(shared.url);
+        }
+      } catch {
+        /* clipboard not available — fall through to toast */
+      }
+      toast.success("Share link copied", { description: shared.url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Could not share flow", { description: msg });
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const progressList = stream.progress;
   const showProgress = progressList.length > 0;
 
@@ -197,6 +241,27 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
               setCurrentCode(s.code);
             }}
           />
+          {response ? (
+            <button
+              type="button"
+              data-testid="score-badge"
+              onClick={() => setValidationOpen((v) => !v)}
+              aria-label="Toggle validation panel"
+              style={{
+                marginLeft: "auto",
+                padding: "0.3rem 0.6rem",
+                borderRadius: 999,
+                border: "1px solid var(--color-grid, #e0e0e0)",
+                background: "transparent",
+                color: "inherit",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              complexity: {response.score.complexity.toFixed(1)}
+            </button>
+          ) : null}
         </header>
         <MonacoEditor
           value={editorValue}
@@ -298,9 +363,45 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
                 (visualization lands in M5)
               </span>
             </h2>
-            <ExportButtons
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                alignItems: "center",
+                flexWrap: "wrap",
+                marginBottom: "0.5rem",
+              }}
+            >
+              <ExportButtons
+                flow={response.flow}
+                clientImpl={props.exportClientImpl}
+              />
+              <button
+                type="button"
+                data-testid="share-flow-button"
+                onClick={onShare}
+                disabled={sharing}
+                aria-disabled={sharing}
+                style={{
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: 6,
+                  border: "1px solid var(--color-grid, #e0e0e0)",
+                  background: "transparent",
+                  color: "inherit",
+                  cursor: sharing ? "not-allowed" : "pointer",
+                  fontSize: 13,
+                  opacity: sharing ? 0.6 : 1,
+                }}
+              >
+                {sharing ? "Sharing…" : "Share this flow"}
+              </button>
+            </div>
+            <ValidationPanel
               flow={response.flow}
-              clientImpl={props.exportClientImpl}
+              warnings={response.warnings}
+              defaultOpen={validationOpen}
+              key={validationOpen ? "open" : "closed"}
+              clientImpl={cli}
             />
             <JsonView value={response.flow} />
           </div>

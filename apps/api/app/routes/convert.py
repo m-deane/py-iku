@@ -5,13 +5,15 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from pydantic import ValidationError
 
+from ..deps import get_audit_repo
 from ..schemas.convert import ConvertRequest, ConvertResponse
 from ..services.conversion import convert_streaming, convert_sync
 from ..services.streaming import ConversionEventEmitter
+from ..store import AuditEvent, AuditRepo
 
 router = APIRouter(tags=["convert"])
 
@@ -38,6 +40,7 @@ async def post_convert(
     request: Request,
     body: ConvertRequest,
     response: Response,
+    audit: AuditRepo = Depends(get_audit_repo),
 ) -> ConvertResponse:
     """Convert Python code to a DataikuFlow.
 
@@ -57,6 +60,24 @@ async def post_convert(
             f"Conversion did not complete within {_SYNC_TIMEOUT_SECONDS}s"
         ) from exc
 
+    # Audit hook — log every successful conversion.
+    actor = request.headers.get("X-Actor") or (
+        request.client.host if request.client else "anonymous"
+    )
+    audit.append(
+        AuditEvent(
+            actor=actor,
+            action="convert.completed",
+            resource_type="conversion",
+            resource_id=getattr(request.state, "request_id", "-"),
+            details={
+                "mode": body.mode.value,
+                "code_size_bytes": len(body.code.encode()),
+                "recipe_count": result.score.recipe_count,
+                "warnings": len(result.warnings),
+            },
+        )
+    )
     return result
 
 

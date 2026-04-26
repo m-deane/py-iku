@@ -21,7 +21,7 @@ import json
 import zipfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from py2dataiku.models.dataiku_flow import DataikuFlow
@@ -190,7 +190,7 @@ class ZipBundleSink(FlowSink):
         manifest = {
             "flow_id": flow.name,
             "py_iku_version": PY_IKU_VERSION,
-            "generated_at": datetime.now(tz=timezone.utc).isoformat(),
+            "generated_at": datetime.now(tz=UTC).isoformat(),
             "format_versions": {
                 "flow_json": "1",
                 "flow_svg": "1" if svg_content is not None else None,

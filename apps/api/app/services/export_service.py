@@ -16,7 +16,6 @@ from py2dataiku.models.dataiku_flow import DataikuFlow
 from ..schemas.export import ExportFormat
 from ..sinks import JsonSink, SinkResult, YamlSink, ZipBundleSink
 
-
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------

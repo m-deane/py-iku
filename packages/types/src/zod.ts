@@ -130,6 +130,22 @@ export const RecipeSettingsModelSchema = z.discriminatedUnion("kind", [
 ]);
 export type RecipeSettingsModel = z.infer<typeof RecipeSettingsModelSchema>;
 
+export const AuditEventModelSchema = z.object({
+  "actor": z.string(),
+  "action": z.string(),
+  "resource_type": z.string(),
+  "resource_id": z.string(),
+  "details": z.record(z.string(), z.unknown()).optional(),
+  "ts": z.string()
+}).passthrough();
+export type AuditEventModel = z.infer<typeof AuditEventModelSchema>;
+
+export const AuditListResponseSchema = z.object({
+  "events": z.array(AuditEventModelSchema),
+  "next_cursor": z.string().nullable().optional()
+}).passthrough();
+export type AuditListResponse = z.infer<typeof AuditListResponseSchema>;
+
 export const ColumnSchemaModelSchema = z.object({
   "name": z.string(),
   "type": z.string(),
@@ -239,6 +255,12 @@ export const ConvertResponseSchema = z.object({
 }).passthrough();
 export type ConvertResponse = z.infer<typeof ConvertResponseSchema>;
 
+export const CreatedFlowResponseSchema = z.object({
+  "id": z.string(),
+  "created_at": z.string()
+}).passthrough();
+export type CreatedFlowResponse = z.infer<typeof CreatedFlowResponseSchema>;
+
 export const DiffRequestSchema = z.object({
   "a": DataikuFlowModelSchema,
   "b": DataikuFlowModelSchema
@@ -313,3 +335,40 @@ export const RecipeCatalogEntrySchema = z.object({
   "pandas_examples": z.array(z.string()).optional()
 }).passthrough();
 export type RecipeCatalogEntry = z.infer<typeof RecipeCatalogEntrySchema>;
+
+export const SaveFlowRequestSchema = z.object({
+  "flow": DataikuFlowModelSchema,
+  "name": z.string(),
+  "tags": z.array(z.string()).optional()
+}).passthrough();
+export type SaveFlowRequest = z.infer<typeof SaveFlowRequestSchema>;
+
+export const SavedFlowResponseSchema = z.object({
+  "id": z.string(),
+  "name": z.string(),
+  "flow": DataikuFlowModelSchema,
+  "created_at": z.string(),
+  "updated_at": z.string(),
+  "tags": z.array(z.string()).optional()
+}).passthrough();
+export type SavedFlowResponse = z.infer<typeof SavedFlowResponseSchema>;
+
+export const ShareFlowRequestSchema = z.object({
+  "ttl_seconds": z.number().nullable().optional(),
+  "scopes": z.array(z.string()).nullable().optional()
+}).passthrough();
+export type ShareFlowRequest = z.infer<typeof ShareFlowRequestSchema>;
+
+export const ShareFlowResponseSchema = z.object({
+  "token": z.string(),
+  "url": z.string(),
+  "expires_at": z.string()
+}).passthrough();
+export type ShareFlowResponse = z.infer<typeof ShareFlowResponseSchema>;
+
+export const UpdateFlowRequestSchema = z.object({
+  "flow": DataikuFlowModelSchema.nullable().optional(),
+  "name": z.string().nullable().optional(),
+  "tags": z.array(z.string()).nullable().optional()
+}).passthrough();
+export type UpdateFlowRequest = z.infer<typeof UpdateFlowRequestSchema>;

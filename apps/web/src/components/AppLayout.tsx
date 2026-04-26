@@ -24,6 +24,7 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
         <nav className={styles.nav} aria-label="Primary">
           <Link to="/convert">Convert</Link>
           <Link to="/catalog">Catalog</Link>
+          <Link to="/snippets">Snippets</Link>
           <Link to="/diff">Diff</Link>
           <Link to="/audit">Audit</Link>
         </nav>
