@@ -2,7 +2,9 @@
 
 ## What you'll learn
 
-This chapter covers how to wire `convert()` into a CI pipeline so that the produced flow is asserted-against on every commit, how to load API credentials from `.env.local` without leaking them into shell history or git, how to monitor LLM-path cost via `AnalysisResult.usage`, and how `DSSFlowDeployer` carries a flow object the rest of the way to a running DSS instance. The chapter ends with a worked `pytest` example covering V3 of the running example.
+This chapter covers how to wire `convert()` into a CI pipeline so that the produced flow is asserted-against on every commit, how to load API credentials from `.env.local` without leaking them into shell history or git, how to monitor LLM-path cost via `AnalysisResult.usage`, and how `DSSFlowDeployer` carries a flow object the rest of the way to a running [DSS](appendix-a-glossary.md#dss) instance. The chapter ends with a worked `pytest` example covering V3 of the running example.
+
+If you have not yet read Chapter 12 (extending), this chapter assumes only the rule-based + LLM paths — plugins are not strictly required for production deployment.
 
 ## The production contract
 
@@ -10,7 +12,7 @@ A production pipeline that uses py-iku is making three commitments to its users.
 
 The first commitment is determinism. Chapter 2 established that the rule-based path is deterministic by construction; Chapter 7 established that the LLM path is deterministic at `temperature=0` (measured: 3/3 identical runs at temperature=0 across the smoke-test corpus). Both paths produce the same `DataikuFlow` for the same input, so a CI assertion against the flow shape is meaningful.
 
-The second commitment is asserted output. The library does not promise that every conversion is correct; it promises that the conversion is reproducible and inspectable. A team running py-iku in production picks the assertions they care about — recipe count, recipe types in topological order, specific processor types in a specific PREPARE step — and writes them into the test suite.
+The second commitment is asserted output. The library does not promise that every conversion is correct; it promises that the conversion is reproducible and inspectable. A team running py-iku in production picks the assertions they care about — [recipe](appendix-a-glossary.md#recipe) count, recipe types in [topological order](appendix-a-glossary.md#topological-order), specific [processor](appendix-a-glossary.md#processor) types in a specific PREPARE step — and writes them into the test suite.
 
 The third commitment is credentials hygiene. The LLM path needs an API key. A production runbook that exposes that key in shell history, in a CI log, or in the git tree will leak it eventually. The patterns in this chapter exist because the project's own smoke test uses them.
 
@@ -102,7 +104,7 @@ flow = convert_with_llm(
 # [done] {'recipes': 3, 'datasets': 4}
 ```
 
-The `analyzed` phase carries the step and dataset counts the LLM extracted before generation; the `optimizing` phase carries the pre-optimization recipe count. A CI runner can compare those to the post-optimization counts in `done` to track how much consolidation the optimizer performed on each commit.
+The `analyzed` phase carries the step and [dataset](appendix-a-glossary.md#dataset) counts the LLM extracted before generation; the `optimizing` phase carries the pre-optimization recipe count. A CI runner can compare those to the post-optimization counts in `done` to track how much consolidation the [optimizer](appendix-a-glossary.md#optimizer) performed on each commit.
 
 ## Cost monitoring
 
@@ -142,7 +144,7 @@ The library does not enforce this — the right threshold is workload-dependent 
 
 ## A real `pytest` example
 
-The asserted-output commitment cashes out as test code. The pattern is: convert a known input, walk the produced flow, and assert against the structural properties the running example contracts. V3 of the running example is the right test case — three recipes (`PREPARE`, `JOIN`, `WINDOW`) in topological order, with explicit assertions on the WINDOW partitioning.
+The asserted-output commitment cashes out as test code. The pattern is: convert a known input, walk the produced flow, and assert against the structural properties the running example contracts. V3 of the running example is the right test case — three recipes (`PREPARE`, [`JOIN`](appendix-a-glossary.md#join), [`WINDOW`](appendix-a-glossary.md#window)) in topological order, with explicit assertions on the WINDOW [partitioning](appendix-a-glossary.md#partition).
 
 ```python
 # tests/test_running_example_v3.py
@@ -311,6 +313,8 @@ print(f"created {len(result.datasets_created)} datasets, "
 
 `deploy()` validates the flow, topologically sorts the graph, creates datasets first, then creates recipes in dependency order. The `dataikuapi` package is the official Dataiku Python client (see [Dataiku DSS Python API documentation](https://doc.dataiku.com/dss/latest/python-api/outside-usage.html)); the deployer surfaces a clear `ExportError` if it is not installed. The `DeploymentResult.success` property is the right thing to gate on in CI: it is `True` only when no error was recorded during deploy.
 
+> **Operational callouts.** Deployment runs share two cross-cutting concerns: (1) cost tracking — see the [Cheatsheet's token-usage formula](appendix-c-cheatsheet.md#token-usage) for the rough Anthropic cost estimate; and (2) transient provider failures — see the [retry pattern in Appendix B](appendix-b-troubleshooting.md#providererror-rate-limited-by-the-llm-provider) for the canonical sleep-and-retry loop.
+
 ## Versioning and reproducibility
 
 Two version pins make a CI run reproducible. The first is the `py-iku` version itself — pin it in `requirements.txt` or `pyproject.toml` so that a library upgrade does not silently change the produced flow. The second is the LLM model name. The provider defaults to a specific model (`claude-sonnet-4-20250514` for Anthropic, `gpt-4o` for OpenAI), but a major-version model upgrade can change the produced flow even at temperature=0. Pin the model explicitly:
@@ -393,6 +397,10 @@ This is the strongest assertion the library supports: byte-level identity of the
 
 ## Further reading
 
+- [Cheatsheet](appendix-c-cheatsheet.md) — full reference for production patterns
+- [Troubleshooting](appendix-b-troubleshooting.md)
+- [Installation guide](../getting-started/installation.md) — for CI runner setup
+- [Glossary](appendix-a-glossary.md)
 - [Configuration API reference](../api/configuration.md)
 - [Integration API reference](../api/integration.md)
 - [Notebook 04: expert patterns](https://github.com/m-deane/py-iku/blob/main/notebooks/04_expert.ipynb)

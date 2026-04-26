@@ -2,11 +2,11 @@
 
 ## What you'll learn
 
-This chapter shows how the eight most common non-PREPARE recipe types behave as algebraic primitives over datasets — what each one's input and output arity is, what pandas idiom triggers it, and how the running example walks through GROUPING, JOIN, WINDOW, SORT, and SPLIT as it grows from V2 to V5. By the end, you can read a recipe type off a pandas snippet without running `convert()`.
+This chapter shows how the eight most common non-PREPARE [recipe](appendix-a-glossary.md#recipe) types behave as algebraic primitives over [datasets](appendix-a-glossary.md#dataset) — what each one's input and output arity is, what pandas idiom triggers it, and how the running example walks through GROUPING, [JOIN](appendix-a-glossary.md#join), [WINDOW](appendix-a-glossary.md#window), [SORT](appendix-a-glossary.md#sort), and [SPLIT](appendix-a-glossary.md#split) as it grows from V2 to V5. By the end, you can read a [`RecipeType`](appendix-a-glossary.md#recipetype) off a pandas snippet without running `convert()`.
 
 ## Recipes as primitives
 
-Each non-PREPARE recipe type is a small algebra over datasets: it takes a fixed number of inputs, produces a fixed number of outputs, and applies one well-defined transformation. The DSS visual flow is a composition of these primitives — the visual recipe overview at [doc.dataiku.com](https://doc.dataiku.com/dss/latest/other_recipes/index.html) lists them with their input/output arities and configuration UIs.
+Each non-PREPARE recipe type is a small algebra over datasets: it takes a fixed number of inputs, produces a fixed number of outputs, and applies one well-defined [transformation](appendix-a-glossary.md#transformation). The [DSS](appendix-a-glossary.md#dss) visual flow is a composition of these primitives — the visual recipe overview at [doc.dataiku.com](https://doc.dataiku.com/dss/latest/other_recipes/index.html) lists them with their input/output arities and configuration UIs.
 
 Reading a flow becomes reading a sequence of arities:
 
@@ -21,7 +21,7 @@ Reading a flow becomes reading a sequence of arities:
 | TOP_N       | 1   | 1   | reduces (keeps top K)             | unchanged                        |
 | SPLIT       | 1   | 2..N| partitions                        | unchanged in each branch         |
 
-The arity pinning is the entire reason these are recipes and not processors. A processor inside a PREPARE recipe is implicitly 1→1 over rows; if an operation changes cardinality structurally (groupby reduces, split partitions, stack sums), it cannot live inside PREPARE. The recipe layer is where cardinality changes happen.
+The arity pinning is the entire reason these are recipes and not processors. A [processor](appendix-a-glossary.md#processor) inside a PREPARE recipe is implicitly 1→1 over rows; if an operation changes cardinality structurally (groupby reduces, split partitions, stack sums), it cannot live inside PREPARE. The recipe layer is where cardinality changes happen.
 
 The recipe-creator class hierarchy on the DSS side — `GroupingRecipeCreator`, `JoinRecipeCreator`, `WindowRecipeCreator`, and so on — encodes the same arity rules (see [dataiku-api-client-python: recipe.py](https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py)). py-iku's `RecipeType` enum mirrors that hierarchy directly.
 
@@ -66,11 +66,11 @@ print(first_join.join_keys[0].left_column)   # 'customer_id'
 print(first_join.join_keys[0].right_column)  # 'customer_id'
 ```
 
-The rule-based analyzer records the left input of a chained merge as the prior in-memory DataFrame and leaves the dataset name resolution to the optimizer. The LLM path resolves it to `orders_clean` directly. Both shapes are DSS-valid; the join keys, type, and right input are identical in either path.
+The rule-based analyzer records the left input of a chained merge as the prior in-memory DataFrame and leaves the dataset name resolution to the [optimizer](appendix-a-glossary.md#optimizer). The LLM path resolves it to `orders_clean` directly. Both shapes are DSS-valid; the join keys, type, and right input are identical in either path.
 
 ## V3: introducing WINDOW
 
-V3 adds a 30-day rolling sum per customer. In pandas:
+V3 builds on V2 by keeping the JOIN-enriched dataset and adding a per-customer time-windowed derivation. V3 adds a 30-day rolling sum per customer. In pandas:
 
 ```python
 orders_enriched = orders_enriched.sort_values(["customer_id", "ordered_at"])
@@ -96,7 +96,7 @@ After convert, the rule-based path emits `[PREPARE, JOIN, JOIN, SORT, WINDOW]` f
 
 ## V4: introducing GROUPING and SORT
 
-V4 computes a lifetime revenue per customer and sorts by it:
+Moving from V3 to V4 introduces the first structural row-reduction in the running example: the windowed dataset is collapsed into one row per customer and re-ranked. V4 computes a lifetime revenue per customer and sorts by it:
 
 ```python
 lifetime = orders_windowed.groupby("customer_id")["revenue"].sum().rename("lifetime_revenue")
@@ -109,15 +109,15 @@ Two new recipe types appear: GROUPING and SORT. The groupby-then-sum is structur
 - `group_keys = ["customer_id"]`
 - `aggregations = [Aggregation(column="revenue", function="SUM")]`
 
-The aggregation enum is `AggregationFunction`. `SUM`, `AVG` (also accessible as `MEAN`), `COUNT`, `COUNTD` (also `NUNIQUE`), `STDDEV` (also `STD`), `MEDIAN`, `MIN`, `MAX`, `FIRST`, `LAST`, plus collection variants (`COLLECT_LIST`, `COLLECT_SET`) and percentile entries (`PERCENTILE_25`, `PERCENTILE_50`, `PERCENTILE_75`). The pandas-style aliases share canonical wire values so emitted JSON imports cleanly into DSS.
+The [aggregation](appendix-a-glossary.md#aggregation) enum is `AggregationFunction`. `SUM`, `AVG` (also accessible as `MEAN`), `COUNT`, `COUNTD` (also `NUNIQUE`), `STDDEV` (also `STD`), `MEDIAN`, `MIN`, `MAX`, `FIRST`, `LAST`, plus collection variants (`COLLECT_LIST`, `COLLECT_SET`) and percentile entries (`PERCENTILE_25`, `PERCENTILE_50`, `PERCENTILE_75`). The pandas-style aliases share canonical wire values so emitted JSON imports cleanly into DSS.
 
 The merge that follows feeds the lifetime column back onto each row — that is a JOIN, 2→1 again. The final `sort_values("lifetime_revenue", ascending=False)` is a SORT recipe with `sort_columns=[{"column": "lifetime_revenue", "ascending": False}]`. SORT is 1→1 in both row count and column set; only ordering changes.
 
-V4 produces eight recipes in topological order: `[PREPARE, JOIN, JOIN, SORT, WINDOW, GROUPING, JOIN, SORT]`. One fewer if the analyzer or optimizer collapses the chained `merge` pair, or if the upstream sort is folded into the WINDOW's `order_columns`. The shape is verbose, but each recipe corresponds to one structural step of the original pandas script — that is the design intent.
+V4 produces eight recipes in [topological order](appendix-a-glossary.md#topological-order): `[PREPARE, JOIN, JOIN, SORT, WINDOW, GROUPING, JOIN, SORT]`. One fewer if the analyzer or optimizer collapses the chained `merge` pair, or if the upstream sort is folded into the WINDOW's `order_columns`. The shape is verbose, but each recipe corresponds to one structural step of the original pandas script — that is the design intent.
 
 ## V5: introducing SPLIT
 
-V5 partitions customers by lifetime revenue:
+V5 advances from V4 by taking the ranked dataset and fanning it into branches keyed on a lifetime-revenue threshold. V5 partitions customers by lifetime revenue:
 
 ```python
 high_value_customers = orders_ranked[orders_ranked["lifetime_revenue"] >= 1000]
@@ -130,7 +130,7 @@ SPLIT is the first 1→N recipe type in the tour. The output datasets are listed
 
 ## STACK: appending rows
 
-STACK does not appear in the running example; here is a small inline schema for it.
+[STACK](appendix-a-glossary.md#stack) does not appear in the running example; here is a small inline schema for it.
 
 > Out-of-running-example: `events_jan` and `events_feb`, each with `event_id`, `user_id`, `timestamp`. Concatenating them yields `events_q1`.
 
@@ -201,7 +201,7 @@ TOP_N is the row-reducing dual of SORT: SORT keeps every row but in order, TOP_N
 
 ## SAMPLING: a projection to a subset
 
-`df.sample(n=...)` and `df.sample(frac=...)` map to SAMPLING. The mode determines which DSS sampling method is used: `RANDOM_FIXED_NB` for a literal row count, `RANDOM_FIXED_RATIO` for a fraction, `HEAD_SEQUENTIAL` and `TAIL_SEQUENTIAL` for `df.head` and `df.tail`, plus `STRATIFIED`, `CLASS_REBALANCE`, and `RESERVOIR` for cases the LLM path can detect from larger code patterns. SAMPLING is 1→1 with a row count strictly less than or equal to the input.
+`df.sample(n=...)` and `df.sample(frac=...)` map to [SAMPLING](appendix-a-glossary.md#sampling). The mode determines which DSS sampling method is used: `RANDOM_FIXED_NB` for a literal row count, `RANDOM_FIXED_RATIO` for a fraction, `HEAD_SEQUENTIAL` and `TAIL_SEQUENTIAL` for `df.head` and `df.tail`, plus `STRATIFIED`, `CLASS_REBALANCE`, and `RESERVOIR` for cases the LLM path can detect from larger code patterns. SAMPLING is 1→1 with a row count strictly less than or equal to the input.
 
 ## PIVOT: reshaping rows to columns
 
@@ -231,8 +231,14 @@ Two ideas worth carrying away from the tour:
 
 The same rules apply to both the rule-based and LLM paths. The difference between them is what counts as "local syntactic pattern" — the rule-based analyzer reads the AST literally; the LLM analyzer reads the *intent* of the code. Chapter 7 covers the LLM path in depth.
 
+## What this chapter does NOT cover
+
+STACK, DISTINCT, TOP_N, SAMPLING, PIVOT, SYNC, and GENERATE_STATISTICS are introduced here but not exhaustively walked through with V2–V5 examples. The cheatsheet (Appendix C) holds the canonical pandas-to-recipe mapping table for these and every other recipe type, and Chapter 9 revisits a few of them in the context of detection rules.
+
 ## Further reading
 
+- [Glossary](appendix-a-glossary.md) — recipe-type definitions and arity terminology
+- [Cheatsheet](appendix-c-cheatsheet.md) — pandas → recipe mapping table
 - [Recipes API reference](../api/models.md)
 - [Notebook 03: advanced recipes](https://github.com/m-deane/py-iku/blob/main/notebooks/03_advanced.ipynb)
 - [Dataiku docs: Visual recipes overview](https://doc.dataiku.com/dss/latest/other_recipes/index.html)

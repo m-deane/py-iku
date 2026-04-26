@@ -2,19 +2,19 @@
 
 ## What you'll learn
 
-This chapter explains the gap between an analyst's pandas script and a Dataiku DSS visual flow, and why that gap is worth bridging with a tool rather than by hand. By the end of it, you will know what a flow gives you that a script does not, where py-iku sits in the conversion pipeline, and why the library ships with two analysis modes instead of one.
+This chapter explains the gap between an analyst's pandas script and a Dataiku [DSS](appendix-a-glossary.md#dss) visual flow, and why that gap is worth bridging with a tool rather than by hand. By the end of it, you will know what a flow gives you that a script does not, where py-iku sits in the conversion pipeline, and why the library ships with two analysis modes instead of one.
 
 ## A pandas script is not a flow
 
 A pandas script is a sequence of statements. Each statement mutates a dataframe variable in memory, and the next statement runs against whatever the previous statement left behind. The call graph is implicit: it lives in the order of the lines and in the local variable names. Python's interpreter is the only thing that truly understands the graph.
 
-A Dataiku DSS visual flow is a different object. It is a directed acyclic graph (DAG) in which the nodes are named *datasets* and *recipes*, and the edges are typed inputs and outputs. Each recipe is configured declaratively: a JOIN recipe lists its join columns and join type, a PREPARE recipe lists its ordered processor steps, a WINDOW recipe lists its partitioning and frame. The DSS server reads this configuration and runs the recipe on whatever execution engine the dataset is bound to — DSS-native, in-database SQL pushdown, Spark, or Python (see [Dataiku docs: The Flow](https://doc.dataiku.com/dss/latest/flow/index.html)).
+A Dataiku DSS visual flow is a different object. It is a directed acyclic graph (DAG) in which the nodes are named *[datasets](appendix-a-glossary.md#dataset)* and *[recipes](appendix-a-glossary.md#recipe)*, and the edges are typed inputs and outputs. Each recipe is configured declaratively: a JOIN recipe lists its join columns and join type, a [PREPARE recipe](appendix-a-glossary.md#recipe) lists its ordered [processor](appendix-a-glossary.md#processor) steps, a WINDOW recipe lists its partitioning and frame. The DSS server reads this configuration and runs the recipe on whatever execution engine the dataset is bound to — DSS-native, in-database SQL pushdown, Spark, or Python (see [Dataiku docs: The Flow](https://doc.dataiku.com/dss/latest/flow/index.html)).
 
 Three differences fall out of that, and all three are why an enterprise will eventually push for a flow even if the analyst is happy with the script.
 
 ### Lineage
 
-In a script, when a column appears in the final output you have to grep through the file (and, in practice, several files) to find where it was created, what it depended on, and whether the dependency was overwritten anywhere. In a flow, every column has an explicit recipe of origin and an explicit input dataset, and the DSS catalog can render the column-level lineage without re-running anything. Asking "where does `revenue` come from" stops being a code-archaeology task and becomes a click.
+In a script, when a column appears in the final output you have to grep through the file (and, in practice, several files) to find where it was created, what it depended on, and whether the dependency was overwritten anywhere. In a flow, every column has an explicit recipe of origin and an explicit input dataset, and the DSS catalog can render the column-level [lineage](appendix-a-glossary.md#lineage) without re-running anything. Asking "where does `revenue` come from" stops being a code-archaeology task and becomes a click.
 
 ### Partial re-execution
 
@@ -34,7 +34,7 @@ So scripts get written first, and then someone has to translate them. That trans
 
 Going from pandas to a flow is lossy in the *sense* of execution semantics. Pandas allows arbitrary Python in the middle of a transform; a flow restricts you to a fixed catalog of recipes and processors. Anything that does not fit the catalog has to be either reshaped into something that does, or pushed into a `PYTHON` recipe, which is a flow node that wraps a script and gives back the script's opaqueness. A good translation is one that minimizes how much logic ends up inside `PYTHON` recipes, because everything inside a `PYTHON` recipe is invisible to the lineage and audit machinery that motivated the flow in the first place.
 
-Going from a flow to pandas is lossy in the opposite *sense* of metadata. A flow knows the partitioning of each dataset, the schema of each intermediate, and the engine binding of each recipe. The equivalent pandas code throws all of that information away the moment it materialises everything in memory.
+Going from a flow to pandas is lossy in the opposite *sense* of metadata. A flow knows the partitioning of each dataset, the [schema](appendix-a-glossary.md#schema) of each intermediate, and the engine binding of each recipe. The equivalent pandas code throws all of that information away the moment it materialises everything in memory.
 
 py-iku is concerned with the first direction. It takes a pandas script as input and emits a `DataikuFlow` object — a Python representation of the DSS flow configuration that can be serialised to DSS via the public API or rendered to SVG, HTML, PNG, PlantUML, Mermaid, or ASCII. The library does not execute the flow, and it does not stand in for DSS at runtime. The boundary is deliberate: py-iku produces DSS configuration, DSS executes it.
 
@@ -95,6 +95,10 @@ The full schema for `orders` is locked down in the running-example contract; for
 
 ## Further reading
 
+- [Quick Start tutorial](../getting-started/quickstart.md) — for the reader who wants to install and run something now.
+- [Installation guide](../getting-started/installation.md).
+- [Interactive notebooks](../notebooks.md) — the runnable companions to each chapter.
+- [Glossary](appendix-a-glossary.md) — for terminology used in the rest of the book.
 - [Core functions API reference](../api/core-functions.md) — signatures for `convert` and `convert_with_llm`.
 - [Models API reference](../api/models.md) — the `DataikuFlow`, `DataikuRecipe`, and `DataikuDataset` classes.
 - [Notebook 01 — Beginner](https://github.com/m-deane/py-iku/blob/main/notebooks/01_beginner.ipynb) — the gentlest end-to-end walk-through.

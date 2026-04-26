@@ -1,8 +1,10 @@
 # Chapter 7 — The LLM Path
 
+> **Reader's note.** *This chapter sits mid-book but is largely independent. Readers focused on the rule-based path can skip to Chapter 8 and return here when LLM semantic translation becomes relevant. Readers whose primary use case is the LLM workflow can read straight through.*
+
 ## What you'll learn
 
-This chapter explains how `convert_with_llm()` translates Python source into a `DataikuFlow`, why temperature=0 and prompt caching are the two settings that decide whether the LLM path is fit for CI, and how to read `AnalysisResult.usage` to keep per-conversion cost predictable. The chapter ends with the failure modes worth catching by name and a calibration of where the LLM path beats the rule-based path and where it does not.
+This chapter explains how `convert_with_llm()` translates Python source into a `DataikuFlow`, why temperature=0 and prompt caching are the two [settings](appendix-a-glossary.md#settings) that decide whether the LLM path is fit for CI, and how to read `AnalysisResult.usage` to keep per-conversion cost predictable. The chapter ends with the failure modes worth catching by name and a calibration of where the LLM path beats the rule-based path and where it does not.
 
 ## Why two paths exist
 
@@ -10,7 +12,7 @@ The library ships two analyzers. The rule-based path (`convert()`) walks the AST
 
 Rule-based wins on three axes: it is offline, it is microseconds-fast, and it has no per-call cost. LLM-based wins on one axis: it recognizes patterns the AST mapping has not been written for. This is not a hypothetical advantage.
 
-The `scripts/llm_smoke_test.py` corpus contains snippets — `df['rolling_avg'] = df['value'].rolling(7).mean()`, `top10 = df.nlargest(10, 'spend')`, `df[(df['amount'] > 1000) & (df['country'] != 'US')]` — that the rule-based path can mis-shelf into a generic PREPARE recipe. The LLM path routes them to WINDOW, TOP_N, and either SPLIT or PREPARE+`FilterOnFormula` respectively, because those rules are stated explicitly in the system prompt.
+The `scripts/llm_smoke_test.py` corpus contains snippets — `df['rolling_avg'] = df['value'].rolling(7).mean()`, `top10 = df.nlargest(10, 'spend')`, `df[(df['amount'] > 1000) & (df['country'] != 'US')]` — that the rule-based path can mis-shelf into a generic PREPARE [recipe](appendix-a-glossary.md#recipe). The LLM path routes them to [WINDOW](appendix-a-glossary.md#window), TOP_N, and either [SPLIT](appendix-a-glossary.md#split) or PREPARE+`FilterOnFormula` respectively, because those rules are stated explicitly in the system prompt.
 
 A short decision rule:
 
@@ -18,7 +20,7 @@ A short decision rule:
 - The script is long, contains conditional branches, or uses pandas idioms outside the canonical mapping table: LLM-based.
 - The script will be re-converted thousands of times across a corpus: rule-based, with the LLM path used as a fallback for the few snippets that flag warnings.
 
-The rule-based path is the right default for the running example V1 through V4 — those versions are exactly the patterns the AST analyzer was written to catch. V5 introduces the complementary-filter pattern that benefits from the LLM path's explicit mapping rule for `df[cond]` and `df[~cond]` (see `py2dataiku/llm/analyzer.py`).
+The rule-based path is the right default for the running example V1 through V4 — those versions are exactly the patterns the AST analyzer was written to catch. V5 introduces the complementary-filter pattern that benefits from the LLM path's explicit [mapping rule](appendix-a-glossary.md#mapping-rule) for `df[cond]` and `df[~cond]` (see `py2dataiku/llm/analyzer.py`).
 
 ## The interface
 
@@ -117,11 +119,11 @@ The first call in a session shows a non-zero `cache_creation_input_tokens` and z
 
 ## The system prompt is generated, not authored
 
-`ANALYSIS_SYSTEM_PROMPT` is built once at import time by `_build_analysis_system_prompt()`. The processor catalog section comes from `ProcessorCatalog.PROCESSORS` and is regenerated whenever the catalog changes; the prompt cannot drift away from the actual code. The prompt carries:
+`ANALYSIS_SYSTEM_PROMPT` is built once at import time by `_build_analysis_system_prompt()`. The [processor](appendix-a-glossary.md#processor) catalog section comes from `ProcessorCatalog.PROCESSORS` and is regenerated whenever the catalog changes; the prompt cannot drift away from the actual code. The prompt carries:
 
 - A short list of Dataiku recipe types with one-line descriptions.
 - A `## Mapping Rules` section enumerating the non-obvious cases — `df.melt()` routes to PREPARE+`FoldMultipleColumns` (not the PIVOT recipe), `df[df.x > N]` routes to PREPARE+`FilterOnNumericRange` (not `FilterOnValue`, which is for string matching), `df[cond]` and `df[~cond]` collapse to a single multi-output SPLIT, and so on.
-- A canonical-name table for aggregation functions: `AVG` not `MEAN`, `COUNTD` not `NUNIQUE`. These names match the DSS recipe API.
+- A canonical-name table for [aggregation](appendix-a-glossary.md#aggregation) functions: `AVG` not `MEAN`, `COUNTD` not `NUNIQUE`. These names match the [DSS](appendix-a-glossary.md#dss) recipe API.
 - An `## Output Discipline` section requiring exactly one JSON object, valid `OperationType` enum values, canonical processor names, and same-variable reuse for self-mutating ops like `df = df.dropna()`.
 - Three worked examples covering a control case (groupby+sum), the confusion case (`pd.melt` is unpivot, not pivot), and a multi-recipe ETL.
 
@@ -156,11 +158,11 @@ The same post-process pass also coerces `step.operation` values back into the `O
 
 ## Failure modes worth catching
 
-Three exceptions are worth distinguishing in production code:
+Three exceptions are worth distinguishing in production code (Appendix B walks through end-to-end troubleshooting for each, including provider rate-limit retries and cost-spike investigation):
 
 - `ConfigurationError` — typically "no API key found". Caller fix: set `ANTHROPIC_API_KEY` (or pass `api_key=`) or fall back to rule-based.
-- `LLMResponseParseError` — the response was not valid JSON, or the JSON did not match the `AnalysisResult` schema. Caller fix: retry, or fall back to rule-based.
-- `ValidationError` — the parsed flow failed structural validation (e.g. a recipe's input dataset was not declared). Caller fix: read the message; usually a model hallucination that the post-process did not catch.
+- `LLMResponseParseError` — the response was not valid JSON, or the JSON did not match the `AnalysisResult` [schema](appendix-a-glossary.md#schema). Caller fix: retry, or fall back to rule-based.
+- `ValidationError` — the parsed flow failed structural validation (e.g. a recipe's input [dataset](appendix-a-glossary.md#dataset) was not declared). Caller fix: read the message; usually a model hallucination that the post-process did not catch.
 
 ```python
 from py2dataiku import (
@@ -192,7 +194,7 @@ The other tradeoff is cost. A typical V5-sized script costs roughly the input-to
 
 ## Comparing the two paths against the running example
 
-A practical sanity check is to convert the same source through both paths and compare. The expected answer for V2 of the running example (V1 plus the two `merge` calls) is `[PREPARE, JOIN]` — the optimizer collapses the two `merge` calls into a single multi-input JOIN. Both paths should produce that shape:
+A practical sanity check is to convert the same source through both paths and compare. The expected answer for V2 of the running example (V1 plus the two `merge` calls) is `[PREPARE, JOIN]` — the [optimizer](appendix-a-glossary.md#optimizer) collapses the two `merge` calls into a single multi-input [JOIN](appendix-a-glossary.md#join). Both paths should produce that shape:
 
 ```python
 # Rule-based path: deterministic by construction.
@@ -213,7 +215,7 @@ assert llm_types == {"prepare", "join"}
 
 The recipe-type set is the safe property to assert across the two paths. Asserting against `len(flow.recipes)` is also reasonable; asserting against per-recipe processor lists is brittle because the divergences listed above bite at that granularity.
 
-A snippet that the rule-based path mis-classifies but the LLM path handles correctly is the compound-predicate filter. The rule-based AST analyzer can route `df[(df.x > N) & (df.y < M)]` through a generic PREPARE-with-FILTER, missing the fact that DSS has a dedicated `FilterOnFormula` processor for compound predicates that takes a GREL expression. The LLM path's mapping rules — `df[(df.x > N) & (df.y < M)]` → PREPARE + `FilterOnFormula` — pin the routing explicitly. For exactly this kind of pattern, the LLM path is the better translator; for everything in V1 through V4, the rule-based path is fine.
+A snippet that the rule-based path mis-classifies but the LLM path handles correctly is the compound-predicate filter. The rule-based AST analyzer can route `df[(df.x > N) & (df.y < M)]` through a generic PREPARE-with-FILTER, missing the fact that DSS has a dedicated `FilterOnFormula` processor for compound predicates that takes a [GREL](appendix-a-glossary.md#grel) expression. The LLM path's mapping rules — `df[(df.x > N) & (df.y < M)]` → PREPARE + `FilterOnFormula` — pin the routing explicitly. For exactly this kind of pattern, the LLM path is the better translator; for everything in V1 through V4, the rule-based path is fine.
 
 ## When to disable optimization
 
@@ -221,6 +223,9 @@ A snippet that the rule-based path mis-classifies but the LLM path handles corre
 
 ## Further reading
 
+- [Troubleshooting: LLM cost / retries](appendix-b-troubleshooting.md) — provider rate-limit handling and parse-error recovery
+- [Cheatsheet: token usage](appendix-c-cheatsheet.md#token-usage)
+- [Glossary](appendix-a-glossary.md) — terminology used throughout the textbook
 - [LLM providers API reference](../api/llm-providers.md)
 - [Core functions API reference](../api/core-functions.md)
 - [Notebook 03: advanced patterns](https://github.com/m-deane/py-iku/blob/main/notebooks/03_advanced.ipynb)

@@ -1,8 +1,10 @@
 # Chapter 8 — Filters and Predicates
 
+> **Scope.** *The processor mapping in this chapter applies inside any PREPARE recipe; the recipe-vs-processor routing decision (when a filter becomes a SPLIT recipe versus a PREPARE step) is covered in Chapter 9.*
+
 ## What you'll learn
 
-This chapter explains why DSS provides three distinct processor types — `FilterOnValue`, `FilterOnNumericRange`, and `FilterOnFormula` — instead of one general-purpose filter, and how py-iku routes each pandas predicate class to the correct one. It unpacks the `matchingMode` field on `FilterOnValue` and the GREL escape hatch in `FilterOnFormula` that compound predicates compile to. A practical caveat up front: the rule-based analyzer today emits a SPLIT recipe (not a PREPARE+`FilterOn*` step) for any *standalone* boolean-indexing assignment. The processor-level dispatch in this chapter governs how a predicate is encoded *once you are inside* a PREPARE recipe — for example, when a custom analyzer plugin chooses the processor route, when the LLM path emits one, or when a future revision routes single-output filters back to PREPARE. The mapping itself is the load-bearing knowledge; the routing layer that decides between SPLIT and PREPARE is covered in the closing section.
+This chapter explains why [DSS](appendix-a-glossary.md#dss) provides three distinct [processor](appendix-a-glossary.md#processor) types — `FilterOnValue`, `FilterOnNumericRange`, and `FilterOnFormula` — instead of one general-purpose filter, and how py-iku routes each pandas predicate class to the correct one. It unpacks the `matchingMode` field on `FilterOnValue` and the [GREL](appendix-a-glossary.md#grel) escape hatch in `FilterOnFormula` that compound predicates compile to. A practical caveat up front: the rule-based analyzer today emits a [SPLIT](appendix-a-glossary.md#split) [recipe](appendix-a-glossary.md#recipe) (not a PREPARE+`FilterOn*` step) for any *standalone* boolean-indexing assignment. The processor-level dispatch in this chapter governs how a predicate is encoded *once you are inside* a PREPARE recipe — for example, when a custom analyzer plugin chooses the processor route, when the LLM path emits one, or when a future revision routes single-output filters back to PREPARE. The mapping itself is the load-bearing knowledge; the routing layer that decides between SPLIT and PREPARE is covered in the closing section.
 
 ## The framing
 
@@ -139,7 +141,7 @@ The same translator is reused by the SPLIT recipe's condition field, so a comple
 A single general-purpose filter that took `(column, operator, value)` would, at first glance, be simpler. DSS chose three. Two practical consequences fall out of the choice and explain why py-iku honours it:
 
 - **Configuration UI maps cleanly to processor type.** `FilterOnValue` opens a "value match" UI with a `matchingMode` toggle. `FilterOnNumericRange` opens a "range" UI with min and max fields. A human reading a flow inspector sees the right widget for the predicate. A unified filter would require a runtime branch on operator class to render the right widget, which is a more brittle UI design.
-- **Round-tripping is type-safe at the configuration layer.** Each processor's params dict has a fixed shape with named keys. Validating a configuration is a per-processor schema check rather than a type-and-operator combinatoric check across one large schema. The official client classes mirror this — there is a class per processor type with typed setters.
+- **Round-tripping is type-safe at the configuration layer.** Each processor's params dict has a fixed shape with named keys. Validating a configuration is a per-processor [schema](appendix-a-glossary.md#schema) check rather than a type-and-operator combinatoric check across one large schema. The official client classes mirror this — there is a class per processor type with typed setters.
 
 This chapter does *not* claim that DSS uses different *runtime* implementations for the three processors (a hash-based filter for `FilterOnValue`, a range scan for `FilterOnNumericRange`, an expression interpreter for `FilterOnFormula`). That kind of execution-internals claim would require a primary source from the DSS engine documentation, and none has been verified by the project's review log. The argument here is at the configuration layer only.
 
@@ -148,7 +150,7 @@ This chapter does *not* claim that DSS uses different *runtime* implementations 
 A small detail that frequently confuses readers new to the library: a filter inside a PREPARE recipe (`FILTER_ON_VALUE`, `FILTER_ON_NUMERIC_RANGE`, `FILTER_ON_FORMULA`) is a *processor* — a step inside a 1→1 recipe. A SPLIT recipe is also rooted in filtering, but it is a *recipe* with arity 1→N (or 1→1 with a single output, when the recipe carries only one branch). The two are not interchangeable.
 
 - A filter step inside PREPARE is a row-filter that keeps the recipe at 1→1 over rows. Its strength is composition: adjacent element-wise transforms merge into the same prepare buffer, and one recipe node hosts the whole sequence.
-- A SPLIT recipe is a structural filter at the recipe layer. Its strength is partitioning: when the same input flows into two complementary outputs, one SPLIT replaces two filters.
+- A SPLIT recipe is a structural filter at the recipe layer. Its strength is [partitioning](appendix-a-glossary.md#partition): when the same input flows into two complementary outputs, one SPLIT replaces two filters.
 
 How the rule-based analyzer routes today: any boolean-indexing assignment (`df[cond]`) becomes a SPLIT recipe at the recipe layer, regardless of clause count or operator class. Each `FilterOn*` processor described above is still the canonical way to express the predicate *inside* a PREPARE recipe — that is what the LLM path emits, what custom analyzer plugins emit, and what the factory helpers build for direct construction. The chapter's processor-level dispatch table is independent of which recipe layer hosts the filter; the SPLIT-vs-PREPARE choice happens one level up.
 
@@ -176,10 +178,14 @@ The translator's job is to read the AST, classify the operator, and route to the
 
 ## Further reading
 
+- [Troubleshooting: filter mis-routing](appendix-b-troubleshooting.md#filter-mis-routing-predicate-became-a-python-recipe)
+- [Glossary](appendix-a-glossary.md) — terminology used throughout the textbook
+- [Cheatsheet: filter routing table](appendix-c-cheatsheet.md#filter-routing-the-non-obvious-one)
 - [Models API reference](../api/models.md)
 - [Notebook 04: expert filters and predicates](https://github.com/m-deane/py-iku/blob/main/notebooks/04_expert.ipynb)
 - [Dataiku docs: GREL formula language](https://doc.dataiku.com/dss/latest/formula/index.html)
 - [dataiku-api-client-python: recipe.py](https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py)
+- Chapter 9 covers the SPLIT-vs-PREPARE routing decision and the AST-to-GREL translator.
 
 ## What's next
 

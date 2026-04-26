@@ -2,6 +2,8 @@
 
 A one-page reference. Print it. Pin it.
 
+**How to use this cheatsheet.** Each section maps to a chapter — Core API to Chapters 2–7, pandas mappings to Chapters 4–8, recipe types to Chapter 3, determinism knobs to Chapters 7 and 10, credentials and token usage to Chapter 11.
+
 ---
 
 ## Core API

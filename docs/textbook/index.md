@@ -1,6 +1,6 @@
 # Foreword
 
-This is the textbook for py-iku, a library that converts pandas data-processing code into Dataiku DSS visual flows. The README tells you what the library does and how to install it. This book explains why the library is shaped the way it is, what choices it makes when the translation from pandas to DSS is ambiguous, and how to work with — and against — those choices in production.
+This is the textbook for py-iku, a library that converts pandas data-processing code into Dataiku [DSS](appendix-a-glossary.md#dss) visual flows. The README tells you what the library does and how to install it. This book explains why the library is shaped the way it is, what choices it makes when the translation from pandas to DSS is ambiguous, and how to work with — and against — those choices in production.
 
 ## Who this book is for
 
@@ -18,11 +18,11 @@ Each chapter begins with a `## What you'll learn` section naming the concrete ca
 
 ## What this book covers
 
-- Chapter 1, *Why py-iku*. The gap between a pandas script and a DSS flow, and the three properties (lineage, partial re-execution, engine portability) that make a flow worth producing.
+- Chapter 1, *Why py-iku*. The gap between a pandas script and a DSS flow, and the three properties ([lineage](appendix-a-glossary.md#lineage), partial re-execution, engine portability) that make a flow worth producing.
 - Chapter 2, *The 5-Second Tour*. The shortest end-to-end example: V1 of the running example, one `convert()` call, and inspection of the resulting `DataikuFlow`.
 - Chapter 3, *Anatomy of a Flow*. The four core model classes (`DataikuFlow`, `DataikuRecipe`, `DataikuDataset`, `PrepareStep`), the `FlowGraph` API, and round-trip serialization.
-- Chapter 4, *pandas to DSS Grammar*. The decision rule that the rule-based analyzer uses to route pandas idioms to either recipes or processors, with a reference table of common cases.
-- Chapter 5, *PREPARE Recipes Deep Dive*. The structure of a PREPARE recipe, step ordering, the six high-frequency processors, and the `ProcessorCatalog`.
+- Chapter 4, *pandas to DSS Grammar*. The decision rule that the rule-based analyzer uses to route pandas idioms to either [recipes](appendix-a-glossary.md#recipe) or [processors](appendix-a-glossary.md#processor), with a reference table of common cases.
+- Chapter 5, *PREPARE Recipes Deep Dive*. The structure of a [PREPARE recipe](appendix-a-glossary.md#recipe), step ordering, the six high-frequency processors, and the `ProcessorCatalog`.
 - Chapter 6, *Recipe Types Tour*. The eight most common non-PREPARE recipe types — `GROUPING`, `JOIN`, `SORT`, `TOP_N`, `WINDOW`, `SPLIT`, `STACK`, `DISTINCT` — with one worked example each.
 - Chapter 7, *The LLM Path*. When the LLM analyzer is appropriate, the determinism contract that makes it usable in CI, and the failure modes.
 - Chapter 8, *Filters and Predicates*. Why DSS uses distinct processor types for distinct operator classes and how py-iku selects among them based on the AST.
@@ -45,3 +45,10 @@ The book also avoids speculation about DSS execution internals. When a chapter d
 The voice contract is in `STYLE.md` alongside the chapters. It is binding on every chapter and appendix. The rules of interest to readers are: every code block is runnable as written and uses the public API; every code block in chapters 2 onward references the running example schema fixed in `_running_example.md`; every factual claim about DSS or measured library behavior is cited inline. All code blocks in the textbook are exercised by `tests/test_textbook_examples.py`, so a reader who finds a code block that does not run should file a bug — that is a regression, not a documentation drift issue.
 
 Cross-references use repo-rooted relative paths. A chapter linking to the API reference writes `../api/recipes.md`, not a fully qualified URL, so the same link resolves whether the reader is on the published docs site or browsing the markdown locally. Glossary entries in Appendix A are anchored, so a chapter can link directly to a single term: `appendix-a-glossary.md#topological-order`.
+
+## Further reading
+
+- [Glossary](appendix-a-glossary.md) — alphabetical reference for every DSS and py-iku term used in the book.
+- [Quick Start tutorial](../getting-started/quickstart.md) — the install-and-run-something-now path for impatient readers.
+- [Installation guide](../getting-started/installation.md).
+- [Interactive notebooks](../notebooks.md) — the runnable companions to each chapter.

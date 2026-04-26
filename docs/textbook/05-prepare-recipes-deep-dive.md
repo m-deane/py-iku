@@ -2,11 +2,11 @@
 
 ## What you'll learn
 
-This chapter explains how a single PREPARE recipe composes many small transforms into one ordered pipeline of `PrepareStep` instances, why step ordering changes output schemas, and how the optimizer flushes the prepare-step buffer when a structural recipe interrupts the chain. By the end, the V1 running example will read line-by-line as a sequence of processors with named parameters.
+This chapter explains how a single PREPARE [recipe](appendix-a-glossary.md#recipe) composes many small transforms into one ordered pipeline of [`PrepareStep`](appendix-a-glossary.md#preparestep) instances, why step ordering changes output [schemas](appendix-a-glossary.md#schema), and how the [optimizer](appendix-a-glossary.md#optimizer) flushes the prepare-step buffer when a structural recipe interrupts the chain. By the end, the V1 running example will read line-by-line as a sequence of [processors](appendix-a-glossary.md#processor) with named parameters.
 
 ## The shape of a PREPARE recipe
 
-A PREPARE recipe is a single node in the DSS flow that holds an ordered list of processor steps. Each step is a `PrepareStep` instance with a `ProcessorType` and a `params` dict. The recipe takes one input dataset and produces one output dataset. DSS executes the steps top-to-bottom in a streaming pass; step N reads the schema and rows produced by step N−1.
+A PREPARE recipe is a single node in the [DSS](appendix-a-glossary.md#dss) flow that holds an ordered list of processor steps. Each step is a `PrepareStep` instance with a [`ProcessorType`](appendix-a-glossary.md#processortype) and a `params` dict. The recipe takes one input [dataset](appendix-a-glossary.md#dataset) and produces one output dataset. DSS executes the steps top-to-bottom in a streaming pass; step N reads the schema and rows produced by step N−1.
 
 The class shape is plain data:
 
@@ -48,9 +48,9 @@ assert flow.recipes[0].recipe_type.value == "prepare"
 print(len(flow.recipes[0].steps))  # 2
 ```
 
-One recipe, two steps — a `FillEmptyWithValue` for the `fillna(0.0)` and a `ColumnRenamer` for the rename. The current rule-based analyzer does not emit a separate GREL formula step for the arithmetic-derived `revenue` column, so the count is two rather than three; if a future revision adds GREL emission for column-arithmetic assignments, the count will rise to three without changing the recipe shape. The rule that produces this shape: a step is element-wise (touches columns within a row, preserves row count and ordering) versus structural (groups, joins, sorts, splits, or reshapes the dataset). Element-wise transforms become processors inside an active PREPARE buffer; structural transforms flush the buffer and emit their own recipe nodes.
+One recipe, two steps — a `FillEmptyWithValue` for the `fillna(0.0)` and a `ColumnRenamer` for the rename. The current rule-based analyzer does not emit a separate [GREL](appendix-a-glossary.md#grel) formula step for the arithmetic-derived `revenue` column — GREL is DSS's row-level formula language; see Chapter 9 for the AST-to-GREL translator — so the count is two rather than three; if a future revision adds GREL emission for column-arithmetic assignments, the count will rise to three without changing the recipe shape. The rule that produces this shape: a step is element-wise (touches columns within a row, preserves row count and ordering) versus structural (groups, joins, sorts, splits, or reshapes the dataset). Element-wise transforms become processors inside an active PREPARE buffer; structural transforms flush the buffer and emit their own recipe nodes.
 
-The economic reason for collapsing into one recipe: in DSS, every recipe is a unit of scheduling, partitioning, and cache invalidation. A flow with three sequential PREPARE recipes has three intermediate datasets, three partition spaces, and three places a downstream consumer might read from. Collapsing them produces a single intermediate dataset and a single execution unit. The DSS scheduler does not pay for the steps individually — it pays for the recipe.
+The economic reason for collapsing into one recipe: in DSS, every recipe is a unit of scheduling, [partitioning](appendix-a-glossary.md#partition), and cache invalidation. A flow with three sequential PREPARE recipes has three intermediate datasets, three partition spaces, and three places a downstream consumer might read from. Collapsing them produces a single intermediate dataset and a single execution unit. The DSS scheduler does not pay for the steps individually — it pays for the recipe.
 
 ## Step ordering and the schema invariant
 
@@ -107,7 +107,7 @@ types = [r.recipe_type.value for r in flow.recipes]
 print(types)  # ['prepare', 'grouping']
 ```
 
-The current rule-based analyzer folds the post-GROUPING `rename(...)` into the GROUPING recipe's output schema rather than emitting a trailing PREPARE; the principle still holds in general — a PREPARE buffer flushes whenever a structural recipe interrupts the chain, and any element-wise steps after the structural recipe would land in a fresh PREPARE — but for this particular pattern the second PREPARE is collapsed away. A snippet that mixed several element-wise steps after the GROUPING (rather than a single rename of an aggregation output) would surface a `[prepare, grouping, prepare]` shape.
+The current rule-based analyzer folds the post-GROUPING `rename(...)` into the GROUPING recipe's output schema rather than emitting a trailing PREPARE; the principle still holds in general — a PREPARE buffer flushes whenever a structural recipe interrupts the chain, and any element-wise steps after the structural recipe would land in a fresh PREPARE — but for this particular pattern the second PREPARE is collapsed away. A snippet that mixed several element-wise steps after the GROUPING (rather than a single rename of an [aggregation](appendix-a-glossary.md#aggregation) output) would surface a `[prepare, grouping, prepare]` shape.
 
 ## Walking V1 of the running example
 
@@ -209,17 +209,20 @@ The merge is conservative on purpose. Merging across a fan-out can change semant
 PREPARE is the first recipe type the textbook treats as a composite object. A recipe is the unit DSS schedules; a step is the unit DSS composes inside the recipe's runtime. Two consequences follow:
 
 - The granularity of orchestration is the recipe, not the step. Adding a fourth fillna to a 3-step PREPARE does not introduce a new scheduling unit; adding a groupby does.
-- The order of steps inside a PREPARE is part of the recipe's identity. Two PREPARE recipes with the same steps in different orders are not equal — they describe different transformations. Round-trip serialization preserves the order, and the optimizer is the only mechanism allowed to reorder steps, under the five-bucket rule above.
+- The order of steps inside a PREPARE is part of the recipe's identity. Two PREPARE recipes with the same steps in different orders are not equal — they describe different [transformations](appendix-a-glossary.md#transformation). Round-trip serialization preserves the order, and the optimizer is the only mechanism allowed to reorder steps, under the five-bucket rule above.
 
 A reader who internalizes the buffer-and-flush model can predict the recipe count of any pandas script before running `convert()`: count the structural transformations, add one for each leading or trailing run of element-wise steps, and that is the recipe count of the post-optimization flow.
 
 ## Further reading
 
+- [Glossary](appendix-a-glossary.md) — terminology used throughout the textbook
+- [Cheatsheet](appendix-c-cheatsheet.md) — common processor table for quick reference
 - [Recipes and processor models API reference](../api/models.md)
 - [Notebook 02: intermediate transforms](https://github.com/m-deane/py-iku/blob/main/notebooks/02_intermediate.ipynb)
 - [Dataiku docs: Prepare recipe processors](https://doc.dataiku.com/dss/latest/preparation/processors/index.html)
 - [dataiku-api-client-python: recipe.py](https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py)
+- Chapter 9 covers AST-to-GREL formula generation; Chapter 10 covers the DAG-aware optimizer passes.
 
 ## What's next
 
-Chapter 6 leaves the PREPARE recipe behind and tours the eight non-PREPARE recipe types — GROUPING, JOIN, SORT, TOP_N, WINDOW, SPLIT, STACK, DISTINCT — that the running example walks through from V2 to V5.
+Chapter 6 leaves the PREPARE recipe behind and tours the eight non-PREPARE recipe types — GROUPING, [JOIN](appendix-a-glossary.md#join), [SORT](appendix-a-glossary.md#sort), TOP_N, [WINDOW](appendix-a-glossary.md#window), [SPLIT](appendix-a-glossary.md#split), [STACK](appendix-a-glossary.md#stack), DISTINCT — that the running example walks through from V2 to V5.

@@ -19,7 +19,7 @@ orders = orders.rename(columns={"order_date": "ordered_at"})
 orders_clean = orders
 ```
 
-The script does three things to the `orders` table: it fills missing values in `discount_pct` with `0.0`, it derives a `revenue` column from `quantity`, `unit_price`, and `discount_pct`, and it renames `order_date` to `ordered_at`. Two of those three operations — the fill and the rename — are recognised by the current rule-based analyzer and become processors in a PREPARE recipe; the arithmetic-derived `revenue` column is not yet emitted as a `CreateColumnWithGREL` step on the rule-based path and is handled by the LLM path in Chapter 7.
+The script does three things to the `orders` table: it fills missing values in `discount_pct` with `0.0`, it derives a `revenue` column from `quantity`, `unit_price`, and `discount_pct`, and it renames `order_date` to `ordered_at`. Two of those three operations — the fill and the rename — are recognised by the current rule-based analyzer and become [processors](appendix-a-glossary.md#processor) in a [PREPARE recipe](appendix-a-glossary.md#recipe); the arithmetic-derived `revenue` column is not yet emitted as a `CreateColumnWithGREL` step on the rule-based path and is handled by the LLM path in Chapter 7.
 
 ## One call
 
@@ -41,7 +41,7 @@ orders_clean = orders
 flow = convert(source)
 ```
 
-That is the entire conversion. There are no required arguments beyond the source. The `optimize=True` default runs the post-conversion optimizer pass that merges adjacent PREPARE recipes; for V1 there is only one PREPARE so the optimizer has nothing to merge, but the same default applies in later chapters.
+That is the entire conversion. There are no required arguments beyond the source. The `optimize=True` default runs the post-conversion [optimizer](appendix-a-glossary.md#optimizer) pass that merges adjacent PREPARE recipes; for V1 there is only one PREPARE so the optimizer has nothing to merge, but the same default applies in later chapters.
 
 The function is deterministic. Running it ten times in a row on the same source produces ten structurally identical flow objects. That property is what makes the rule-based path fit for use inside a CI assertion — the test does not need to tolerate run-to-run variation, because there is none. Chapter 7 establishes the analogous property for the LLM path, with the additional condition that `temperature=0`.
 
@@ -60,7 +60,7 @@ print([d.name for d in flow.datasets])
 # ['orders', 'orders_prepared_prepared']
 ```
 
-The flow has exactly one recipe — a PREPARE — and two datasets, one input (`orders`) and one auto-named produced dataset (`orders_prepared_prepared`; the doubled `_prepared` suffix is an artifact of the current naming pass and is not load-bearing). The script's final assignment `orders_clean = orders` is a plain Python rebinding the rule-based analyzer treats as a no-op, so the variable name does not propagate into a dataset name; the LLM path in Chapter 7 sometimes preserves the variable name. The structural V1 contract — one PREPARE, one input dataset, one produced dataset — holds either way.
+The flow has exactly one recipe — a PREPARE — and two [datasets](appendix-a-glossary.md#dataset), one input (`orders`) and one auto-named produced dataset (`orders_prepared_prepared`; the doubled `_prepared` suffix is an artifact of the current naming pass and is not load-bearing). The script's final assignment `orders_clean = orders` is a plain Python rebinding the rule-based analyzer treats as a no-op, so the variable name does not propagate into a dataset name; the LLM path in Chapter 7 sometimes preserves the variable name. The structural V1 contract — one PREPARE, one input dataset, one produced dataset — holds either way.
 
 The recipe itself is a `DataikuRecipe`. Its type is the `RecipeType.PREPARE` enum value, and because it is a PREPARE recipe it carries an ordered list of `PrepareStep` instances under `recipe.steps`.
 
@@ -81,7 +81,7 @@ The exact `ProcessorType` values come from the `ProcessorType` enum defined in `
 1. `FillEmptyWithValue` for `orders["discount_pct"].fillna(0.0)`.
 2. `ColumnRenamer` for the `rename(columns={"order_date": "ordered_at"})` call.
 
-The `revenue` arithmetic does not produce a step on the rule-based path: the current AST analyzer does not recognise pandas arithmetic-on-columns as a `CreateColumnWithGREL` formula and skips it. The LLM path in Chapter 7 does emit a `CreateColumnWithGREL` step for that line, with the GREL expression `numval(quantity) * numval(unit_price) * (1 - numval(discount_pct))`. The verifier at `tests/test_py2dataiku/test_textbook_examples.py` pins the rule-based shape (one PREPARE, two steps) against this chapter so any future change to the analyzer that closes the gap will fail the test and prompt a doc update.
+The `revenue` arithmetic does not produce a step on the rule-based path: the current AST analyzer does not recognise pandas arithmetic-on-columns as a `CreateColumnWithGREL` formula and skips it. The LLM path in Chapter 7 does emit a `CreateColumnWithGREL` step for that line, with the [GREL](appendix-a-glossary.md#grel) expression `numval(quantity) * numval(unit_price) * (1 - numval(discount_pct))` — GREL is DSS's row-level formula language; see Chapter 9 for the AST-to-GREL translator and [the glossary](appendix-a-glossary.md#grel) for a quick definition. The verifier at `tests/test_py2dataiku/test_textbook_examples.py` pins the rule-based shape (one PREPARE, two steps) against this chapter so any future change to the analyzer that closes the gap will fail the test and prompt a doc update.
 
 ## Input and output dataset views
 
@@ -142,7 +142,7 @@ assert len(reloaded.recipes[0].steps) == len(flow.recipes[0].steps)
 
 The convenience methods `flow.to_json()` and `DataikuFlow.from_json(...)` skip the intermediate `dict` step. The same pair exists for YAML. Round-trip equality is a property tested in the library's own test suite; the practical use of it is that a flow can be checked into git and reviewed as a text artifact.
 
-The round-trip property is what makes the rule-based path operate as data engineering infrastructure rather than as a one-shot script. The `DataikuFlow` object is the source of truth for the produced flow shape, and any downstream tool — DSS deployer, visualizer, diff tool — reads from that object rather than from the original Python script.
+The round-trip property is what makes the rule-based path operate as data engineering infrastructure rather than as a one-shot script. The `DataikuFlow` object is the source of truth for the produced flow shape, and any downstream tool — [DSS](appendix-a-glossary.md#dss) deployer, visualizer, diff tool — reads from that object rather than from the original Python script.
 
 ## Rendering a visualization
 
@@ -173,7 +173,7 @@ The output is a small text-art DAG with the two dataset names and the single rec
 
 The rule-based path produces the same flow object every time for the same input. That property is what makes it fit for CI; it also has a more immediate consequence for development. Two team members running `convert(source)` on the same script on different machines and at different times produce flow objects whose `to_dict()` outputs compare equal. Diffing the JSON serialization of two converted flows is a meaningful diff: every difference between two outputs corresponds to a difference between the two inputs.
 
-The library's own test suite asserts this property by running `convert(source)` against each example script and comparing against a checked-in expected flow shape. There is no need to tolerate run-to-run variation in those tests because there is none to tolerate. Chapter 11 walks the same pattern at the project level — a `pytest` test that loads a script, calls `convert(...)`, and asserts against the recipe types in topological order.
+The library's own test suite asserts this property by running `convert(source)` against each example script and comparing against a checked-in expected flow shape. There is no need to tolerate run-to-run variation in those tests because there is none to tolerate. Chapter 11 walks the same pattern at the project level — a `pytest` test that loads a script, calls `convert(...)`, and asserts against the recipe types in [topological order](appendix-a-glossary.md#topological-order).
 
 The LLM path establishes the same property under different conditions: temperature pinned to zero and a fixed system prompt. Chapter 7 covers that; for now, the takeaway is that both paths are usable as deterministic infrastructure rather than as one-shot tools.
 
@@ -191,6 +191,8 @@ Chapter 3 takes V1's flow object and walks every attribute on it, including the 
 
 ## Further reading
 
+- [Quick Start tutorial](../getting-started/quickstart.md) — install the library and run the V1 conversion end-to-end.
+- [Glossary](appendix-a-glossary.md) — for the recipe, processor, dataset, and GREL terms used here.
 - [Core functions API reference](../api/core-functions.md) — `convert`, `convert_file`, and the LLM-mode counterparts.
 - [Models API reference](../api/models.md) — `DataikuFlow`, `DataikuRecipe`, `PrepareStep`.
 - [Notebook 01 — Beginner](https://github.com/m-deane/py-iku/blob/main/notebooks/01_beginner.ipynb) — runs through the V1 conversion interactively.

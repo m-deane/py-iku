@@ -2,7 +2,11 @@
 
 ## What you'll learn
 
-This chapter explains how `PluginRegistry` keeps the library's authoring surface small while making the extension surface — pandas-method handlers, recipe handlers, processor handlers — tractable for teams with domain-specific code. The chapter walks through the three registration entry points (`register_pandas_mapping`, `register_recipe_handler`, `register_processor_handler`), then uses scikit-learn's `StandardScaler` as a worked case study because that is the clearest example of code the core library deliberately does not handle.
+This chapter explains how `PluginRegistry` keeps the library's authoring surface small while making the extension surface — pandas-method handlers, [recipe](appendix-a-glossary.md#recipe) handlers, [processor](appendix-a-glossary.md#processor) handlers — tractable for teams with domain-specific code. The chapter walks through the three registration entry points (`register_pandas_mapping`, `register_recipe_handler`, `register_processor_handler`), then uses scikit-learn's `StandardScaler` as a worked case study because that is the clearest example of code the core library deliberately does not handle.
+
+### Where this fits
+
+This chapter sits as the closer in the textbook sequence, but it is not a strict prerequisite for the earlier chapters and can be read out of order. Two natural entry routes: arrive here from Chapter 10 if you are interested in how custom recipe handlers participate (or don't) in the [optimizer's](appendix-a-glossary.md#optimizer) merge passes, or arrive after Chapter 11 if you have a working production pipeline and now want to register domain-specific extensions without forking the library. Either path lands on the same `PluginRegistry` API.
 
 ## The extension contract
 
@@ -23,10 +27,10 @@ Fourth, plugins are introspectable at runtime. `PluginRegistry.list_recipe_mappi
 The three relevant decorators and convenience functions are:
 
 - `register_pandas_mapping(method_name, target_type, handler=None)` — the one-liner. Routes a pandas method by name to either a `RecipeType` (the method becomes its own recipe) or a `ProcessorType` (the method becomes a step inside a PREPARE recipe). An optional handler customizes how the method's arguments are translated.
-- `@register_recipe_handler(recipe_type)` — decorator. Registers a function that turns an internal `Transformation` object into a `DataikuRecipe`. Useful when an existing `RecipeType` needs a non-default settings shape.
+- `@register_recipe_handler(recipe_type)` — decorator. Registers a function that turns an internal [`Transformation`](appendix-a-glossary.md#transformation) object into a `DataikuRecipe`. Useful when an existing `RecipeType` needs a non-default [settings](appendix-a-glossary.md#settings) shape.
 - `@register_processor_handler(processor_type)` — decorator. Registers a function that turns a step into a `PrepareStep` with a custom settings payload.
 
-For most domain extensions, `register_pandas_mapping` is sufficient. The two decorator forms are for cases where the default settings inferred by the library are not what the team wants emitted into the DSS recipe.
+For most domain extensions, `register_pandas_mapping` is sufficient. The two decorator forms are for cases where the default settings inferred by the library are not what the team wants emitted into the [DSS](appendix-a-glossary.md#dss) recipe.
 
 ## A minimal worked example
 
@@ -82,7 +86,7 @@ This is useful for tests that want to characterise the library's default behavio
 
 ## A custom processor handler
 
-The decorator form lets the handler control the emitted `PrepareStep` directly. A toy example: emit a `FORMULA` step with a custom GREL expression whenever the source uses a domain-specific log transform:
+The decorator form lets the handler control the emitted `PrepareStep` directly. A toy example: emit a `FORMULA` step with a custom [GREL](appendix-a-glossary.md#grel) expression whenever the source uses a domain-specific log transform:
 
 ```python
 from py2dataiku import register_processor_handler, ProcessorType, PrepareStep
@@ -169,7 +173,7 @@ register_pandas_mapping(
 )
 ```
 
-The trade-off is that the team owns the offline mean/std computation. The DSS flow shows the scaling as a PREPARE step rather than as a black-box Python recipe, which preserves lineage and lets downstream consumers see the formula.
+The trade-off is that the team owns the offline mean/std computation. The DSS flow shows the scaling as a PREPARE step rather than as a black-box Python recipe, which preserves [lineage](appendix-a-glossary.md#lineage) and lets downstream consumers see the formula.
 
 **Option B: emit a Python recipe.** When the offline computation is not feasible — for example, when scaling is part of a larger sklearn `Pipeline` — the right translation is to emit a Python recipe that wraps the sklearn call. This is what happens by default when the analyzer cannot map a pandas idiom: `requires_python_recipe=True` propagates through to a `RecipeType.PYTHON` recipe carrying the original source as its body. The team gets a working flow, but the visual representation collapses to a single opaque node.
 
@@ -248,6 +252,8 @@ The lookup order means plugins can specialize built-in methods. A team that want
 
 ## Further reading
 
+- [Glossary](appendix-a-glossary.md)
+- [Cheatsheet](appendix-c-cheatsheet.md)
 - [Plugins API reference](../api/plugins.md)
 - [Models API reference](../api/models.md)
 - [Notebook 03: sklearn pipelines](https://github.com/m-deane/py-iku/blob/main/notebooks/03_sklearn_pipelines.ipynb)

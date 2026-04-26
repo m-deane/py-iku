@@ -2,13 +2,15 @@
 
 ## What you'll learn
 
-This chapter covers the two structural inferences py-iku makes from local AST patterns: complementary-filter detection (which collapses an explicit `df[cond]` / `df[~cond]` pair into a single SPLIT recipe with two outputs), and GREL formula compilation (which turns compound predicates and column expressions into formula-driven steps). It walks V5 of the running example and is explicit about the patterns the rule-based path does *not* yet detect — chiefly, bare value-comparison pairs (`>=` against `<`) that are mathematically complementary but syntactically distinct.
+This chapter covers the two structural inferences py-iku makes from local AST patterns: complementary-filter detection (which collapses an explicit `df[cond]` / `df[~cond]` pair into a single [SPLIT](appendix-a-glossary.md#split) recipe with two outputs), and [GREL](appendix-a-glossary.md#grel) formula compilation (which turns compound predicates and column expressions into formula-driven steps). It walks V5 of the running example and is explicit about the patterns the rule-based path does *not* yet detect — chiefly, bare value-comparison pairs (`>=` against `<`) that are mathematically complementary but syntactically distinct.
+
+**Recap.** Chapter 6 introduced the SPLIT [recipe](appendix-a-glossary.md#recipe) as the canonical 1→N partition primitive, and Chapter 8 set up the conservative-failure rule for filter routing; this chapter unpacks the detector logic that turns those ground-truth ideas into observable behaviour on the running example.
 
 ## Two inferences, two antecedents
 
-Most pandas-to-DSS translation is local: each statement maps to one processor or recipe based on its operator and operand types. A few translations are non-local — they depend on a relationship between two statements. py-iku currently makes two such inferences:
+Most pandas-to-[DSS](appendix-a-glossary.md#dss) translation is local: each statement maps to one [processor](appendix-a-glossary.md#processor) or recipe based on its operator and operand types. A few translations are non-local — they depend on a relationship between two statements. py-iku currently makes two such inferences:
 
-- **Complementary-filter detection.** When two boolean indexings on the same DataFrame use *syntactically explicit* complementary conditions (the `~cond` form), the analyzer collapses them into one SPLIT recipe with two output datasets instead of two single-output SPLIT recipes. Bare value-comparison pairs (`>= N` against `< N`) are not consolidated today.
+- **Complementary-filter detection.** When two boolean indexings on the same DataFrame use *syntactically explicit* complementary conditions (the `~cond` form), the analyzer collapses them into one SPLIT recipe with two output [datasets](appendix-a-glossary.md#dataset) instead of two single-output SPLIT recipes. Bare value-comparison pairs (`>= N` against `< N`) are not consolidated today.
 - **Compound-predicate compilation.** When a predicate uses bitwise AND/OR or unary negation, the analyzer compiles the AST to a GREL formula and emits a `FilterOnFormula` step (or a SPLIT recipe with a GREL `split_condition`).
 
 Both inferences have explicit antecedents — small theorems that the library can prove from the syntactic shape. Surfacing the antecedents is what makes the tool predictable: a reader who knows which patterns trigger which inference can predict the output flow without running it.
@@ -78,7 +80,7 @@ Two single-output SPLIT recipes — one per assignment — rather than one SPLIT
 
 ## The detector's antecedent
 
-The detector — `_merge_complementary_filters` in the AST analyzer — runs as a post-pass over the list of transformations the visitor has produced. Its rule is deliberately narrow:
+The detector — `_merge_complementary_filters` in the AST analyzer — runs as a post-pass over the list of [transformations](appendix-a-glossary.md#transformation) the visitor has produced. Its rule is deliberately narrow:
 
 > Match two FILTER transformations where the conditions are explicit syntactic complements of each other (one wraps the other in a unary `~` or `not`). Replace the pair with a single FILTER carrying `parameters["complementary_outputs"] = [target_a, target_b]`. The flow generator turns that flag into a SPLIT recipe with two outputs.
 
@@ -227,6 +229,8 @@ Each antecedent is checkable in code, and the library checks it before applying 
 
 ## Further reading
 
+- [Glossary](appendix-a-glossary.md)
+- [Troubleshooting: SPLIT detection edge cases](appendix-b-troubleshooting.md)
 - [Models API reference](../api/models.md)
 - [Recipe settings API reference](../api/recipe-settings.md)
 - [Notebook 05: master patterns](https://github.com/m-deane/py-iku/blob/main/notebooks/05_master.ipynb)

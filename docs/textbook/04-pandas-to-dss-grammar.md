@@ -2,13 +2,13 @@
 
 ## What you'll learn
 
-This chapter states the translation grammar that py-iku uses to map pandas idioms to DSS recipes and processors. By the end of it, you will know the structural-versus-element-wise rule the rule-based analyzer applies, the reference table of common pandas idioms and their py-iku targets, and the special cases that later chapters cover in depth.
+This chapter states the translation grammar that py-iku uses to map pandas idioms to [DSS](appendix-a-glossary.md#dss) [recipes](appendix-a-glossary.md#recipe) and [processors](appendix-a-glossary.md#processor). By the end of it, you will know the structural-versus-element-wise rule the rule-based analyzer applies, the reference table of common pandas idioms and their py-iku targets, and the special cases that later chapters cover in depth.
 
 ## The translation problem
 
 pandas is an imperative DSL over a single in-memory dataframe. Each statement reads or writes columns of the dataframe and the next statement runs against whatever the previous statement left behind. The dataframe is a single mutable object; the call graph is implicit in the order of the lines and the local variable names.
 
-DSS is a declarative DAG over named datasets. Each recipe declares its inputs, outputs, and configuration; the call graph is explicit in the dataset names. The DSS server reads the configuration and runs each recipe as its own scheduled job.
+DSS is a declarative DAG over named [datasets](appendix-a-glossary.md#dataset). Each recipe declares its inputs, outputs, and configuration; the call graph is explicit in the dataset names. The DSS server reads the configuration and runs each recipe as its own scheduled job.
 
 Translating one to the other is not a syntactic substitution. The two languages do not have a one-to-one mapping at the line level. A line of pandas can map to a step inside an existing recipe, a new recipe, or no recipe at all (if it is consumed by a later structural operation). The translator's job is to look at each line in the *context of its neighbours*, decide whether it is structural or element-wise, and route it to the right place.
 
@@ -20,11 +20,11 @@ A pandas operation is **structural** if it changes the shape of the dataframe in
 
 A pandas operation is **element-wise** if it transforms columns within a single dataframe shape without changing the input/output arity. Examples: `df.rename(...)`, `df.fillna(...)`, `df["col"] = expr`, `df.astype({...})`, `df["col"].str.lower()`, `df.round(...)`, `df["col"].clip(0, 1)`.
 
-Structural operations become their own recipes — one recipe per structural operation, with the input and output arities the recipe type defines. Element-wise operations become processor steps inside a PREPARE recipe, with adjacent element-wise operations merged into a single PREPARE.
+Structural operations become their own recipes — one recipe per structural operation, with the input and output arities the recipe type defines. Element-wise operations become processor steps inside a [PREPARE recipe](appendix-a-glossary.md#recipe), with adjacent element-wise operations merged into a single PREPARE.
 
 The rule has two corollaries that fall out for free:
 
-1. A run of N consecutive element-wise operations on the same dataframe produces one PREPARE recipe with N processor steps, not N PREPARE recipes with one step each. The optimizer pass enforces this even when the analyzer emits separate PREPAREs (Chapter 10).
+1. A run of N consecutive element-wise operations on the same dataframe produces one PREPARE recipe with N processor steps, not N PREPARE recipes with one step each. The [optimizer](appendix-a-glossary.md#optimizer) pass enforces this even when the analyzer emits separate PREPAREs (Chapter 10).
 2. A structural operation never absorbs an element-wise operation that runs on a different dataframe. If line K is `df = df.merge(other)` and line K+1 is `other = other.fillna(0)`, the element-wise operation is on `other`, not on the merge output, and it routes to a separate PREPARE that feeds the merge.
 
 The rule is not perfect. A few pandas idioms straddle the boundary, and the next section covers the non-obvious cases. But the rule is what to apply *first* when reading new code.
@@ -135,7 +135,7 @@ These are the mappings most likely to surprise readers coming from pure pandas.
 - `df.rolling(...)`, `df.cumsum()`, `df.cumprod()`, and `df.expanding()` all become a WINDOW recipe with the corresponding aggregation. The frame specification on the WINDOW recipe is what differs between them.
 - `df.nlargest(n, col)` and `df.nsmallest(n, col)` become a `TOP_N` recipe, not a SORT-then-LIMIT. DSS has a dedicated TOP_N type because it pushes the operation down to engines that have a native TOP-N (most SQL engines do); reshaping it as SORT+LIMIT would defeat that.
 - `df.round(...)`, `df.abs()`, `df.clip(...)` are element-wise numeric transforms and become `NumericalTransformer` processors. They are not structural even though they look like aggregation on first read.
-- A `df["c"] = df["a"] + df["b"]` assignment becomes one `CreateColumnWithGREL` step with the GREL expression `numval(a) + numval(b)`. Three such assignments in a row do not become three recipes; they become three steps inside one PREPARE.
+- A `df["c"] = df["a"] + df["b"]` assignment becomes one `CreateColumnWithGREL` step with the [GREL](appendix-a-glossary.md#grel) expression `numval(a) + numval(b)`. GREL is DSS's row-level formula language; see Chapter 9 for the AST-to-GREL translator and [the glossary](appendix-a-glossary.md#grel) for a quick definition. Three such assignments in a row do not become three recipes; they become three steps inside one PREPARE.
 
 The full list of mappings, including the long tail of less-frequent processors, is in `py2dataiku/mappings/pandas_mappings.py`. The rule-based analyzer reads the table at `import` time; adding a new mapping is the recipe documented in `CLAUDE.md` under "Adding New Recipe Types".
 
@@ -180,9 +180,9 @@ This is the general lesson. A grammar that maps pandas to DSS line-by-line is to
 
 ## What gets the LLM path
 
-The rule-based analyzer is a fixed pattern table. Code that does not match a pattern in the table either falls back to a `PYTHON` recipe (a flow node that wraps the offending script) or raises `InvalidPythonCodeError`. Both outcomes preserve correctness — the flow either runs the original Python or refuses to convert — but both lose the lineage and audit properties that motivated the conversion in the first place.
+The rule-based analyzer is a fixed pattern table. Code that does not match a pattern in the table either falls back to a `PYTHON` recipe (a flow node that wraps the offending script) or raises `InvalidPythonCodeError`. Both outcomes preserve correctness — the flow either runs the original Python or refuses to convert — but both lose the [lineage](appendix-a-glossary.md#lineage) and audit properties that motivated the conversion in the first place.
 
-The LLM-based analyzer is for the cases the rule-based path cannot classify. Code with conditional logic, code that uses `df.pipe(custom_fn)`, code that mixes pandas with non-pandas libraries, and code that uses a pandas idiom the rule table does not know about — all of these go to the LLM path more cleanly than to the rule-based path. The LLM reads the script, identifies each transformation in the same structural-versus-element-wise vocabulary, and emits the same kind of analysis result the rule-based path emits. Chapter 7 walks the LLM path in detail.
+The LLM-based analyzer is for the cases the rule-based path cannot classify. Code with conditional logic, code that uses `df.pipe(custom_fn)`, code that mixes pandas with non-pandas libraries, and code that uses a pandas idiom the rule table does not know about — all of these go to the LLM path more cleanly than to the rule-based path. The LLM reads the script, identifies each [transformation](appendix-a-glossary.md#transformation) in the same structural-versus-element-wise vocabulary, and emits the same kind of analysis result the rule-based path emits. Chapter 7 walks the LLM path in detail.
 
 The grammar this chapter describes applies to *both* paths. The LLM is given the same mapping rules in its system prompt; both paths produce a `DataikuFlow` whose recipes follow the same structural-versus-element-wise convention. The LLM is not a different grammar — it is a more flexible *parser* against the same grammar.
 
@@ -198,6 +198,9 @@ Each of these cases shows up as a forward reference elsewhere in the book. The m
 
 ## Further reading
 
+- [Glossary](appendix-a-glossary.md) — definitions for recipe, processor, GREL, optimizer, and transformation.
+- Chapter 8, *Filters and Predicates* — the routing logic between `FilterOnValue`, `FilterOnNumericRange`, and `FilterOnFormula`.
+- Chapter 9, *Advanced Patterns* — the AST-to-GREL translator and complementary-split detection.
 - [Models API reference](../api/models.md) — `RecipeType`, `ProcessorType`, recipe settings.
 - [Core functions API reference](../api/core-functions.md) — `convert(source, optimize=...)`.
 - [Notebook 02 — Intermediate](https://github.com/m-deane/py-iku/blob/main/notebooks/02_intermediate.ipynb) — runs through V2 and V3 of the running example.

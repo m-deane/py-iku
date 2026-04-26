@@ -2,7 +2,9 @@
 
 ## What you'll learn
 
-This chapter explains how `FlowOptimizer` rewrites a freshly-generated flow to fold redundant recipes together, why those rewrites are graph operations rather than list operations, and which structural property of the flow — the fan-out count of an intermediate dataset — decides whether two recipes can merge. The chapter walks through the two merge passes (PREPARE and WINDOW) on the running example, including the case where the optimizer correctly leaves recipes alone.
+This chapter explains how `FlowOptimizer` rewrites a freshly-generated flow to fold redundant [recipes](appendix-a-glossary.md#recipe) together, why those rewrites are graph operations rather than list operations, and which structural property of the flow — the fan-out count of an intermediate [dataset](appendix-a-glossary.md#dataset) — decides whether two recipes can merge. The chapter walks through the two merge passes (PREPARE and [WINDOW](appendix-a-glossary.md#window)) on the running example, including the case where the [optimizer](appendix-a-glossary.md#optimizer) correctly leaves recipes alone.
+
+Plugins compose with the optimizer — see Chapter 12 for how custom recipe handlers participate (or don't) in merge passes.
 
 ## What the optimizer is for
 
@@ -10,7 +12,7 @@ This chapter explains how `FlowOptimizer` rewrites a freshly-generated flow to f
 
 The optimizer's job is to recover the more compact shape without changing the flow's semantics. It runs once per `convert()` call (controlled by the `optimize=True` argument), it operates over the post-generation `DataikuFlow`, and it mutates the flow in place. The output is the same flow object with fewer recipes, fewer intermediate datasets, and a populated `flow.optimization_notes` log. The implementation lives in [`py2dataiku/optimizer/flow_optimizer.py`](https://github.com/m-deane/py-iku/blob/main/py2dataiku/optimizer/flow_optimizer.py); the merge predicates are factored out into [`py2dataiku/optimizer/recipe_merger.py`](https://github.com/m-deane/py-iku/blob/main/py2dataiku/optimizer/recipe_merger.py).
 
-The pass is deliberately conservative. It does not push filters earlier (Chapter 8 covers why filter ordering is observable, not merely an optimization hint), it does not reorder recipes across structural boundaries, and it does not touch the contents of any recipe except to concatenate prepare-step lists when merging. Anything more aggressive would risk changing the output schema of an intermediate dataset in a way a downstream consumer can observe.
+The pass is deliberately conservative. It does not push filters earlier (Chapter 8 covers why filter ordering is observable, not merely an optimization hint), it does not reorder recipes across structural boundaries, and it does not touch the contents of any recipe except to concatenate prepare-step lists when merging. Anything more aggressive would risk changing the output [schema](appendix-a-glossary.md#schema) of an intermediate dataset in a way a downstream consumer can observe.
 
 ## The optimizer is a graph rewrite, not a list scan
 
@@ -41,7 +43,7 @@ The `len(downstream_indices) != 1` check is the fan-out guard. It is what makes 
 
 Two PREPARE recipes on a linear path are equivalent to one combined PREPARE: every prepare step is pure with respect to the dataset (it does not read external state), the merged recipe sees the same inputs and produces the same outputs, and any dataset between them is intermediate.
 
-The same is not true across a fan-out. Suppose `recipe1` is a PREPARE that produces `cleaned_orders`, and two downstream recipes — `recipe2` (a JOIN) and `recipe3` (a SPLIT) — both consume `cleaned_orders`. Merging `recipe1` into `recipe2` would absorb the prepare steps into the JOIN's input pipeline, but `recipe3` still expects to read `cleaned_orders` as its own input.
+The same is not true across a fan-out. Suppose `recipe1` is a PREPARE that produces `cleaned_orders`, and two downstream recipes — `recipe2` (a [JOIN](appendix-a-glossary.md#join)) and `recipe3` (a [SPLIT](appendix-a-glossary.md#split)) — both consume `cleaned_orders`. Merging `recipe1` into `recipe2` would absorb the prepare steps into the JOIN's input pipeline, but `recipe3` still expects to read `cleaned_orders` as its own input.
 
 The merge would either change `recipe3`'s input to a name that no longer exists, or it would leave `cleaned_orders` orphaned with the prepare steps no longer running before `recipe3` consumes it. Either way, the flow is no longer equivalent to the input.
 
@@ -131,14 +133,14 @@ The rule is not applied automatically. A caller can opt into it after a merge, b
 
 ## Merging WINDOW recipes
 
-WINDOW merging is the second pass and the more interesting one structurally. Two WINDOW recipes are mergeable when they share the same input dataset, the same `partition_columns`, and the same `order_columns` — in other words, when they describe the same window frame and differ only in the aggregations they compute. The merged recipe carries the union of both recipes' `window_aggregations`.
+WINDOW merging is the second pass and the more interesting one structurally. Two WINDOW recipes are mergeable when they share the same input dataset, the same `partition_columns`, and the same `order_columns` — in other words, when they describe the same window frame and differ only in the [aggregations](appendix-a-glossary.md#aggregation) they compute. The merged recipe carries the union of both recipes' `window_aggregations`.
 
 The function recognizes two cases:
 
 - **Chained.** `recipe1.outputs[0] == recipe2.inputs[0]` — the second window reads the first's output. Subject to the same fan-out guard as the PREPARE case.
 - **Sibling.** Both recipes read from the same input dataset but are not chained. The fan-out guard does not apply here because the shared input keeps its identity after merge; what matters is that no downstream recipe is reading the absorbed `recipe1` output before the merge.
 
-V3 of the running example contains exactly one WINDOW recipe — the rolling 30-day revenue sum partitioned by `customer_id` and ordered by `ordered_at`. If a script computed two such windows over the same partitioning and ordering — say a 30-day sum and a 30-day mean — the WINDOW merger would fold them into a single recipe with both aggregations:
+V3 of the running example contains exactly one WINDOW recipe — the rolling 30-day revenue sum [partitioned](appendix-a-glossary.md#partition) by `customer_id` and ordered by `ordered_at`. If a script computed two such windows over the same partitioning and ordering — say a 30-day sum and a 30-day mean — the WINDOW merger would fold them into a single recipe with both aggregations:
 
 ```python
 from py2dataiku import convert
@@ -199,7 +201,7 @@ For clarity:
 
 - It does not push filters earlier in the flow. `_push_filters_early` only emits a recommendation in `flow.recommendations`; it does not rewrite the flow.
 - It does not eliminate dead recipes whose outputs no consumer reads. Orphan dataset removal is in scope (`_apply_remove_orphan_datasets`); orphan recipe removal is not.
-- It does not coalesce non-WINDOW non-PREPARE recipes. Two consecutive SORT recipes, for example, will not merge — the optimizer has no rule for that case, and the right rewrite is conditional on whether the second SORT's keys are a prefix of the first's, which is a non-trivial check.
+- It does not coalesce non-WINDOW non-PREPARE recipes. Two consecutive [SORT](appendix-a-glossary.md#sort) recipes, for example, will not merge — the optimizer has no rule for that case, and the right rewrite is conditional on whether the second SORT's keys are a prefix of the first's, which is a non-trivial check.
 
 The point of leaving these out is that the optimizer is the most-trusted component of the pipeline: every flow that comes out of `convert()` has been through it.
 
@@ -207,6 +209,8 @@ A cautious set of rewrites is more useful than an aggressive one, because the pr
 
 ## Further reading
 
+- [Glossary](appendix-a-glossary.md)
+- [Cheatsheet: determinism knobs](appendix-c-cheatsheet.md)
 - [Graph and FlowGraph API reference](../api/graph.md)
 - [Recipe settings API reference](../api/recipe-settings.md)
 - [Notebook 04: expert patterns](https://github.com/m-deane/py-iku/blob/main/notebooks/04_expert.ipynb)
