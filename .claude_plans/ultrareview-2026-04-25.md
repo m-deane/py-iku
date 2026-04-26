@@ -466,11 +466,34 @@ df_us = df[df['country'].isin(['US', 'CA', 'MX'])]
 
 ---
 
-## Outstanding items (after wave 9)
+## Wave 10 — completed (real-LLM smoke test)
+
+### Real-LLM end-to-end smoke test — DONE
+
+Closed the wave-1 verification gap. Built a credentials-safe smoke runner at `scripts/llm_smoke_test.py` that loads `ANTHROPIC_API_KEY` from a `.gitignore`d `.env.local`, calls the real Anthropic API via `convert_with_llm`, and validates each output flow against expected recipe types (with `all_of` / `any_of` semantics for cases where multiple DSS shapes are valid).
+
+**Result: 7/7 pass against `claude-sonnet-4-20250514`, ~84 s total.**
+
+| Snippet | Recipes produced | Validation |
+|---|---|---|
+| `groupby + agg` | `[grouping, prepare]` | all_of {grouping, prepare} ✓ |
+| `pd.merge` (inner) | `[join]` | all_of {join} ✓ |
+| `drop_duplicates(subset=...)` | `[distinct]` | any_of {distinct, prepare} ✓ |
+| `df.nlargest(10, 'spend')` | `[topn]` | all_of {topn} ✓ |
+| `df['x'].rolling(7).mean()` | `[window]` | all_of {window} ✓ |
+| `df[(x > 1000) & (country != 'US')]` | `[prepare]` | any_of {prepare, split} ✓ |
+| Full ETL | `[grouping, join, prepare, sort]` | all_of {grouping, join, prepare, sort} ✓ |
+
+The LLM consistently produced real DSS visual recipes (zero Python TODO stubs) for every snippet. `claude-sonnet-4-20250514` correctly identified GROUPING, JOIN, DISTINCT, TOP_N, WINDOW, PREPARE, and SORT recipes from idiomatic pandas code.
+
+**Credentials safety**: the API key was read from a gitignored `.env.local` file the user populated locally, then loaded into `os.environ` only for the script's lifetime. The key never entered git history or chat transcripts.
+
+---
+
+## Outstanding items (after wave 10)
 
 ### Verification (need external resources)
-1. **Real-LLM end-to-end test** — gated on `ANTHROPIC_API_KEY` (unset in this environment). Need a smoke test that calls the real Anthropic API and validates the LLM emits correctly-shaped output for each example.
-2. **Real DSS import test** — every "DSS-valid" claim in the plan is verified against `dataiku-api-client-python` source code, NOT against a live DSS 14 instance. A real DSS smoke test would close this loop.
+1. **Real DSS import test** — every "DSS-valid" claim in the plan is verified against `dataiku-api-client-python` source code, NOT against a live DSS 14 instance. A real DSS smoke test would close this loop.
 
 ### Decisions explicitly accepted as not-bugs
 - `drop_duplicates` → PREPARE/RemoveDuplicates in rule-based path vs DISTINCT in LLM path. Both produce valid DSS output; rule-based form lets the step merge with adjacent prepare steps.

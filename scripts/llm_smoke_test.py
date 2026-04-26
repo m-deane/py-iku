@@ -64,7 +64,13 @@ def _resolve_provider_and_key(
 
 
 # Representative pandas snippets exercising different DSS recipe types.
-EXAMPLES: list[tuple[str, str, set[str]]] = [
+# Each entry: (name, code, validator).
+# The validator is one of:
+#   {"all_of": {...}}   -> every type in the set must appear in actual_types
+#   {"any_of": {...}}   -> at least one type in the set must appear (handy
+#                          when multiple DSS representations are valid for
+#                          the same pandas pattern)
+EXAMPLES: list[tuple[str, str, dict]] = [
     (
         "groupby_agg",
         """
@@ -73,7 +79,7 @@ df = pd.read_csv('sales.csv')
 df = df.dropna()
 result = df.groupby('category').agg({'amount': 'sum'})
 """,
-        {"prepare", "grouping"},
+        {"all_of": {"prepare", "grouping"}},
     ),
     (
         "join_inner",
@@ -83,7 +89,7 @@ customers = pd.read_csv('customers.csv')
 orders = pd.read_csv('orders.csv')
 merged = pd.merge(customers, orders, on='customer_id', how='inner')
 """,
-        {"join"},
+        {"all_of": {"join"}},
     ),
     (
         "drop_duplicates",
@@ -92,8 +98,8 @@ import pandas as pd
 df = pd.read_csv('events.csv')
 unique_events = df.drop_duplicates(subset=['user_id', 'event_id'])
 """,
-        # Both DISTINCT and PREPARE are valid for this — accept either.
-        {"distinct", "prepare"},
+        # Both DISTINCT recipe and PREPARE+RemoveDuplicates are valid here.
+        {"any_of": {"distinct", "prepare"}},
     ),
     (
         "topn",
@@ -102,7 +108,7 @@ import pandas as pd
 df = pd.read_csv('users.csv')
 top10 = df.nlargest(10, 'spend')
 """,
-        {"topn"},
+        {"all_of": {"topn"}},
     ),
     (
         "rolling_window",
@@ -111,7 +117,7 @@ import pandas as pd
 df = pd.read_csv('metrics.csv')
 df['rolling_avg'] = df['value'].rolling(7).mean()
 """,
-        {"window"},
+        {"all_of": {"window"}},
     ),
     (
         "compound_filter",
@@ -120,8 +126,8 @@ import pandas as pd
 df = pd.read_csv('transactions.csv')
 suspicious = df[(df['amount'] > 1000) & (df['country'] != 'US')]
 """,
-        # Either SPLIT recipe or PREPARE+FilterOnFormula is acceptable.
-        {"split", "prepare"},
+        # Either SPLIT recipe or PREPARE+FilterOnFormula is a valid choice.
+        {"any_of": {"split", "prepare"}},
     ),
     (
         "full_etl",
@@ -135,13 +141,17 @@ merged = pd.merge(customers, orders, on='customer_id', how='left')
 summary = merged.groupby('region').agg({'amount': ['sum', 'mean']})
 result = summary.sort_values('amount', ascending=False)
 """,
-        {"prepare", "join", "grouping", "sort"},
+        {"all_of": {"prepare", "join", "grouping", "sort"}},
     ),
 ]
 
 
-def _run_one(name: str, code: str, expected_types: set[str], provider: str) -> dict:
-    """Run convert_with_llm on a snippet and validate the resulting flow."""
+def _run_one(name: str, code: str, expected: dict, provider: str) -> dict:
+    """Run convert_with_llm on a snippet and validate the resulting flow.
+
+    ``expected`` is a dict ``{"all_of": set}`` or ``{"any_of": set}`` —
+    see the EXAMPLES table for usage.
+    """
     from py2dataiku import convert_with_llm
 
     events: list[tuple[str, dict]] = []
@@ -162,16 +172,33 @@ def _run_one(name: str, code: str, expected_types: set[str], provider: str) -> d
     elapsed = time.perf_counter() - t0
 
     actual_types = {r.recipe_type.value for r in flow.recipes}
-    missing = expected_types - actual_types
     has_python_only = actual_types == {"python"}
+
+    # Validate against all_of / any_of semantics
+    if "all_of" in expected:
+        required = expected["all_of"]
+        missing = required - actual_types
+        ok = not has_python_only and not missing
+        explain = f"requires all of {sorted(required)}"
+    elif "any_of" in expected:
+        candidates = expected["any_of"]
+        intersection = candidates & actual_types
+        missing = set() if intersection else candidates
+        ok = not has_python_only and bool(intersection)
+        explain = f"requires any of {sorted(candidates)}"
+    else:
+        missing = set()
+        ok = not has_python_only
+        explain = "non-empty visual recipes"
+
     return {
         "name": name,
-        "ok": not has_python_only and not missing,
+        "ok": ok,
         "elapsed_s": elapsed,
         "recipes": len(flow.recipes),
         "datasets": len(flow.datasets),
         "actual_types": sorted(actual_types),
-        "expected_subset": sorted(expected_types),
+        "expected_explain": explain,
         "missing": sorted(missing),
         "phases": [p for p, _ in events],
         "model": (events[1][1].get("model") if len(events) > 1 else None),
@@ -243,7 +270,7 @@ def main() -> int:
             print(
                 f"  {status}: {r['recipes']} recipes "
                 f"({', '.join(r['actual_types'])}); "
-                f"expected ⊇ {{{', '.join(r['expected_subset'])}}}; "
+                f"{r['expected_explain']}; "
                 f"took {r['elapsed_s']:.1f}s"
             )
             if r["missing"]:
