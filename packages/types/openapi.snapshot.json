@@ -217,6 +217,90 @@
           }
         }
       }
+    },
+    "/diff": {
+      "post": {
+        "tags": [
+          "diff"
+        ],
+        "summary": "Compute the per-node diff between two flows",
+        "description": "Compare two flows by recipe name (the node id) and return added/removed/changed.\n\n- **added**: recipe present in B but not in A.\n- **removed**: recipe present in A but not in B.\n- **changed**: recipe present in both with a different ``type`` or\n  different settings/steps.",
+        "operationId": "post_diff_diff_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiffRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiffResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/score": {
+      "post": {
+        "tags": [
+          "score"
+        ],
+        "summary": "Compute a complexity score for a flow",
+        "description": "Compute the complexity score from a flow payload.\n\nThe flow is hydrated into a real ``DataikuFlow`` via ``from_dict`` so\nthe FlowGraph metrics computed by ``score_flow`` are accurate.",
+        "operationId": "post_score_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataikuFlowModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplexityScore"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -715,6 +799,53 @@
         "title": "DatasetTypeEnum",
         "description": "Dataset types — mirrors DatasetType enum values."
       },
+      "DiffRequest": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/DataikuFlowModel",
+            "description": "The 'before' flow (e.g., rule output)"
+          },
+          "b": {
+            "$ref": "#/components/schemas/DataikuFlowModel",
+            "description": "The 'after' flow (e.g., LLM output)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "a",
+          "b"
+        ],
+        "title": "DiffRequest",
+        "description": "Request body for POST /diff."
+      },
+      "DiffResponse": {
+        "properties": {
+          "added": {
+            "items": {
+              "$ref": "#/components/schemas/NodeDiff"
+            },
+            "type": "array",
+            "title": "Added"
+          },
+          "removed": {
+            "items": {
+              "$ref": "#/components/schemas/NodeDiff"
+            },
+            "type": "array",
+            "title": "Removed"
+          },
+          "changed": {
+            "items": {
+              "$ref": "#/components/schemas/NodeDiff"
+            },
+            "type": "array",
+            "title": "Changed"
+          }
+        },
+        "type": "object",
+        "title": "DiffResponse",
+        "description": "Response body for POST /diff."
+      },
       "DistinctSettingsModel": {
         "properties": {
           "kind": {
@@ -925,6 +1056,58 @@
         "type": "object",
         "title": "JoinSettingsModel",
         "description": "Mirrors JoinSettings.to_display_dict(): join_type, join_keys, selected_columns."
+      },
+      "NodeDiff": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Recipe name used as the node id"
+          },
+          "recipe_type_a": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Type A",
+            "description": "Recipe type in flow A (None when added in B)"
+          },
+          "recipe_type_b": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Type B",
+            "description": "Recipe type in flow B (None when removed from B)"
+          },
+          "diff": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diff",
+            "description": "When kind=changed: which fields differ ({field: {a, b}})."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "NodeDiff",
+        "description": "A single per-node difference entry.\n\nFor ``added`` and ``removed`` entries ``diff`` is None. For ``changed`` entries\n``diff`` enumerates which fields differ between A and B."
       },
       "PivotSettingsModel": {
         "properties": {

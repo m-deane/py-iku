@@ -16,6 +16,8 @@ export interface FlowState {
   setConversionStatus: (status: ConversionStatus) => void;
   setConversionMode: (mode: ConversionMode) => void;
   selectNode: (id: string | null) => void;
+  setSelectedNodeId: (id: string | null) => void;
+  clearSelection: () => void;
   reset: () => void;
 }
 
@@ -30,6 +32,8 @@ export const useFlowStore = create<FlowState>()((set) => ({
   setConversionStatus: (conversionStatus) => set({ conversionStatus }),
   setConversionMode: (conversionMode) => set({ conversionMode }),
   selectNode: (selectedNodeId) => set({ selectedNodeId }),
+  setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId }),
+  clearSelection: () => set({ selectedNodeId: null }),
   reset: () =>
     set({
       currentFlow: null,

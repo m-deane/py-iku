@@ -236,6 +236,27 @@ export const ConvertResponseSchema = z.object({
 }).passthrough();
 export type ConvertResponse = z.infer<typeof ConvertResponseSchema>;
 
+export const DiffRequestSchema = z.object({
+  "a": DataikuFlowModelSchema,
+  "b": DataikuFlowModelSchema
+}).passthrough();
+export type DiffRequest = z.infer<typeof DiffRequestSchema>;
+
+export const NodeDiffSchema = z.object({
+  "id": z.string(),
+  "recipe_type_a": z.string().nullable().optional(),
+  "recipe_type_b": z.string().nullable().optional(),
+  "diff": z.record(z.string(), z.unknown()).nullable().optional()
+}).passthrough();
+export type NodeDiff = z.infer<typeof NodeDiffSchema>;
+
+export const DiffResponseSchema = z.object({
+  "added": z.array(NodeDiffSchema).optional(),
+  "removed": z.array(NodeDiffSchema).optional(),
+  "changed": z.array(NodeDiffSchema).optional()
+}).passthrough();
+export type DiffResponse = z.infer<typeof DiffResponseSchema>;
+
 export const ValidationErrorSchema = z.object({
   "loc": z.array(z.union([
       z.string(),

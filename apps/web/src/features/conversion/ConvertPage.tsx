@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MonacoEditor } from "../editor/MonacoEditor";
 import { SnippetPicker } from "../editor/SnippetPicker";
@@ -12,12 +12,24 @@ import {
 import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
+import {
+  useConvertStream,
+  type UseConvertStreamResult,
+  type UseConvertStreamOptions,
+} from "./useConvertStream";
 
 export interface ConvertPageProps {
   /** Test seam — swap in a stub `client.convert` without mocking modules. */
   convertImpl?: typeof client.convert;
+  /**
+   * Test seam — swap in a stub streaming hook so we can drive the page through
+   * the WebSocket code path without a real socket.
+   */
+  streamConvertImpl?: (options?: UseConvertStreamOptions) => UseConvertStreamResult;
   /** Test seam — Monaco can't render under jsdom. */
   useFallbackEditor?: boolean;
+  /** When true, disables the streaming code path (used by REST-only tests). */
+  useRestOnly?: boolean;
 }
 
 export function ConvertPage(props: ConvertPageProps): JSX.Element {
@@ -39,8 +51,57 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   );
   const [editorValue, setEditorValue] = useState<string | undefined>(undefined);
 
+  // Streaming hook (always-on for M5 unless explicitly disabled by tests).
+  const useStreamHook = props.streamConvertImpl ?? useConvertStream;
+  const stream = useStreamHook();
+
   const llmDisabled = mode === "llm" && apiKeyAlias.trim() === "";
-  const inFlight = status === "running";
+  const inFlight =
+    status === "running" ||
+    status === "streaming" ||
+    stream.status === "connecting" ||
+    stream.status === "streaming";
+
+  // Surface stream completion → flowStore + UI state.
+  const lastSeenStreamStatus = useRef(stream.status);
+  useEffect(() => {
+    if (lastSeenStreamStatus.current === stream.status) return;
+    lastSeenStreamStatus.current = stream.status;
+    if (stream.status === "done" && stream.flow) {
+      const fakeResp: ConvertResponse = {
+        flow: stream.flow,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        score: (stream.score as any) ?? {
+          complexity: 0,
+          recipe_count: 0,
+          dataset_count: 0,
+        },
+        warnings: stream.warnings ?? [],
+      };
+      setResponse(fakeResp);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setFlow(stream.flow as any);
+      setStatus("done");
+      if (stream.warnings.length > 0) {
+        toast.message(
+          `Converted with ${stream.warnings.length} warning${
+            stream.warnings.length === 1 ? "" : "s"
+          }`,
+        );
+      }
+    } else if (stream.status === "error" && stream.error) {
+      setError(stream.error);
+      setStatus("error");
+      toast.error(stream.error.title, {
+        description: stream.error.detail ?? stream.error.title,
+      });
+    } else if (stream.status === "cancelled") {
+      setStatus("idle");
+      toast.message("Conversion cancelled");
+    } else if (stream.status === "streaming" || stream.status === "connecting") {
+      setStatus("streaming");
+    }
+  }, [stream.status, stream.flow, stream.score, stream.warnings, stream.error, setFlow, setStatus]);
 
   const onConvert = async (): Promise<void> => {
     if (inFlight) return;
@@ -48,54 +109,62 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
       toast.error("No code to convert", { description: "Paste or pick a snippet first." });
       return;
     }
-    setStatus("running");
     setError(null);
     setResponse(null);
-    try {
-      const convert = props.convertImpl ?? client.convert;
-      const result = await convert({
-        code,
-        mode,
-        options: mode === "llm" ? { provider, model } : undefined,
-      });
-      setResponse(result);
-      // Cast: local ConvertResponse.flow is Record<string,unknown> for M4 compat;
-      // DataikuFlow typing is enforced in flowStore. M5 will tighten ConvertResponse.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setFlow(result.flow as any);
-      setStatus("done");
-      if (result.warnings.length > 0) {
-        toast.message(
-          `Converted with ${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}`,
-        );
+
+    // REST path (legacy / test compatibility).
+    if (props.useRestOnly || props.convertImpl) {
+      setStatus("running");
+      try {
+        const convert = props.convertImpl ?? client.convert;
+        const result = await convert({
+          code,
+          mode,
+          options: mode === "llm" ? { provider, model } : undefined,
+        });
+        setResponse(result);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setFlow(result.flow as any);
+        setStatus("done");
+        if (result.warnings.length > 0) {
+          toast.message(
+            `Converted with ${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}`,
+          );
+        }
+      } catch (err) {
+        const apiErr =
+          err instanceof ApiError
+            ? err
+            : new ApiError({
+                type: "about:blank",
+                title: "Unexpected error",
+                status: 0,
+                detail: err instanceof Error ? err.message : String(err),
+              });
+        const friendly = friendlyTitle(apiErr.status, apiErr.title);
+        setError({ title: friendly, detail: apiErr.detail, status: apiErr.status });
+        setStatus("error");
+        toast.error(friendly, { description: apiErr.detail ?? apiErr.title });
       }
-    } catch (err) {
-      const apiErr =
-        err instanceof ApiError
-          ? err
-          : new ApiError({
-              type: "about:blank",
-              title: "Unexpected error",
-              status: 0,
-              detail: err instanceof Error ? err.message : String(err),
-            });
-      const friendly = friendlyTitle(apiErr.status, apiErr.title);
-      setError({ title: friendly, detail: apiErr.detail, status: apiErr.status });
-      setStatus("error");
-      toast.error(friendly, { description: apiErr.detail ?? apiErr.title });
+      return;
     }
+
+    // Streaming path — default for M5.
+    setStatus("streaming");
+    stream.start({
+      code,
+      mode,
+      options: mode === "llm" ? { provider, model } : undefined,
+    });
   };
 
   const onCancel = (): void => {
-    // M5 will wire WS cancel here. For now, the rest endpoint cannot be
-    // aborted mid-flight from the client. Keep the affordance visible so
-    // muscle memory holds when streaming lands.
-    if (status === "running") {
-      toast.info("Cancel is not available yet", {
-        description: "Streaming + cancel land in M5.",
-      });
-    }
+    if (!inFlight) return;
+    stream.cancel();
   };
+
+  const progressList = stream.progress;
+  const showProgress = progressList.length > 0;
 
   return (
     <section
@@ -131,6 +200,9 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           onChange={(v) => setCurrentCode(v)}
           fallbackTextarea={props.useFallbackEditor}
         />
+        {showProgress ? (
+          <ProgressLog events={progressList} />
+        ) : null}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -173,6 +245,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           </button>
           <button
             type="button"
+            data-testid="convert-cancel"
             onClick={onCancel}
             disabled={!inFlight}
             style={{
@@ -228,6 +301,70 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
       </div>
     </section>
   );
+}
+
+function ProgressLog(props: {
+  events: { event: string; seq: number; ts: string; payload: Record<string, unknown> }[];
+}): JSX.Element {
+  return (
+    <ol
+      data-testid="progress-log"
+      style={{
+        marginTop: "0.75rem",
+        padding: "0.5rem 0.75rem 0.5rem 2rem",
+        border: "1px solid var(--color-grid, #e0e0e0)",
+        borderRadius: 6,
+        fontSize: 12,
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        listStyle: "decimal",
+        maxHeight: 220,
+        overflow: "auto",
+      }}
+    >
+      {props.events.map((e) => (
+        <li key={`${e.seq}-${e.event}`} data-testid={`progress-${e.event}`}>
+          <span style={{ color: "var(--color-grid, #888)" }}>{shortTs(e.ts)}</span>{" "}
+          <strong>{e.event}</strong>
+          {summary(e) ? <span style={{ color: "var(--color-grid, #666)" }}> — {summary(e)}</span> : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function shortTs(ts: string): string {
+  // Render only HH:MM:SS.mmm portion if parseable; else passthrough.
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return ts;
+  return d.toISOString().slice(11, 23);
+}
+
+function summary(e: {
+  event: string;
+  payload: Record<string, unknown>;
+}): string | null {
+  switch (e.event) {
+    case "started":
+      return `${e.payload.mode ?? "?"} mode, ${e.payload.code_size_bytes ?? 0} B`;
+    case "ast_parsed":
+      return `${e.payload.node_count ?? 0} AST nodes`;
+    case "recipe_created":
+      return `${e.payload.recipe_type ?? "?"}: ${e.payload.recipe_name ?? "?"}`;
+    case "processor_added":
+      return `${e.payload.recipe_name}: ${e.payload.processor_type} #${e.payload.step_index ?? 0}`;
+    case "optimized":
+      return `reduction=${e.payload.reduction_count ?? 0}`;
+    case "completed":
+      return "done";
+    case "error":
+      return String(e.payload.title ?? "error");
+    case "cancelled":
+      return "by user";
+    case "ping":
+      return "keepalive";
+    default:
+      return null;
+  }
 }
 
 function ModeToggle(props: {
@@ -345,7 +482,7 @@ function StatusPanel(props: {
         fontSize: 13,
       }}
     >
-      {status === "running"
+      {status === "running" || status === "streaming"
         ? "Converting…"
         : "Pick a snippet or paste Python, then click Convert."}
     </div>
@@ -396,3 +533,6 @@ function friendlyTitle(status: number, fallback: string): string {
       return fallback;
   }
 }
+
+// Suppress unused-suffix warnings: useMemo is intentionally available for future use.
+void useMemo;

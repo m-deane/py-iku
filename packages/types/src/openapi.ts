@@ -116,6 +116,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compute the per-node diff between two flows
+         * @description Compare two flows by recipe name (the node id) and return added/removed/changed.
+         *
+         *     - **added**: recipe present in B but not in A.
+         *     - **removed**: recipe present in A but not in B.
+         *     - **changed**: recipe present in both with a different ``type`` or
+         *       different settings/steps.
+         */
+        post: operations["post_diff_diff_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compute a complexity score for a flow
+         * @description Compute the complexity score from a flow payload.
+         *
+         *     The flow is hydrated into a real ``DataikuFlow`` via ``from_dict`` so
+         *     the FlowGraph metrics computed by ``score_flow`` are accurate.
+         */
+        post: operations["post_score_score_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -344,6 +392,28 @@ export interface components {
          */
         DatasetTypeEnum: "input" | "intermediate" | "output";
         /**
+         * DiffRequest
+         * @description Request body for POST /diff.
+         */
+        DiffRequest: {
+            /** @description The 'before' flow (e.g., rule output) */
+            a: components["schemas"]["DataikuFlowModel"];
+            /** @description The 'after' flow (e.g., LLM output) */
+            b: components["schemas"]["DataikuFlowModel"];
+        };
+        /**
+         * DiffResponse
+         * @description Response body for POST /diff.
+         */
+        DiffResponse: {
+            /** Added */
+            added?: components["schemas"]["NodeDiff"][];
+            /** Removed */
+            removed?: components["schemas"]["NodeDiff"][];
+            /** Changed */
+            changed?: components["schemas"]["NodeDiff"][];
+        };
+        /**
          * DistinctSettingsModel
          * @description Mirrors DistinctSettings.to_dict(): computeCount.
          */
@@ -447,6 +517,37 @@ export interface components {
             /** Selected Columns */
             selected_columns?: {
                 [key: string]: string[];
+            } | null;
+        };
+        /**
+         * NodeDiff
+         * @description A single per-node difference entry.
+         *
+         *     For ``added`` and ``removed`` entries ``diff`` is None. For ``changed`` entries
+         *     ``diff`` enumerates which fields differ between A and B.
+         */
+        NodeDiff: {
+            /**
+             * Id
+             * @description Recipe name used as the node id
+             */
+            id: string;
+            /**
+             * Recipe Type A
+             * @description Recipe type in flow A (None when added in B)
+             */
+            recipe_type_a?: string | null;
+            /**
+             * Recipe Type B
+             * @description Recipe type in flow B (None when removed from B)
+             */
+            recipe_type_b?: string | null;
+            /**
+             * Diff
+             * @description When kind=changed: which fields differ ({field: {a, b}}).
+             */
+            diff?: {
+                [key: string]: unknown;
             } | null;
         };
         /**
@@ -909,6 +1010,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProcessorCatalogEntry"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_diff_diff_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiffRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiffResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_score_score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DataikuFlowModel"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplexityScore"];
                 };
             };
             /** @description Validation Error */

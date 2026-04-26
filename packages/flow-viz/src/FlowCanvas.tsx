@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -51,6 +51,13 @@ export interface FlowCanvasProps {
   focusOnSelect?: boolean;
   /** When set, animate execution status through the topological order. */
   simulation?: FlowCanvasSimulationProps;
+  /**
+   * Fired when a node is selected or the selection is cleared. Pass null
+   * when the user clicks empty canvas. Used by the M5 NodeInspector panel.
+   */
+  onSelectionChange?: (id: string | null) => void;
+  /** Externally controlled selection — overrides the canvas-internal state. */
+  selectedNodeId?: string | null;
   className?: string;
   style?: CSSProperties;
 }
@@ -110,6 +117,8 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     zoneAssignment,
     focusOnSelect = false,
     simulation,
+    onSelectionChange,
+    selectedNodeId: externalSelectedNodeId,
     className,
     style,
   } = props;
@@ -118,7 +127,9 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
   const initialEdges = useMemo(() => toRFEdges(flow), [flow]);
   const [nodes, setNodes] = useState<RFNode[]>(initialNodes);
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string | null>(null);
+  const selectedNodeId =
+    externalSelectedNodeId !== undefined ? externalSelectedNodeId : internalSelectedNodeId;
 
   // Run layout when flow changes.
   useEffect(() => {
@@ -178,9 +189,27 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     setNodes((prev) => applyNodeChanges(changes, prev));
     for (const c of changes) {
       if (c.type === "select") {
-        setSelectedNodeId(c.selected ? c.id : null);
+        const next = c.selected ? c.id : null;
+        if (externalSelectedNodeId === undefined) {
+          setInternalSelectedNodeId(next);
+        }
+        onSelectionChange?.(next);
       }
     }
+  }
+
+  function handleNodeClick(_evt: ReactMouseEvent, node: RFNode): void {
+    if (externalSelectedNodeId === undefined) {
+      setInternalSelectedNodeId(node.id);
+    }
+    onSelectionChange?.(node.id);
+  }
+
+  function handlePaneClick(): void {
+    if (externalSelectedNodeId === undefined) {
+      setInternalSelectedNodeId(null);
+    }
+    onSelectionChange?.(null);
   }
 
   return (
@@ -208,6 +237,8 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
           edgeTypes={edgeTypes}
           fitView
           onNodesChange={handleNodeChanges}
+          onNodeClick={handleNodeClick}
+          onPaneClick={handlePaneClick}
           proOptions={{ hideAttribution: true }}
         >
           {showBackground && <Background gap={16} />}

@@ -208,6 +208,28 @@ export type RecipeCatalogEntry = GeneratedRecipeCatalogEntry;
 // Local HealthResponse interface above is superseded but kept for backward compat.
 export type { GeneratedConvertRequest, GeneratedConvertResponse, GeneratedHealthResponse, GeneratedRecipeCatalogEntry };
 
+export interface NodeDiff {
+  id: string;
+  recipe_type_a: string | null;
+  recipe_type_b: string | null;
+  diff: Record<string, unknown> | null;
+}
+
+export interface DiffResponse {
+  added: NodeDiff[];
+  removed: NodeDiff[];
+  changed: NodeDiff[];
+}
+
+export interface ScoreResponse {
+  recipe_count: number;
+  processor_count: number;
+  max_depth: number;
+  fan_out_max: number;
+  complexity: number;
+  cost_estimate?: number | null;
+}
+
 export const client = {
   health(opts?: ClientOptions): Promise<HealthResponse> {
     return request<HealthResponse>("/health", { method: "GET" }, opts);
@@ -221,6 +243,24 @@ export const client = {
   },
   getRecipes(opts?: ClientOptions): Promise<RecipeCatalogEntry[]> {
     return request<RecipeCatalogEntry[]>("/catalog/recipes", { method: "GET" }, opts);
+  },
+  diff(
+    a: Record<string, unknown>,
+    b: Record<string, unknown>,
+    opts?: ClientOptions,
+  ): Promise<DiffResponse> {
+    return request<DiffResponse>(
+      "/diff",
+      { method: "POST", body: JSON.stringify({ a, b }) },
+      opts,
+    );
+  },
+  score(flow: Record<string, unknown>, opts?: ClientOptions): Promise<ScoreResponse> {
+    return request<ScoreResponse>(
+      "/score",
+      { method: "POST", body: JSON.stringify(flow) },
+      opts,
+    );
   },
   /** Generic escape hatch for not-yet-typed endpoints (M5+ will expand). */
   request,

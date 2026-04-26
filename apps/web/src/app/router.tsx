@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { ConvertPage } from "../features/conversion/ConvertPage";
+import { DiffPage } from "../features/diff/DiffPage";
 
 function PlaceholderPage({
   title,
@@ -86,10 +87,7 @@ export function AppRouter(): JSX.Element {
             path="/catalog"
             element={<PlaceholderPage title="Catalog browser" milestone="M6" />}
           />
-          <Route
-            path="/diff"
-            element={<PlaceholderPage title="Rule-vs-LLM diff" milestone="M5" />}
-          />
+          <Route path="/diff" element={<DiffPage />} />
           <Route
             path="/share/:token"
             element={<PlaceholderPage title="Read-only share view" milestone="M7" />}
