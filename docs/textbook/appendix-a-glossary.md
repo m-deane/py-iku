@@ -52,6 +52,10 @@ The post-generation pass implemented in `BaseFlowGenerator._optimize_flow` that 
 
 A DSS-level slice of a dataset addressed by a partition key (a date, a country, a tenant). py-iku records partition information on `DataikuDataset.partitioning` when the source code makes it inferrable, but it does not introduce partitioning where the source did not have it.
 
+### PIVOT
+
+A recipe that reshapes long-format records into wide format by promoting a column's distinct values to columns of their own and aggregating a value column into the resulting cells. The pandas trigger is `df.pivot(...)` or `df.pivot_table(...)`. py-iku produces a `PIVOT` recipe with `index`, `columns`, and `values` recorded in `PivotSettings`.
+
 ### PrepareStep
 
 A single step inside a PREPARE recipe. Each step has a `processor_type` and a settings payload typed for that processor. py-iku represents this as `PrepareStep`. The order of `PrepareStep` instances in `recipe.steps` is significant — step N sees the schema produced by step N−1.

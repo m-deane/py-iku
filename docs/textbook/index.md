@@ -30,6 +30,7 @@ Each chapter begins with a `## What you'll learn` section naming the concrete ca
 - Chapter 10, *Optimization and the DAG*. The PREPARE-merge optimization pass, fan-out guards, and how to inspect the post-optimization flow.
 - Chapter 11, *Production Usage*. Wiring `convert()` into CI, configuration precedence, LLM cost monitoring, and version pinning for reproducibility.
 - Chapter 12, *Extending py-iku*. The `PluginRegistry`, the three registration entry points, and a worked sklearn case study.
+- Chapter 13, *Visual Aids and Flow Inspection*. The canonical reference for inspecting and rendering a `DataikuFlow` — programmatic inspection, round-trip serialization, every visualization format, themes, Jupyter integration, and a "which format when" decision matrix.
 - Appendix A, *Glossary*. Concise definitions of the DSS and py-iku terms used throughout the book.
 - Appendix B, *Troubleshooting*. The ten most common errors, each with symptom, cause, and fix.
 - Appendix C, *Cheatsheet*. A one-page reference suitable for printing.

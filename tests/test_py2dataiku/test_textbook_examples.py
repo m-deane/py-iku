@@ -36,6 +36,7 @@ import pytest
 TEXTBOOK_DIR = Path(__file__).resolve().parents[2] / "docs" / "textbook"
 
 CHAPTER_FILES = sorted(TEXTBOOK_DIR.glob("[0-9][0-9]-*.md"))
+EXAMPLE_FILES = sorted(TEXTBOOK_DIR.glob("examples-*.md"))
 APPENDIX_FILES = sorted(TEXTBOOK_DIR.glob("appendix-*.md"))
 INDEX_FILE = TEXTBOOK_DIR / "index.md"
 
@@ -47,7 +48,7 @@ def _extract_blocks(path: Path) -> list[str]:
 
 
 def _all_textbook_files() -> list[Path]:
-    return [INDEX_FILE, *CHAPTER_FILES, *APPENDIX_FILES]
+    return [INDEX_FILE, *CHAPTER_FILES, *EXAMPLE_FILES, *APPENDIX_FILES]
 
 
 # ----------------------------------------------------------------------------

@@ -88,6 +88,11 @@ nav:
     - 10. Optimization and the DAG: textbook/10-optimization-and-dag.md
     - 11. Production usage: textbook/11-production-usage.md
     - 12. Extending py-iku: textbook/12-extending-py-iku.md
+    - "13. Visual Aids & Inspection": textbook/13-visual-aids-and-inspection.md
+    - "Worked Examples I: Trade Capture and Validation": textbook/examples-01-trade-capture-and-validation.md
+    - "Worked Examples II: Position and P&L Analytics": textbook/examples-02-position-and-pnl-analytics.md
+    - "Worked Examples III: Counterparty and Curves": textbook/examples-03-counterparty-and-curves.md
+    - "Worked Examples IV: Power Hubs and Trade Events": textbook/examples-04-power-hubs-and-trade-events.md
     - "Appendix A: Glossary": textbook/appendix-a-glossary.md
     - "Appendix B: Troubleshooting": textbook/appendix-b-troubleshooting.md
     - "Appendix C: Cheatsheet": textbook/appendix-c-cheatsheet.md
