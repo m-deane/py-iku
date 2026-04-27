@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { client as defaultClient, type ProcessorCatalogEntry } from "../../api/client";
+import { SkeletonGrid } from "../../components/Skeleton";
+import { Banner } from "../../components/Banner";
 import styles from "./CatalogPage.module.css";
 
 export interface ProcessorsListProps {
@@ -81,9 +83,20 @@ export function ProcessorsList(props: ProcessorsListProps): JSX.Element {
       </div>
 
       {query.isLoading ? (
-        <div className={styles.loading}>Loading processors…</div>
+        <SkeletonGrid count={9} data-testid="processors-skeleton" />
       ) : query.isError ? (
-        <div className={styles.error}>Failed to load processors.</div>
+        <Banner
+          data-testid="processors-error-banner"
+          title="Could not load processors"
+          detail={
+            query.error instanceof Error
+              ? query.error.message
+              : "The catalog API is unreachable. Check that the API is running and the base URL in settings is correct."
+          }
+          onRetry={() => {
+            void query.refetch();
+          }}
+        />
       ) : items.length === 0 ? (
         <div
           className={styles.empty}

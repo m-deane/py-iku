@@ -42,9 +42,29 @@ export interface UseConvertStreamOptions {
   wsFactory?: WSFactory;
 }
 
+/**
+ * High-level phase derived from the latest progress event. Drives the visible
+ * progress-bar label on `ConvertPage`. Distinct from `status` (lifecycle) and
+ * the raw `progress[]` log.
+ */
+export type ConvertPhase =
+  | "idle"
+  | "connecting"
+  | "analyzing" // ast_parsed
+  | "calling_llm" // provider_call_started/completed
+  | "building" // recipe_created / processor_added
+  | "optimizing" // optimized
+  | "done"
+  | "error"
+  | "cancelled";
+
 export interface UseConvertStreamResult {
   status: ConvertStreamStatus;
   progress: ProgressEvent[];
+  /** Coarse phase string suitable for status-line display. */
+  phase: ConvertPhase;
+  /** Percent complete in [0, 100]. Heuristic — the backend doesn't emit pct. */
+  pct: number;
   flow: Record<string, unknown> | null;
   score: Record<string, unknown> | null;
   warnings: string[];
@@ -52,6 +72,50 @@ export interface UseConvertStreamResult {
   start: (req: ConvertRequest) => void;
   cancel: () => void;
   reset: () => void;
+}
+
+/**
+ * Backend emits 5 ordered milestone events plus optional LLM events. We map
+ * each to a coarse percentage so the UI shows monotonic forward progress
+ * without needing the backend to emit `pct`. Order:
+ *   started → ast_parsed → recipe_created* → processor_added* → optimized → completed
+ *
+ * These were observed by tailing apps/api/app/services/conversion.py.
+ */
+const PHASE_FROM_EVENT: Record<string, { phase: ConvertPhase; pct: number }> = {
+  started: { phase: "analyzing", pct: 10 },
+  ast_parsed: { phase: "analyzing", pct: 25 },
+  provider_call_started: { phase: "calling_llm", pct: 35 },
+  provider_call_completed: { phase: "calling_llm", pct: 65 },
+  recipe_created: { phase: "building", pct: 70 },
+  processor_added: { phase: "building", pct: 80 },
+  optimized: { phase: "optimizing", pct: 92 },
+  completed: { phase: "done", pct: 100 },
+  cancelled: { phase: "cancelled", pct: 0 },
+  error: { phase: "error", pct: 0 },
+};
+
+export function derivePhase(
+  events: readonly ProgressEvent[],
+  status: ConvertStreamStatus,
+): { phase: ConvertPhase; pct: number } {
+  if (status === "idle") return { phase: "idle", pct: 0 };
+  if (status === "connecting" && events.length === 0)
+    return { phase: "connecting", pct: 5 };
+  if (status === "error") return { phase: "error", pct: 0 };
+  if (status === "cancelled") return { phase: "cancelled", pct: 0 };
+  if (status === "done") return { phase: "done", pct: 100 };
+
+  // Walk events in reverse, picking the first known mapping. `recipe_created`
+  // and `processor_added` repeat — the heuristic ratchets monotonically since
+  // we already filter on the latest known mapping.
+  let best: { phase: ConvertPhase; pct: number } = { phase: "connecting", pct: 5 };
+  for (const ev of events) {
+    const mapped = PHASE_FROM_EVENT[ev.event];
+    if (!mapped) continue;
+    if (mapped.pct >= best.pct) best = mapped;
+  }
+  return best;
 }
 
 /** Convert an http(s) base URL into a ws(s) URL pointing at /convert/stream. */
@@ -289,5 +353,19 @@ export function useConvertStream(
     };
   }, [cleanupSocket]);
 
-  return { status, progress, flow, score, warnings, error, start, cancel, reset };
+  const { phase, pct } = derivePhase(progress, status);
+
+  return {
+    status,
+    progress,
+    phase,
+    pct,
+    flow,
+    score,
+    warnings,
+    error,
+    start,
+    cancel,
+    reset,
+  };
 }

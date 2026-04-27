@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { MonacoEditor } from "../editor/MonacoEditor";
 import { SnippetPicker } from "../editor/SnippetPicker";
 import { JsonView } from "../../components/JsonView";
+import { Banner } from "../../components/Banner";
 import { ExportButtons } from "../export/ExportButtons";
 import { ValidationPanel } from "../validation/ValidationPanel";
 import { NodeInspector } from "../inspector/NodeInspector";
@@ -15,8 +16,10 @@ import {
 import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
+import { useRecentsStore, deriveFlowName } from "../../store/recents";
 import {
   useConvertStream,
+  type ConvertPhase,
   type UseConvertStreamResult,
   type UseConvertStreamOptions,
 } from "./useConvertStream";
@@ -51,6 +54,40 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const provider = useSettingsStore((s) => s.llmProvider);
   const model = useSettingsStore((s) => s.llmModel);
   const openSettings = useUiStore((s) => s.openSettingsDrawer);
+  const addRecent = useRecentsStore((s) => s.addRecent);
+
+  /**
+   * Push a successful conversion onto the Recents rail.
+   *
+   * Stable id is derived from the source content (cheap djb2-style hash) so
+   * re-converting the same script promotes the existing entry instead of
+   * stacking duplicates.
+   */
+  const recordRecent = (
+    sourceCode: string,
+    flow: unknown,
+    explicitName?: string,
+  ): void => {
+    if (!sourceCode) return;
+    const name = deriveFlowName(
+      sourceCode,
+      explicitName ?? (flow as { flow_name?: string })?.flow_name,
+    );
+    const recipeCount = Array.isArray((flow as { recipes?: unknown[] })?.recipes)
+      ? ((flow as { recipes: unknown[] }).recipes.length ?? 0)
+      : 0;
+    let h = 5381;
+    for (let i = 0; i < sourceCode.length; i += 1) {
+      h = ((h << 5) + h + sourceCode.charCodeAt(i)) | 0;
+    }
+    addRecent({
+      id: `flow-${(h >>> 0).toString(36)}`,
+      name,
+      source: sourceCode,
+      recipeCount,
+      timestamp: Date.now(),
+    });
+  };
 
   const [response, setResponse] = useState<ConvertResponse | null>(null);
   const [error, setError] = useState<{ title: string; detail?: string; status: number } | null>(
@@ -60,6 +97,9 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const [validationOpen, setValidationOpen] = useState(false);
   const [savedFlowId, setSavedFlowId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  // Stash the last convert attempt so the inline error Banner's Retry button
+  // can re-fire the same request without the user having to re-click Convert.
+  const lastAttempt = useRef<(() => void) | null>(null);
 
   // Streaming hook (always-on for M5 unless explicitly disabled by tests).
   const useStreamHook = props.streamConvertImpl ?? useConvertStream;
@@ -92,6 +132,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFlow(stream.flow as any);
       setStatus("done");
+      recordRecent(code, stream.flow);
       if (stream.warnings.length > 0) {
         toast.message(
           `Converted with ${stream.warnings.length} warning${
@@ -122,6 +163,10 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     setError(null);
     setResponse(null);
     setSavedFlowId(null);
+    // Stash the function the inline error Banner's Retry button calls.
+    lastAttempt.current = (): void => {
+      void onConvert();
+    };
 
     // REST path (legacy / test compatibility).
     if (props.useRestOnly || props.convertImpl) {
@@ -137,6 +182,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setFlow(result.flow as any);
         setStatus("done");
+        recordRecent(code, result.flow);
         if (result.warnings.length > 0) {
           toast.message(
             `Converted with ${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}`,
@@ -213,6 +259,19 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
 
   const progressList = stream.progress;
   const showProgress = progressList.length > 0;
+  // The dedicated progress-bar replaces the spinner once we have any
+  // intermediate event from the WS (or while connecting). We still show the
+  // spinner during the brief "connecting" window before the first event lands.
+  const showProgressBar =
+    stream.status === "connecting" ||
+    stream.status === "streaming" ||
+    (stream.status === "done" && stream.pct < 100); // settle animation
+  const showSpinner = inFlight && !showProgressBar;
+  // Inline error banner sources from local `error` state when set (post-effect
+  // copy on REST + stream paths), and falls back to `stream.error` so the
+  // banner appears immediately on the first render that has an error — the
+  // post-mount effect that mirrors stream→local state runs one tick later.
+  const visibleError = error ?? stream.error;
 
   return (
     <section
@@ -264,6 +323,34 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             </button>
           ) : null}
         </header>
+        {visibleError ? (
+          <div style={{ marginBottom: "0.5rem" }} data-testid="convert-error-banner-wrap">
+            <Banner
+              data-testid="convert-error-banner"
+              title={
+                visibleError.status > 0
+                  ? `${visibleError.title} (HTTP ${visibleError.status})`
+                  : visibleError.title
+              }
+              detail={visibleError.detail ?? friendlyDetail(visibleError.status)}
+              onRetry={
+                lastAttempt.current
+                  ? () => {
+                      lastAttempt.current?.();
+                    }
+                  : undefined
+              }
+              onDismiss={() => setError(null)}
+            />
+          </div>
+        ) : null}
+        {showProgressBar ? (
+          <ProgressBar
+            phase={stream.phase}
+            pct={stream.pct}
+            onCancel={onCancel}
+          />
+        ) : null}
         <MonacoEditor
           value={editorValue}
           onChange={(v) => setCurrentCode(v)}
@@ -304,10 +391,12 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
               fontWeight: 600,
             }}
           >
-            {inFlight ? (
+            {showSpinner ? (
               <span>
                 <Spinner /> Converting…
               </span>
+            ) : inFlight ? (
+              "Converting…"
             ) : (
               "Convert"
             )}
@@ -317,14 +406,16 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             data-testid="convert-cancel"
             onClick={onCancel}
             disabled={!inFlight}
+            aria-label="Cancel conversion"
             style={{
               padding: "0.5rem 0.9rem",
-              borderRadius: 6,
-              border: "1px solid var(--color-grid, #e0e0e0)",
+              borderRadius: "var(--radius-md, 6px)",
+              border: "1px solid var(--border-strong, var(--color-grid, #e0e0e0))",
               background: "transparent",
               color: "inherit",
               cursor: inFlight ? "pointer" : "not-allowed",
               opacity: inFlight ? 1 : 0.5,
+              fontSize: "var(--text-sm, 14px)",
             }}
           >
             Cancel
@@ -396,6 +487,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
               >
                 {sharing ? "Sharing…" : "Share this flow"}
               </button>
+              <PinFlowButton code={code} flow={response.flow} />
             </div>
             <ValidationPanel
               flow={response.flow}
@@ -461,6 +553,154 @@ function NodeList(props: { flow: Record<string, unknown> }): JSX.Element | null 
       })}
     </nav>
   );
+}
+
+/**
+ * ProgressBar — thin top-of-panel bar that surfaces the 5 backend WS phases.
+ *
+ * Replaces the bare spinner once any progress event lands. Renders an
+ * accessible progressbar (`role="progressbar"`, `aria-valuenow={pct}`) plus a
+ * 1-line status string and a discoverable but secondary Cancel button next to
+ * it (the bigger Cancel is in the header — this one is co-located with the bar
+ * for users who scrolled past).
+ */
+function ProgressBar(props: {
+  phase: ConvertPhase;
+  pct: number;
+  onCancel: () => void;
+}): JSX.Element {
+  const { phase, pct, onCancel } = props;
+  const label = phaseLabel(phase);
+  const showCancel =
+    phase !== "idle" && phase !== "done" && phase !== "error" && phase !== "cancelled";
+  const isIndeterminate = pct <= 5 && phase === "connecting";
+
+  return (
+    <div
+      data-testid="convert-progress"
+      data-phase={phase}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.4rem",
+        marginBottom: "0.5rem",
+        padding: "0.5rem 0.75rem",
+        borderRadius: "var(--radius-md, 8px)",
+        background: "var(--surface-raised, #f7f8fa)",
+        border: "1px solid var(--border, #eaecf0)",
+      }}
+    >
+      <div
+        role="progressbar"
+        aria-valuenow={isIndeterminate ? undefined : Math.round(pct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Conversion: ${label}`}
+        data-testid="convert-progress-bar"
+        style={{
+          position: "relative",
+          height: 6,
+          width: "100%",
+          borderRadius: "var(--radius-pill, 9999px)",
+          background: "var(--surface-sunken, #f2f4f7)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: isIndeterminate ? "30%" : `${Math.max(2, Math.min(100, pct))}%`,
+            background: "var(--accent, #0d9488)",
+            transition: "width var(--duration-base, 200ms) var(--ease-standard, ease)",
+            animation: isIndeterminate
+              ? "py-iku-progress-indeterminate 1.4s ease-in-out infinite"
+              : undefined,
+            borderRadius: "inherit",
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontSize: "var(--text-xs, 12px)",
+          color: "var(--fg-muted, #5b6470)",
+        }}
+      >
+        <span data-testid="convert-progress-status" style={{ flex: 1 }}>
+          {label}
+          {!isIndeterminate ? ` ${Math.round(pct)}%` : ""}
+        </span>
+        {showCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            data-testid="convert-progress-cancel"
+            aria-label="Cancel conversion"
+            style={{
+              padding: "0.2rem 0.6rem",
+              borderRadius: "var(--radius-sm, 4px)",
+              border: "1px solid var(--border-strong, #d0d5dd)",
+              background: "transparent",
+              color: "inherit",
+              cursor: "pointer",
+              fontSize: "var(--text-xs, 12px)",
+            }}
+          >
+            Cancel
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function phaseLabel(phase: ConvertPhase): string {
+  switch (phase) {
+    case "idle":
+      return "Idle";
+    case "connecting":
+      return "Connecting…";
+    case "analyzing":
+      return "Analyzing AST…";
+    case "calling_llm":
+      return "Calling LLM…";
+    case "building":
+      return "Building flow…";
+    case "optimizing":
+      return "Optimizing DAG…";
+    case "done":
+      return "Done";
+    case "error":
+      return "Error";
+    case "cancelled":
+      return "Cancelled";
+  }
+}
+
+function friendlyDetail(status: number): string {
+  switch (status) {
+    case 0:
+      return "Could not reach the server. Check your network or API base URL in settings.";
+    case 401:
+    case 403:
+      return "Authentication failed. Add or refresh your API key alias in Settings.";
+    case 422:
+      return "The Python code could not be parsed. Fix the syntax error and try again.";
+    case 429:
+      return "Rate limit exceeded by the LLM provider. Wait a few seconds and retry.";
+    case 500:
+    case 502:
+    case 503:
+      return "The conversion service is unavailable. Try again — the request did not complete.";
+    default:
+      return "Something went wrong during conversion. See the toast above for details.";
+  }
 }
 
 function ProgressLog(props: {
@@ -772,6 +1012,45 @@ function DatasetsTile(props: {
   );
 }
 
+/**
+ * Tiny "+ pin" affordance shown on the conversion result panel. Lets the
+ * user promote the just-converted flow into the persistent Pinned rail
+ * (via the recents store).
+ */
+function PinFlowButton(props: {
+  code: string;
+  flow: Record<string, unknown>;
+}): JSX.Element {
+  const togglePin = useRecentsStore((s) => s.togglePin);
+  const isPinned = useRecentsStore((s) => s.isPinned);
+  let h = 5381;
+  for (let i = 0; i < props.code.length; i += 1) {
+    h = ((h << 5) + h + props.code.charCodeAt(i)) | 0;
+  }
+  const id = `flow-${(h >>> 0).toString(36)}`;
+  const pinned = isPinned(id);
+  return (
+    <button
+      type="button"
+      data-testid="pin-flow-button"
+      onClick={() => togglePin(id)}
+      aria-pressed={pinned}
+      aria-label={pinned ? "Unpin this flow" : "Pin this flow"}
+      style={{
+        padding: "0.4rem 0.8rem",
+        borderRadius: 6,
+        border: "1px solid var(--border, #eaecf0)",
+        background: pinned ? "var(--accent-bg-soft, #ccfbf1)" : "transparent",
+        color: pinned ? "var(--accent-hover, #0f766e)" : "inherit",
+        cursor: "pointer",
+        fontSize: 13,
+      }}
+    >
+      {pinned ? "★ Pinned" : "+ Pin"}
+    </button>
+  );
+}
+
 function Spinner(): JSX.Element {
   return (
     <span
@@ -798,7 +1077,8 @@ if (typeof document !== "undefined" && !document.getElementById("py-iku-spin-key
   style.id = "py-iku-spin-keyframes";
   style.textContent =
     "@keyframes py-iku-spin { to { transform: rotate(360deg); } } " +
-    "@keyframes py-iku-skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }";
+    "@keyframes py-iku-skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } } " +
+    "@keyframes py-iku-progress-indeterminate { 0% { transform: translateX(-100%); } 50% { transform: translateX(150%); } 100% { transform: translateX(350%); } }";
   document.head.appendChild(style);
 }
 

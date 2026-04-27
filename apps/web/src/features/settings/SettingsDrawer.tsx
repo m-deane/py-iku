@@ -5,6 +5,7 @@ import {
   type Theme,
 } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
+import { useFocusTrap } from "../../components/useFocusTrap";
 
 type ThemePref = Theme | "system";
 
@@ -76,6 +77,24 @@ export function SettingsDrawer(): JSX.Element | null {
     settings.apiBaseUrl,
   ]);
 
+  // Focus trap: ref returned by `useFocusTrap` lives on the <aside>. Only
+  // activates while `open === true`. Restores focus to the gear icon (the
+  // previously-focused element) when the drawer unmounts.
+  const trapRef = useFocusTrap<HTMLElement>(open);
+
+  // Esc closes the drawer (separate from focus trap, which only handles Tab).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        close();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return (): void => document.removeEventListener("keydown", onKey);
+  }, [open, close]);
+
   if (!open) return null;
 
   const dirty =
@@ -131,9 +150,12 @@ export function SettingsDrawer(): JSX.Element | null {
         }}
       />
       <aside
+        ref={trapRef}
         role="dialog"
         aria-label="Settings"
         aria-modal="true"
+        tabIndex={-1}
+        data-testid="settings-drawer"
         style={{
           position: "fixed",
           top: 0,
@@ -180,10 +202,11 @@ export function SettingsDrawer(): JSX.Element | null {
           role="alert"
           style={{
             padding: "0.5rem 0.75rem",
-            borderRadius: 6,
-            background: "var(--color-grid, #fff8e1)",
-            color: "inherit",
-            fontSize: 12,
+            borderRadius: "var(--radius-md, 6px)",
+            background: "var(--info-bg, #eff6ff)",
+            color: "var(--info-fg, #1d4ed8)",
+            border: "1px solid var(--info-border, #bfdbfe)",
+            fontSize: "var(--text-xs, 12px)",
             marginBottom: "1rem",
           }}
         >

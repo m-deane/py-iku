@@ -91,6 +91,61 @@ describe("<ProcessorsList />", () => {
     expect(intermediate).toBeUndefined();
   });
 
+  it("renders skeleton placeholders while the query is loading", () => {
+    let resolveFn: ((items: ProcessorCatalogEntry[]) => void) | null = null;
+    const stub = {
+      listProcessors: vi.fn(
+        () =>
+          new Promise<ProcessorCatalogEntry[]>((resolve) => {
+            resolveFn = resolve;
+          }),
+      ),
+      getProcessor: vi.fn(),
+    } as unknown as typeof ClientType;
+    const { getByTestId } = render(
+      wrap(<ProcessorsList clientImpl={stub} onSelect={() => {}} debounceMs={0} />),
+    );
+    expect(getByTestId("processors-skeleton")).toBeInTheDocument();
+    // Resolve so the test doesn't leak an unresolved promise. TS narrowing
+    // can't see the assignment inside the Promise executor (collapses to
+    // `never`), so cast to escape the narrowing.
+    (resolveFn as unknown as ((items: ProcessorCatalogEntry[]) => void) | null)?.([]);
+  });
+
+  it("renders an error banner with a Retry button on query failure", async () => {
+    // The component fires the primary `listProcessors(q,category)` query and
+    // a second `listProcessors()` for the category dropdown — both share the
+    // same mock fn. We fail every call until `succeedAfter` flips, then
+    // succeed. The Retry button calls `query.refetch()` which forces another
+    // call regardless of cache state.
+    let succeed = false;
+    const stub = {
+      listProcessors: vi.fn(() => {
+        if (!succeed) return Promise.reject(new Error("Connection refused"));
+        return Promise.resolve([p({ name: "ColumnRenamer" })]);
+      }),
+      getProcessor: vi.fn(),
+    } as unknown as typeof ClientType;
+    render(
+      wrap(<ProcessorsList clientImpl={stub} onSelect={() => {}} debounceMs={0} />),
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("processors-error-banner")).toBeInTheDocument();
+    });
+    const callsBefore = (
+      stub.listProcessors as ReturnType<typeof vi.fn>
+    ).mock.calls.length;
+    succeed = true;
+    fireEvent.click(screen.getByTestId("processors-error-banner-retry"));
+    await waitFor(() => {
+      expect(screen.getByTestId("processor-card-ColumnRenamer")).toBeInTheDocument();
+    });
+    const callsAfter = (
+      stub.listProcessors as ReturnType<typeof vi.fn>
+    ).mock.calls.length;
+    expect(callsAfter).toBeGreaterThan(callsBefore);
+  });
+
   it("filters by category via the dropdown", async () => {
     const stub = stubClient([
       p({ name: "ColumnRenamer", category: "Restructure" }),

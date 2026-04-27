@@ -3,8 +3,10 @@ import { act, renderHook } from "@testing-library/react";
 import {
   useConvertStream,
   deriveWsUrl,
+  derivePhase,
   WS_SUBPROTOCOL,
   type WSLike,
+  type ProgressEvent,
 } from "../../src/features/conversion/useConvertStream";
 import { useSettingsStore } from "../../src/state/settingsStore";
 
@@ -50,6 +52,62 @@ class FakeSocket implements WSLike {
 function makeFactory() {
   return (url: string, protocols?: string | string[]) => new FakeSocket(url, protocols);
 }
+
+describe("derivePhase", () => {
+  function ev(name: string): ProgressEvent {
+    return { event: name, seq: 0, ts: "2026-01-01T00:00:00Z", payload: {} };
+  }
+
+  it("returns idle/0 for idle status", () => {
+    expect(derivePhase([], "idle")).toEqual({ phase: "idle", pct: 0 });
+  });
+
+  it("returns connecting at 5% before any event", () => {
+    const r = derivePhase([], "connecting");
+    expect(r.phase).toBe("connecting");
+    expect(r.pct).toBe(5);
+  });
+
+  it("ratchets pct monotonically through the rule-mode pipeline", () => {
+    expect(derivePhase([ev("started")], "streaming").pct).toBe(10);
+    expect(
+      derivePhase([ev("started"), ev("ast_parsed")], "streaming").pct,
+    ).toBe(25);
+    expect(
+      derivePhase(
+        [ev("started"), ev("ast_parsed"), ev("recipe_created")],
+        "streaming",
+      ).pct,
+    ).toBe(70);
+    expect(
+      derivePhase(
+        [
+          ev("started"),
+          ev("ast_parsed"),
+          ev("recipe_created"),
+          ev("processor_added"),
+          ev("optimized"),
+        ],
+        "streaming",
+      ).pct,
+    ).toBe(92);
+  });
+
+  it("locks to done/100 once status is done", () => {
+    expect(derivePhase([ev("completed")], "done")).toEqual({
+      phase: "done",
+      pct: 100,
+    });
+  });
+
+  it("LLM mode surfaces calling_llm phase between provider events", () => {
+    const phase = derivePhase(
+      [ev("started"), ev("provider_call_started")],
+      "streaming",
+    );
+    expect(phase.phase).toBe("calling_llm");
+  });
+});
 
 describe("deriveWsUrl", () => {
   it("converts http base to ws", () => {

@@ -99,4 +99,39 @@ describe("<SettingsDrawer />", () => {
       screen.getByText(/api keys for anthropic and openai are read from the server/i),
     ).toBeInTheDocument();
   });
+
+  it("focuses the first focusable element on open and traps Tab inside", () => {
+    render(<SettingsDrawer />);
+    openDrawer();
+
+    // First focusable is the close-X button. The trap is applied via
+    // requestAnimationFrame in some environments; in jsdom it's synchronous.
+    const dialog = screen.getByTestId("settings-drawer");
+    expect(dialog).toBeInTheDocument();
+
+    // The drawer pulls focus inside; after opening, document.activeElement
+    // should be inside the dialog.
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    // Find the last focusable inside the dialog.
+    const focusables = dialog.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    expect(document.activeElement).toBe(last);
+
+    // Tab from last → wraps to first.
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(focusables[0]);
+  });
+
+  it("Esc closes the drawer", () => {
+    render(<SettingsDrawer />);
+    openDrawer();
+    expect(useUiStore.getState().settingsDrawerOpen).toBe(true);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(useUiStore.getState().settingsDrawerOpen).toBe(false);
+  });
 });

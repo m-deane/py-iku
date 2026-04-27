@@ -42,6 +42,8 @@ function createStreamStub() {
   const result: UseConvertStreamResult = {
     status: "idle",
     progress: events,
+    phase: "idle",
+    pct: 0,
     flow: null,
     score: null,
     warnings: [],
@@ -191,6 +193,8 @@ describe("<ConvertPage /> — streaming seam (M5)", () => {
     const useStub = (): UseConvertStreamResult => ({
       status: "streaming",
       progress: events,
+      phase: "analyzing",
+      pct: 25,
       flow: null,
       score: null,
       warnings: [],
@@ -211,6 +215,8 @@ describe("<ConvertPage /> — streaming seam (M5)", () => {
     const useStub = (): UseConvertStreamResult => ({
       status: "streaming",
       progress: [],
+      phase: "connecting",
+      pct: 5,
       flow: null,
       score: null,
       warnings: [],
@@ -226,10 +232,76 @@ describe("<ConvertPage /> — streaming seam (M5)", () => {
     expect(cancelFn).toHaveBeenCalledOnce();
   });
 
+  it("renders a progress bar with role=progressbar and the phase label while streaming", () => {
+    const events: ProgressEvent[] = [
+      {
+        event: "started",
+        seq: 0,
+        ts: "2026-01-01T00:00:00.000Z",
+        payload: { mode: "rule", code_size_bytes: 6 },
+      },
+      {
+        event: "ast_parsed",
+        seq: 1,
+        ts: "2026-01-01T00:00:00.100Z",
+        payload: { node_count: 42 },
+      },
+    ];
+    const useStub = (): UseConvertStreamResult => ({
+      status: "streaming",
+      progress: events,
+      phase: "analyzing",
+      pct: 25,
+      flow: null,
+      score: null,
+      warnings: [],
+      error: null,
+      start: vi.fn(),
+      cancel: vi.fn(),
+      reset: vi.fn(),
+    });
+    render(<ConvertPage useFallbackEditor streamConvertImpl={useStub} />);
+    const bar = screen.getByTestId("convert-progress-bar");
+    expect(bar).toHaveAttribute("role", "progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", "25");
+    expect(screen.getByTestId("convert-progress-status")).toHaveTextContent(
+      /analyzing ast/i,
+    );
+    // Cancel button is co-located with the progress bar.
+    expect(screen.getByTestId("convert-progress-cancel")).toBeInTheDocument();
+  });
+
+  it("inline error banner appears with a Retry button when stream errors", async () => {
+    const startFn = vi.fn();
+    const useStub = (): UseConvertStreamResult => ({
+      status: "error",
+      progress: [],
+      phase: "error",
+      pct: 0,
+      flow: null,
+      score: null,
+      warnings: [],
+      error: { title: "Rate limit", detail: "Try again", status: 429 },
+      start: startFn,
+      cancel: vi.fn(),
+      reset: vi.fn(),
+    });
+    render(<ConvertPage useFallbackEditor streamConvertImpl={useStub} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("convert-error-banner")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("convert-error-banner")).toHaveTextContent(
+      /rate limit/i,
+    );
+    expect(screen.getByTestId("convert-error-banner")).toHaveTextContent("HTTP 429");
+  });
+
   it("Cancel button is disabled when stream is idle", () => {
     const useStub = (): UseConvertStreamResult => ({
       status: "idle",
       progress: [],
+      phase: "idle",
+      pct: 0,
       flow: null,
       score: null,
       warnings: [],
