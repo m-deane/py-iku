@@ -106,7 +106,7 @@ export function GrelLibraryPage(
   };
 
   return (
-    <section className={styles.page} data-testid="grel-library-page">
+    <section className={styles.page} data-testid="grel-library-page" data-route="grel">
       <header className={styles.header}>
         <h1 className={styles.title}>GREL Formula Library</h1>
         <span className={styles.count} data-testid="grel-count">

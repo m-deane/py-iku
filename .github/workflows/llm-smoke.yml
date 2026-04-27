@@ -1,0 +1,73 @@
+name: LLM Smoke
+
+# Runs the real-LLM smoke surface (apps/api/tests/test_llm_smoke.py).
+# This workflow is GATED on the ANTHROPIC_API_KEY repo secret being set:
+# the job no-ops cleanly when the secret is absent so forks never break.
+#
+# Schedule: nightly at 03:17 UTC (off-peak), plus on every tag push.
+# Manual trigger via workflow_dispatch is also enabled.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  llm-smoke:
+    name: Real-LLM smoke
+    runs-on: ubuntu-latest
+    # Wall-clock cap — if the LLM provider hangs we abort rather than burn
+    # the full 6-hour GitHub Actions default.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect API-key availability
+        id: key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "have_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_key=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANTHROPIC_API_KEY not set in repo secrets — smoke tests will be skipped."
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.key.outputs.have_key == 'true'
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        if: steps.key.outputs.have_key == 'true'
+        run: |
+          pip install -e ".[dev,llm]"
+          pip install -e "apps/api[dev]"
+
+      - name: Run real-LLM smoke (apps/api)
+        if: steps.key.outputs.have_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          pytest apps/api/tests/test_llm_smoke.py -v --tb=short
+
+      - name: Run library-level smoke script
+        if: steps.key.outputs.have_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+        # The library smoke script is a separate sanity net — it runs the
+        # underlying py2dataiku.convert_with_llm path on 7 example snippets.
+        # If this passes but the API-level smoke fails, the bug is in
+        # apps/api glue rather than the library.
+        run: python scripts/llm_smoke_test.py --provider anthropic
+
+      - name: Skipped notice
+        if: steps.key.outputs.have_key != 'true'
+        run: |
+          echo "Skipped: ANTHROPIC_API_KEY not configured. This is normal on forks."

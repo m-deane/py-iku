@@ -22,14 +22,15 @@ describe("<TemplatesPage />", () => {
     useFlowStore.setState({ currentCode: "" });
   });
 
-  it("renders all 10 templates on first paint", () => {
-    expect(TEMPLATES.length).toBe(10);
+  it("renders all 25 templates on first paint", () => {
+    // Sprint 5 expansion: 5 categories × 5 templates each = 25 total.
+    expect(TEMPLATES.length).toBe(25);
     renderPage();
     for (const t of TEMPLATES) {
       expect(screen.getByTestId(`template-card-${t.id}`)).toBeInTheDocument();
     }
     expect(screen.getByTestId("templates-count")).toHaveTextContent(
-      "10 of 10 templates",
+      "25 of 25 templates",
     );
   });
 

@@ -25,6 +25,8 @@ export function SettingsPage(): JSX.Element {
 
   return (
     <section
+      data-route="settings"
+      data-testid="settings-page"
       style={{
         padding: "var(--space-6, 32px)",
         maxWidth: 880,

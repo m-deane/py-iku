@@ -24,7 +24,13 @@ from typing import Any
 
 @dataclass
 class SavedFlow:
-    """A persisted flow record returned by ``FlowsRepo``."""
+    """A persisted flow record returned by ``FlowsRepo``.
+
+    The optional ``fixtures_b64`` field carries a gzip+base64-encoded
+    :class:`FixtureBundle` (per-input-dataset rows). It is populated when the
+    caller chooses to attach embedded fixture data to the share record so the
+    share endpoint can serve the rows inline.
+    """
 
     id: str
     name: str
@@ -32,12 +38,14 @@ class SavedFlow:
     created_at: str
     updated_at: str
     tags: list[str] = field(default_factory=list)
+    fixtures_b64: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SavedFlow:
+        raw_fixtures = data.get("fixtures_b64")
         return cls(
             id=str(data["id"]),
             name=str(data["name"]),
@@ -45,6 +53,7 @@ class SavedFlow:
             created_at=str(data["created_at"]),
             updated_at=str(data["updated_at"]),
             tags=list(data.get("tags") or []),
+            fixtures_b64=str(raw_fixtures) if raw_fixtures else None,
         )
 
 
@@ -188,13 +197,25 @@ class FlowsRepo:
         flow: dict[str, Any] | None = None,
         name: str | None = None,
         tags: list[str] | None = None,
+        fixtures_b64: str | None = None,
     ) -> SavedFlow:
-        """Patch a saved flow.  Raises ``KeyError`` if the id is unknown or unsafe."""
+        """Patch a saved flow.  Raises ``KeyError`` if the id is unknown or unsafe.
+
+        Pass ``fixtures_b64=""`` (empty string) to clear an existing payload;
+        ``fixtures_b64=None`` (default) leaves the existing value untouched.
+        """
         try:
             with self._lock:
                 existing = self._read_flow(flow_id)
                 if existing is None:
                     raise KeyError(flow_id)
+                # Distinguish "not provided" (None) from "clear it" (empty
+                # string) so callers can wipe fixtures without re-emitting a
+                # full record.
+                if fixtures_b64 is None:
+                    next_fixtures = existing.fixtures_b64
+                else:
+                    next_fixtures = fixtures_b64 or None
                 updated = SavedFlow(
                     id=existing.id,
                     name=name if name is not None else existing.name,
@@ -202,6 +223,7 @@ class FlowsRepo:
                     created_at=existing.created_at,
                     updated_at=_now_iso(),
                     tags=list(tags) if tags is not None else existing.tags,
+                    fixtures_b64=next_fixtures,
                 )
                 self._write_flow(updated)
                 return updated

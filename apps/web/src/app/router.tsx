@@ -44,6 +44,11 @@ const InspectorPage = lazy(() =>
 const TemplatesPage = lazy(() =>
   import("../features/templates/TemplatesPage").then((m) => ({ default: m.TemplatesPage })),
 );
+const PluginMarketplacePage = lazy(() =>
+  import("../features/plugin-marketplace/PluginMarketplacePage").then((m) => ({
+    default: m.PluginMarketplacePage,
+  })),
+);
 const LlmHistoryPage = lazy(() =>
   import("../features/llm-history/LlmHistoryPage").then((m) => ({
     default: m.LlmHistoryPage,
@@ -206,6 +211,7 @@ export function AppRouter(): JSX.Element {
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/snippets" element={<SnippetGallery />} />
           <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/plugins" element={<PluginMarketplacePage />} />
           <Route path="/grel" element={<GrelLibraryPage />} />
           <Route path="/lmp" element={<LmpBrowserPage />} />
 

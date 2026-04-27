@@ -4,6 +4,7 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -55,6 +56,44 @@ class LLMProvider(ABC):
     def model_name(self) -> str:
         """Get the model name."""
         pass
+
+    # ------------------------------------------------------------------
+    # Streaming
+    # ------------------------------------------------------------------
+    # ``stream_complete`` was added in Sprint 4B to replace the chunker
+    # fallback in apps/api/services/chat.py. The default implementation here
+    # preserves the OLD wire shape (one full call → fixed-size string slices)
+    # so subclasses that don't override it still work. Subclasses that DO
+    # override (Anthropic, OpenAI) yield real provider-side token deltas.
+    #
+    # The contract:
+    #   - Yields zero or more text deltas as plain ``str`` values.
+    #   - Each delta is the *next* slice of text — concatenating all yielded
+    #     deltas reproduces the final answer.
+    #   - A trailing ``LLMResponse`` is NOT yielded; callers that need
+    #     usage/cost info should call ``complete()`` on a separate path or
+    #     wrap streaming in their own accounting.
+    def stream_complete(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        *,
+        chunk_size: int = 24,
+    ) -> Iterator[str]:
+        """Stream a completion as a sequence of text deltas.
+
+        Default implementation: call :meth:`complete` once and slice the
+        answer into ``chunk_size``-character pieces. This preserves the
+        Sprint 4B "answer-then-chunk" wire shape for any provider that
+        hasn't overridden the method.
+
+        Concrete providers (Anthropic, OpenAI) override this to yield real
+        provider-side token deltas via the SDK's streaming primitives.
+        """
+        resp = self.complete(prompt, system_prompt)
+        text = resp.content or ""
+        for i in range(0, len(text), chunk_size):
+            yield text[i : i + chunk_size]
 
 
 class AnthropicProvider(LLMProvider):
@@ -200,6 +239,46 @@ class AnthropicProvider(LLMProvider):
         content = _extract_json(response.content)
         return json.loads(content)
 
+    def stream_complete(  # type: ignore[override]
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        *,
+        chunk_size: int = 24,  # accepted for API parity; ignored on real stream
+    ) -> Iterator[str]:
+        """Yield real provider-side token deltas via the Anthropic SDK.
+
+        Uses ``client.messages.stream(...)`` and emits ``text_stream``
+        chunks as they arrive. ``chunk_size`` is accepted for signature
+        parity with the base class but is ignored — token boundaries are
+        whatever the SDK produces.
+        """
+        messages = [{"role": "user", "content": prompt}]
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+            "temperature": self.temperature,
+        }
+        if system_prompt:
+            if self.disable_cache:
+                kwargs["system"] = system_prompt
+            else:
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
+
+        # ``messages.stream`` is a context manager that wraps the HTTP
+        # request and exposes the granular ``text_stream`` iterator.
+        with self.client.messages.stream(**kwargs) as stream:
+            for text in stream.text_stream:
+                if text:
+                    yield text
+
     @property
     def model_name(self) -> str:
         return self.model
@@ -324,6 +403,44 @@ class OpenAIProvider(LLMProvider):
         content = response.choices[0].message.content
         return json.loads(content)
 
+    def stream_complete(  # type: ignore[override]
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        *,
+        chunk_size: int = 24,  # accepted for API parity; ignored on real stream
+    ) -> Iterator[str]:
+        """Yield real token deltas from the OpenAI Chat Completions API.
+
+        Sets ``stream=True`` and reads ``choice.delta.content`` from each
+        Server-Sent-Events chunk.
+        """
+        messages: list[dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+            "temperature": self.temperature,
+            "stream": True,
+        }
+        if self.seed is not None:
+            kwargs["seed"] = self.seed
+
+        # The streaming iterator yields ``ChatCompletionChunk`` objects;
+        # each has ``choices[0].delta.content`` which is None on role/finish
+        # chunks but a string for token deltas.
+        for chunk in self.client.chat.completions.create(**kwargs):
+            try:
+                delta = chunk.choices[0].delta.content
+            except (AttributeError, IndexError):
+                delta = None
+            if delta:
+                yield delta
+
     @property
     def model_name(self) -> str:
         return self.model
@@ -332,7 +449,11 @@ class OpenAIProvider(LLMProvider):
 class MockProvider(LLMProvider):
     """Mock provider for testing without API calls."""
 
-    def __init__(self, responses: Optional[dict[str, str]] = None):
+    def __init__(
+        self,
+        responses: Optional[dict[str, str]] = None,
+        stream_deltas: Optional[list[str]] = None,
+    ):
         """Initialize the mock provider.
 
         Args:
@@ -340,8 +461,14 @@ class MockProvider(LLMProvider):
                 response text. When a prompt contains a key from this dict
                 that response is returned; otherwise a default empty-steps
                 JSON blob is used. Calls are recorded in ``self.calls``.
+            stream_deltas: Optional list of strings to yield from
+                :meth:`stream_complete`. When set, the deltas are emitted in
+                order regardless of the prompt — handy for asserting on the
+                SSE wire shape without mocking a real provider. When
+                ``None`` (default) the base-class chunked fallback is used.
         """
         self.responses = responses or {}
+        self.stream_deltas = stream_deltas
         self.calls = []
 
     def complete(self, prompt: str, system_prompt: Optional[str] = None) -> LLMResponse:
@@ -365,6 +492,25 @@ class MockProvider(LLMProvider):
         """Return mock JSON response."""
         response = self.complete(prompt, system_prompt)
         return json.loads(response.content)
+
+    def stream_complete(  # type: ignore[override]
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        *,
+        chunk_size: int = 24,
+    ) -> Iterator[str]:
+        """Yield ``self.stream_deltas`` (if set) or fall back to chunked slicing."""
+        self.calls.append({"prompt": prompt, "system_prompt": system_prompt, "stream": True})
+        if self.stream_deltas is not None:
+            for d in self.stream_deltas:
+                yield d
+            return
+        # Default: reuse base-class chunker so tests that don't care about
+        # exact deltas still get a deterministic stream.
+        yield from super().stream_complete(
+            prompt, system_prompt, chunk_size=chunk_size
+        )
 
     @property
     def model_name(self) -> str:

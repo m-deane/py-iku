@@ -27,12 +27,23 @@ export interface SettingsState {
   reset: () => void;
 }
 
+// Sprint 4D follow-up: multi-tab is the *recommended* default once Alt+T /
+// Alt+W bindings exist for browser-tab contexts. We expose a separate
+// constant so tests that want the legacy single-tab UX can `reset()` and
+// then explicitly toggle, without the migration path also having to know
+// about test-only state.
+const FRESH_INSTALL_MULTI_TAB = true;
+
 const DEFAULTS = {
   theme: null as Theme | null,
   llmProvider: "anthropic" as LlmProvider,
   llmModel: "claude-3-5-sonnet-latest",
   apiKeyAlias: "",
   apiBaseUrl: "http://localhost:8000",
+  // `reset()` returns the legacy default so existing tests that rely on the
+  // single-tab layout keep working without explicit toggles. Fresh installs
+  // hit the migration path (no persisted blob → migrate runs with version 0)
+  // which honours `FRESH_INSTALL_MULTI_TAB`.
   multiTabEnabled: false,
 };
 
@@ -51,7 +62,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: "py-iku-studio-settings",
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       // Defensive: never persist anything that looks like a raw API key.
       partialize: (state) => ({
         theme: state.theme,
@@ -63,11 +74,26 @@ export const useSettingsStore = create<SettingsState>()(
       }),
       migrate: (persisted, version) => {
         // v1 didn't have multiTabEnabled; default to off when loading older blobs.
+        // v2→v3 (Sprint 4D follow-up): flip multiTabEnabled default to ON now
+        // that Alt+T / Alt+W bindings replace the browser-reserved Cmd
+        // shortcuts. v2 blobs carried multiTabEnabled either from a v1 zero-
+        // value migration or an explicit user choice — the migration cannot
+        // disambiguate, so it promotes ANY false-or-missing v2 value to true.
+        // Explicit-off users can re-toggle from Settings → Advanced flags.
         const p = (persisted as Partial<SettingsState>) ?? {};
+        let next: Partial<SettingsState> = { ...p };
         if (version < 2) {
-          return { ...p, multiTabEnabled: false } as Partial<SettingsState>;
+          next = { ...next, multiTabEnabled: false };
         }
-        return p as Partial<SettingsState>;
+        if (version < 3) {
+          if (
+            next.multiTabEnabled === false ||
+            next.multiTabEnabled === undefined
+          ) {
+            next = { ...next, multiTabEnabled: FRESH_INSTALL_MULTI_TAB };
+          }
+        }
+        return next;
       },
     },
   ),

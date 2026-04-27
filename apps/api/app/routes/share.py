@@ -180,6 +180,21 @@ def get_share(
         raise HTTPException(
             status_code=404, detail=f"flow '{payload.flow_id}' not found"
         )
+
+    # If the share was minted with embedded fixtures, decode the gzip+base64
+    # payload off-disk into a structured FixtureBundle so the recipient's
+    # SharePage can offer "Run with embedded fixtures" without a second
+    # round-trip. Decode failures degrade gracefully — the recipient still
+    # gets the flow, just without fixtures attached.
+    fixtures_payload: dict | None = None
+    if record.fixtures_b64:
+        try:
+            from ..services.share_service import decode_bundle_gzip_b64
+
+            fixtures_payload = dict(decode_bundle_gzip_b64(record.fixtures_b64))
+        except ValueError:
+            fixtures_payload = None
+
     return SavedFlowResponse(
         id=record.id,
         name=record.name,
@@ -187,6 +202,7 @@ def get_share(
         created_at=record.created_at,
         updated_at=record.updated_at,
         tags=list(record.tags),
+        fixtures=fixtures_payload,
     )
 
 

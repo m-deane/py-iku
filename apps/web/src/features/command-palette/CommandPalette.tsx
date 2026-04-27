@@ -126,6 +126,10 @@ function KeyboardShortcutsHelp(props: KeyboardShortcutsHelpProps): JSX.Element {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Tab hotkey bindings adapt to the host context — Cmd+T / Cmd+W in
+  // standalone-PWA / Electron, Alt+T / Alt+W in vanilla browser tabs (where
+  // Cmd+T / Cmd+W are reserved by the chrome). We surface BOTH bindings here
+  // so users can discover whichever applies to their environment.
   const rows: Array<{ keys: string[]; desc: string }> = [
     { keys: ["⌘", "K"], desc: "Open / close command palette" },
     { keys: ["⌘", "Enter"], desc: "Convert (on Convert page)" },
@@ -133,6 +137,15 @@ function KeyboardShortcutsHelp(props: KeyboardShortcutsHelpProps): JSX.Element {
     { keys: ["⌘", "/"], desc: "Inline search" },
     { keys: ["⌘", "P"], desc: "Pin highlighted item" },
     { keys: ["⌘", "1..6"], desc: "Jump to section" },
+    { keys: ["⌘", "1..8"], desc: "Switch tab (multi-tab workspace)" },
+    {
+      keys: ["⌥", "T"],
+      desc: "New tab (browser); ⌘+T in standalone PWA / Electron",
+    },
+    {
+      keys: ["⌥", "W"],
+      desc: "Close tab (browser); ⌘+W in standalone PWA / Electron",
+    },
     { keys: ["↑", "↓"], desc: "Move selection" },
     { keys: ["↵"], desc: "Invoke / next step" },
     { keys: ["⇥"], desc: "Cycle focus inside palette" },

@@ -190,12 +190,32 @@ def answer_chat(
 
 
 def stream_chat_chunks(answer: str, *, chunk_size: int = 24):  # type: ignore[no-untyped-def]
-    """Yield successive answer slices for SSE streaming.
+    """Yield successive answer slices for SSE streaming (legacy fallback).
 
-    The two real providers expose token-level streaming, but for v1 we deliver
-    a robust answer-then-chunk fallback so the wire protocol is identical
-    regardless of provider. When real streaming arrives we replace this
-    function with a true generator over provider-side deltas.
+    Kept for callers/tests that want to chunk an already-completed answer
+    string. The route handler now prefers :func:`stream_chat_provider` when
+    a provider is available, which yields true token deltas.
     """
     for i in range(0, len(answer), chunk_size):
         yield answer[i : i + chunk_size]
+
+
+def stream_chat_provider(
+    req: ChatRequest,
+    provider: Optional[LLMProvider] = None,
+) -> tuple[LLMProvider, "Iterator[str]"]:  # noqa: F821 — quoted forward ref
+    """Open a real-streaming session against the provider.
+
+    Returns ``(provider, deltas_iter)``. The caller is responsible for
+    consuming ``deltas_iter`` and accumulating the full answer for the
+    final SSE event. Using the provider's :meth:`LLMProvider.stream_complete`
+    means MockProvider, AnthropicProvider and OpenAIProvider all hit the
+    SAME wire shape — the route handler doesn't need to branch on the
+    provider type.
+    """
+    from collections.abc import Iterator  # local to keep top imports clean
+
+    prov = provider or resolve_provider(req.provider, req.model)
+    system, user = build_prompts(req)
+    deltas: Iterator[str] = prov.stream_complete(user, system)
+    return prov, deltas

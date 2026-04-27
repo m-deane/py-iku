@@ -15,6 +15,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
 import threading
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -63,6 +64,31 @@ def estimate_cost_usd(
     return round(cost_in + cost_out, 6)
 
 
+def _default_user() -> str:
+    """Return the default Studio user identifier.
+
+    Reads ``STUDIO_USER`` from the environment, falling back to ``"you"``
+    for the single-user dev case.  Sprint 4D's audit-log search and Sprint
+    5's GDPR export filter on this value.
+    """
+    return os.environ.get("STUDIO_USER") or "you"
+
+
+def derive_severity(status: str, cost_usd: float) -> str:
+    """Map (status, cost_usd) to a UI severity chip.
+
+    * ``error``    — status was a failure
+    * ``warning``  — successful call but cost exceeds $1 (likely a long
+                     prompt or a Sonnet/Opus call worth flagging)
+    * ``success``  — everything else
+    """
+    if status != "success":
+        return "error"
+    if cost_usd > 1.0:
+        return "warning"
+    return "success"
+
+
 @dataclass
 class LlmCallRecord:
     """One row in the LLM history log."""
@@ -80,9 +106,18 @@ class LlmCallRecord:
     feature: str = "convert"  # "convert" | "chat" | other surfaces
     request_id: Optional[str] = None
     extra: dict[str, Any] = field(default_factory=dict)
+    # Sprint 4D / Sprint 5 — search + GDPR fields. These are nullable for
+    # backward compatibility with logs written before the schema was widened.
+    user: Optional[str] = None
+    prompt: Optional[str] = None
+    response: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    @property
+    def severity(self) -> str:
+        return derive_severity(self.status, self.cost_usd)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "LlmCallRecord":
@@ -100,6 +135,9 @@ class LlmCallRecord:
             feature=str(data.get("feature", "convert")),
             request_id=data.get("request_id"),
             extra=dict(data.get("extra") or {}),
+            user=data.get("user"),
+            prompt=data.get("prompt"),
+            response=data.get("response"),
         )
 
 
@@ -161,8 +199,16 @@ class LlmAuditRepo:
         until: Optional[datetime] = None,
         limit: int = 100,
         cursor: Optional[str] = None,
+        q: Optional[str] = None,
+        user: Optional[str] = None,
+        severity: Optional[str] = None,
     ) -> tuple[list[LlmCallRecord], Optional[str]]:
-        """Return at most *limit* matching records, newest first."""
+        """Return at most *limit* matching records, newest first.
+
+        Sprint 4D adds free-text search (``q`` matches prompt + response)
+        and per-user filtering; Sprint 5 layers severity (success / warning
+        / error) on top of the existing status filter.
+        """
         if limit <= 0:
             return [], None
         with self._lock:
@@ -170,17 +216,35 @@ class LlmAuditRepo:
         # Newest-first ordering — log is append-only oldest-first on disk.
         all_records.reverse()
 
+        q_lower = q.lower().strip() if q else None
+
         filtered: list[LlmCallRecord] = []
         for rec in all_records:
             if provider and rec.provider != provider:
                 continue
             if status and rec.status != status:
                 continue
+            if user and (rec.user or _default_user()) != user:
+                continue
+            if severity and rec.severity != severity:
+                continue
             ts = _parse_iso(rec.ts)
             if since and (ts is None or ts < since):
                 continue
             if until and (ts is None or ts > until):
                 continue
+            if q_lower:
+                hay = " ".join(
+                    [
+                        (rec.prompt or ""),
+                        (rec.response or ""),
+                        (rec.error or ""),
+                        rec.model,
+                        rec.feature,
+                    ]
+                ).lower()
+                if q_lower not in hay:
+                    continue
             filtered.append(rec)
 
         start = 0
@@ -193,6 +257,51 @@ class LlmAuditRepo:
         next_index = start + limit
         next_cursor = str(next_index - 1) if next_index < len(filtered) else None
         return page, next_cursor
+
+    def list_users(self) -> list[str]:
+        """Return the set of distinct ``user`` values seen in the log."""
+        with self._lock:
+            records = self._read_all()
+        seen: set[str] = set()
+        for rec in records:
+            seen.add(rec.user or _default_user())
+        return sorted(seen)
+
+    def delete_user_records(self, user: str) -> int:
+        """GDPR — remove every record attributed to *user*. Returns count."""
+        if not user:
+            return 0
+        with self._lock:
+            records = self._read_all()
+            keep: list[LlmCallRecord] = []
+            removed = 0
+            for rec in records:
+                rec_user = rec.user or _default_user()
+                if rec_user == user:
+                    removed += 1
+                else:
+                    keep.append(rec)
+            if removed == 0:
+                return 0
+            tmp = self._log_path.with_suffix(".tmp")
+            with tmp.open("w", encoding="utf-8") as fh:
+                for rec in keep:
+                    fh.write(
+                        json.dumps(rec.to_dict(), separators=(",", ":")) + "\n"
+                    )
+                fh.flush()
+            tmp.replace(self._log_path)
+            return removed
+
+    def export_user_jsonl(self, user: str) -> str:
+        """GDPR — return every JSONL line attributed to *user*."""
+        with self._lock:
+            records = self._read_all()
+        lines: list[str] = []
+        for rec in records:
+            if (rec.user or _default_user()) == user:
+                lines.append(json.dumps(rec.to_dict(), separators=(",", ":")))
+        return "\n".join(lines) + ("\n" if lines else "")
 
     def export_csv(
         self,

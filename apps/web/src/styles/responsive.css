@@ -1,0 +1,270 @@
+/*
+ * responsive.css — Sprint 5 mobile/tablet responsive layer.
+ *
+ * Targets the most-used routes (Convert, Templates, Catalog, GREL, LMP) plus
+ * the global app chrome (sidebar, tab strip, command palette, settings). Uses
+ * the design tokens from `ui-tokens.css` and standard CSS @media queries; no
+ * Tailwind, no extra deps.
+ *
+ * Breakpoints:
+ *   <800px  — phone / small tablet portrait. Sidebar collapses into a slide-in
+ *             drawer (drawer rules live in AppLayout.module.css). Convert page
+ *             stacks editor + flow vertically with a small in-page toggle.
+ *             Templates/GREL preview drawers become full-screen modals.
+ *             Catalog/LMP/GREL grids collapse to single-column lists.
+ *             Cmd+K palette goes full-screen. Tab strip horizontally
+ *             scroll-snaps. Settings page becomes single-column.
+ *   ≥800px  — desktop / laptop. Default layout untouched.
+ *
+ * Deferred (NOT covered here):
+ *   /diff           — canvas-driven, needs separate split-view design
+ *   /inspector      — column-table-heavy, needs horizontal scroll + virtualization
+ *   /audit          — table-heavy, needs row-card collapse design
+ */
+
+/* ====================================================================== */
+/* CONVERT PAGE — stack editor + flow vertically at <800px                */
+/* ====================================================================== */
+
+.convert-pane-toggle {
+  display: none;
+  grid-column: 1 / -1;
+  margin-bottom: var(--space-2, 8px);
+  gap: var(--space-1, 4px);
+  border: 1px solid var(--border, #eaecf0);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  width: 100%;
+}
+
+.convert-pane-toggle button {
+  flex: 1;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 0;
+  background: var(--surface, #fff);
+  color: var(--fg, #101828);
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  cursor: pointer;
+  transition: background var(--duration-fast, 120ms) var(--ease-standard);
+}
+
+.convert-pane-toggle button[aria-pressed="true"] {
+  background: var(--accent, #0d9488);
+  color: var(--accent-fg, #fff);
+}
+
+.convert-pane-toggle button:hover {
+  background: var(--surface-raised, #f7f8fa);
+}
+
+.convert-pane-toggle button[aria-pressed="true"]:hover {
+  background: var(--accent-hover, #0f766e);
+}
+
+@media (max-width: 799px) {
+  .convert-page {
+    grid-template-columns: 1fr !important;
+    padding: var(--space-3, 12px) !important;
+  }
+
+  .convert-pane-toggle {
+    display: flex;
+  }
+
+  /* Hide the inactive pane on mobile. Desktop CSS shows both. */
+  .convert-page[data-mobile-pane="editor"] .convert-pane-flow {
+    display: none;
+  }
+  .convert-page[data-mobile-pane="flow"] .convert-pane-editor {
+    display: none;
+  }
+
+  .convert-pane-editor,
+  .convert-pane-flow {
+    min-width: 0;
+  }
+}
+
+/* ====================================================================== */
+/* TAB STRIP — horizontal scroll-snap at <800px                           */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  [data-testid="tab-strip"] {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-testid="tab-strip"] > [role="tab"] {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+
+/* ====================================================================== */
+/* CMD+K COMMAND PALETTE — full-screen at <800px                          */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  /* Module-CSS class names are hashed at build time but the component sets
+   * a stable role and parent role pattern. The CSS module exposes .backdrop
+   * and .dialog with predictable hashes, so we attribute-target via the
+   * role + aria props the component already emits. */
+  [role="dialog"][aria-label="Command palette"],
+  [role="dialog"][aria-label="Search"] {
+    /* Drop the inset / max-height cap so the dialog fills the viewport. */
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+
+  /* The CommandPalette backdrop centers a top-padded modal — on mobile we
+   * want the dialog to fill the screen, so kill the padding. */
+  [aria-label="Command palette backdrop"],
+  [data-testid="command-palette-backdrop"] {
+    padding-top: 0 !important;
+    align-items: stretch !important;
+  }
+}
+
+/* ====================================================================== */
+/* TEMPLATES — preview drawer becomes full-screen modal at <800px         */
+/* GREL — modal stays modal, just goes full-screen                        */
+/* (Cards already collapse to 1-column at <640px in TemplatesPage.module) */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  /* TemplatesPage drawer: pinned right, slides in. On mobile, take the
+   * whole screen so users don't see a sliver of the page underneath. */
+  [data-testid="templates-preview-drawer"],
+  [role="dialog"][aria-label="Template preview"] {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-left: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* GREL modal preview — already centered + clamped to 95vw; widen to 100vw. */
+  [data-testid="grel-formula-modal"],
+  [role="dialog"][aria-label="GREL formula preview"] {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ====================================================================== */
+/* CATALOG — list view (1-column) at <800px                               */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  /* CatalogPage uses CSS-modules for `.grid` with auto-fill minmax(260px).
+   * Override via the page wrapper data attribute (CatalogPage exposes one). */
+  [data-route="catalog"] [data-testid="catalog-grid"],
+  [data-route="catalog"] [class*="grid"] {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-2, 8px) !important;
+  }
+
+  [data-route="catalog"] [class*="card"] {
+    flex-direction: row;
+  }
+}
+
+/* ====================================================================== */
+/* GREL LIBRARY — list (1-column) at <800px, grid at tablet+              */
+/* (TemplatesPage / GrelLibraryPage already define 1-col at <640px;       */
+/*  bump to <800px for consistency.)                                      */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  [data-route="grel"] [class*="grid"],
+  [data-route="templates"] [class*="grid"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ====================================================================== */
+/* LMP BROWSER — table goes horizontal-scroll at <800px (already overflow */
+/* auto on tableWrap, but we ensure cells don't wrap into unreadable      */
+/* multi-line stacks)                                                     */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  [data-route="lmp"] [class*="tableWrap"] {
+    max-height: none;
+    overflow-x: auto;
+  }
+
+  [data-route="lmp"] [class*="table"] th,
+  [data-route="lmp"] [class*="table"] td {
+    white-space: nowrap;
+  }
+
+  [data-route="lmp"] [class*="controls"] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  [data-route="lmp"] [class*="search"] {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+/* ====================================================================== */
+/* SETTINGS PAGE — single-column form at <800px                           */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  [data-route="settings"] form,
+  [data-route="settings"] [class*="form"] {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--space-3, 12px);
+  }
+
+  [data-route="settings"] [class*="row"],
+  [data-route="settings"] [class*="field"] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  [data-route="settings"] input,
+  [data-route="settings"] select,
+  [data-route="settings"] textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* ====================================================================== */
+/* HEADER — wrap actions on small viewports so the bar doesn't overflow   */
+/* ====================================================================== */
+
+@media (max-width: 799px) {
+  /* Cost-meter widget can be wide; let the header wrap if needed. */
+  header [class*="headerActions"] {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-1, 4px);
+  }
+}

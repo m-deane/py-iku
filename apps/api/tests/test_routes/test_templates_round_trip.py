@@ -1,10 +1,11 @@
 """Round-trip every template through convert() and assert the recorded shape.
 
 The key contract for the gallery: ``verifiedRecipes`` and ``verifiedDatasets``
-in ``templates.json`` are NOT aspirational labels — they are the actual output
-captured from a past ``convert(...)`` call. If py-iku's analyzer or optimizer
-changes the produced shape, this test will surface it as a regression and the
-template entry must be updated (or the analyzer's behaviour rolled back).
+in ``templates-<category>.json`` are NOT aspirational labels — they are the
+actual output captured from a past ``convert(...)`` call. If py-iku's analyzer
+or optimizer changes the produced shape, this test will surface it as a
+regression and the template entry must be updated (or the analyzer's
+behaviour rolled back).
 
 Each test:
   1. Fetches GET /templates/{id} (so the test path matches the user path).
@@ -19,19 +20,40 @@ import pytest
 from py2dataiku import convert
 
 
-# All 10 ids in the canonical order they appear in templates.json. Kept inline
-# so a failure in /templates discovery doesn't mask a round-trip regression.
+# All 25 ids in the canonical order they appear after concatenating the
+# per-category template files. Kept inline so a failure in /templates
+# discovery doesn't mask a round-trip regression.
 TEMPLATE_IDS = [
+    # Trade Capture (5)
     "trade-ingestion-validation",
     "trade-dedup-multi-system",
+    "trade-amend-tracking",
+    "trade-fail-recon",
+    "broker-confirm-matching",
+    # Position & PnL (5)
     "book-mtm-eod",
     "pjm-lmp-tick-analytics",
+    "intraday-pnl-snapshot",
+    "basis-pnl-by-tenor",
+    "fx-currency-exposure",
+    # Curves (5)
     "forward-curve-scd",
     "mark-validation-vs-broker",
+    "curve-blending-eod",
+    "vol-surface-flatten",
+    "forward-curve-build",
+    # Counterparty (5)
     "counterparty-features",
     "counterparty-exposure-rollup",
+    "limit-monitoring-alerts",
+    "master-agreement-coverage",
+    "var-input-prep",
+    # Power (5)
     "pjm-hub-locational-analysis",
     "trade-event-aggregation",
+    "ercot-zonal-roll",
+    "gas-storage-swap-recipe",
+    "iso-settlement-prep",
 ]
 
 
@@ -41,7 +63,7 @@ async def test_template_round_trips_through_convert(client, template_id: str) ->
     """convert(pythonSource) must produce verifiedRecipes / verifiedDatasets.
 
     If this test fails, either:
-      * the analyzer changed and templates.json needs updating, OR
+      * the analyzer changed and templates-<cat>.json needs updating, OR
       * the template script broke (in which case fix the script, re-run
         ``/Users/.../apps/api/.venv/bin/python -c ...``, and update the
         recorded shape).
@@ -53,7 +75,15 @@ async def test_template_round_trips_through_convert(client, template_id: str) ->
     expected_recipes = body["verifiedRecipes"]
     expected_datasets = set(body["verifiedDatasets"])
 
-    flow = convert(body["pythonSource"])
+    # Sprint 5 — parametric templates declare ${PLACEHOLDER}s. Substitute
+    # their default values before convert() so the round-trip exercises the
+    # exact body the user gets when they click "Open in Editor" with no
+    # custom overrides.
+    source = body["pythonSource"]
+    for spec in body.get("parameters") or []:
+        source = source.replace("${" + spec["name"] + "}", spec["defaultValue"])
+
+    flow = convert(source)
     actual_recipes = [r.recipe_type.value for r in flow.recipes]
     actual_datasets = {d.name for d in flow.datasets if d.name}
 
@@ -70,7 +100,7 @@ async def test_template_round_trips_through_convert(client, template_id: str) ->
 
 
 @pytest.mark.asyncio
-async def test_round_trip_covers_all_ten_templates(client) -> None:  # type: ignore[no-untyped-def]
+async def test_round_trip_covers_all_templates(client) -> None:  # type: ignore[no-untyped-def]
     """Sanity: the parametrised test list above stays aligned with the API."""
     response = await client.get("/templates")
     assert response.status_code == 200
@@ -79,3 +109,11 @@ async def test_round_trip_covers_all_ten_templates(client) -> None:  # type: ign
         f"Round-trip parametrisation drift. API: {sorted(api_ids)}, "
         f"test list: {sorted(TEMPLATE_IDS)}"
     )
+
+
+@pytest.mark.asyncio
+async def test_catalog_has_twenty_five_templates(client) -> None:  # type: ignore[no-untyped-def]
+    """Sprint 5 contract: the gallery ships exactly 25 templates."""
+    response = await client.get("/templates")
+    assert response.status_code == 200
+    assert len(response.json()) == 25

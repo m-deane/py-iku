@@ -26,7 +26,12 @@ class UpdateFlowRequest(BaseModel):
 
 
 class SavedFlowResponse(BaseModel):
-    """Full saved-flow record."""
+    """Full saved-flow record.
+
+    ``fixtures`` is an optional inlined :class:`FixtureBundle`, populated when
+    the share record was minted with ``include_fixtures=True``. Recipients use
+    it to "Run with embedded fixtures" without a separate bundle download.
+    """
 
     id: str
     name: str
@@ -34,6 +39,13 @@ class SavedFlowResponse(BaseModel):
     created_at: str
     updated_at: str
     tags: list[str] = Field(default_factory=list)
+    fixtures: dict | None = Field(
+        default=None,
+        description=(
+            "Inlined fixture bundle (n_rows + datasets). None when the share "
+            "was minted without embedded fixtures."
+        ),
+    )
 
 
 class CreatedFlowResponse(BaseModel):
@@ -54,6 +66,20 @@ class ShareFlowRequest(BaseModel):
     scopes: list[str] | None = Field(
         default=None,
         description="Token scopes (default: ['read']).",
+    )
+    include_fixtures: bool = Field(
+        default=False,
+        description=(
+            "When true, attach a synthesised fixture bundle to the saved-flow "
+            "record so the recipient can run with embedded data. The payload "
+            "is gzip+base64 compressed on disk."
+        ),
+    )
+    fixtures_n_rows: int = Field(
+        default=100,
+        ge=0,
+        le=100,
+        description="Per-input-dataset row cap when include_fixtures is true.",
     )
 
 

@@ -12,11 +12,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 
-from ..deps import get_cost_meter, get_llm_audit_repo
+from ..deps import get_cost_meter, get_llm_audit_repo, get_settings
 from ..services.cost_meter import BudgetSettings, CostMeter
-from ..services.llm_audit import LlmAuditRepo
+from ..services.gdpr_export import build_user_export
+from ..services.llm_audit import LlmAuditRepo, _default_user
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,12 @@ def list_llm_history(
     until: str | None = Query(default=None),
     limit: int = Query(default=50, gt=0, le=500),
     cursor: str | None = Query(default=None),
+    q: str | None = Query(default=None, description="Free-text search across prompt + response."),
+    user: str | None = Query(default=None, description="Filter by Studio user."),
+    severity: str | None = Query(
+        default=None,
+        description="Filter by derived severity (success / warning / error).",
+    ),
     audit: LlmAuditRepo = Depends(get_llm_audit_repo),
 ) -> dict[str, Any]:
     since_dt = _parse_iso("since", since)
@@ -57,11 +64,74 @@ def list_llm_history(
         until=until_dt,
         limit=limit,
         cursor=cursor,
+        q=q,
+        user=user,
+        severity=severity,
     )
+    payload = []
+    for r in records:
+        d = r.to_dict()
+        d["severity"] = r.severity
+        d["user"] = r.user or _default_user()
+        payload.append(d)
     return {
-        "records": [r.to_dict() for r in records],
+        "records": payload,
         "next_cursor": next_cursor,
+        "users": audit.list_users(),
     }
+
+
+@router.get(
+    "/llm-history/export",
+    summary="GDPR — export every user-attributable record as a ZIP.",
+)
+def export_user_data(
+    user: str | None = Query(default=None),
+    audit: LlmAuditRepo = Depends(get_llm_audit_repo),
+) -> Response:
+    settings = get_settings()
+    target_user = (user or _default_user()).strip()
+    if not target_user:
+        raise HTTPException(status_code=400, detail="user is required")
+    zip_bytes, filename = build_user_export(
+        base_dir=settings.flows_dir,
+        user=target_user,
+        audit_repo=audit,
+    )
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Studio-User": target_user,
+        },
+    )
+
+
+@router.delete(
+    "/llm-history",
+    summary="GDPR — delete every record for the named user.",
+)
+def delete_user_history(
+    user: str | None = Query(default=None),
+    confirm: str = Query(default=""),
+    audit: LlmAuditRepo = Depends(get_llm_audit_repo),
+) -> dict[str, Any]:
+    """Hard-delete every audit record attributed to *user*.
+
+    Confirmation token must equal ``"yes"`` so accidental DELETE calls bounce
+    with a 400 instead of wiping data.
+    """
+    target_user = (user or _default_user()).strip()
+    if not target_user:
+        raise HTTPException(status_code=400, detail="user is required")
+    if confirm != "yes":
+        raise HTTPException(
+            status_code=400,
+            detail="Pass confirm=yes to acknowledge a destructive delete.",
+        )
+    removed = audit.delete_user_records(target_user)
+    return {"user": target_user, "removed": removed}
 
 
 @router.get("/llm-history.csv", summary="Export filtered LLM history as CSV.")

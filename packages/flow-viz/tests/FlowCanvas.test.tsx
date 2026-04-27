@@ -67,6 +67,42 @@ describe("<FlowCanvas>", () => {
     );
   });
 
+  it("marks dimmedNodeIds as data-dimmed and signals lineage-dim mode", async () => {
+    render(
+      <div style={{ width: 800, height: 600 }}>
+        <FlowCanvas
+          flow={fixture}
+          theme="light"
+          dimmedNodeIds={["rec_prep", "rec_split"]}
+          highlightedEdgeIds={["e2"]}
+        />
+      </div>,
+    );
+    const canvas = await screen.findByTestId("flow-canvas");
+    // Sentinel attribute lets downstream styles + tests detect the active mode.
+    expect(canvas.getAttribute("data-lineage-dim")).toBe("true");
+
+    await waitFor(
+      () => {
+        const dimmed = document.querySelectorAll('[data-dimmed="true"]');
+        // Both dimmed recipe nodes flip the dim flag.
+        expect(dimmed.length).toBeGreaterThanOrEqual(2);
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it("does not set data-lineage-dim when no dimmedNodeIds are passed", async () => {
+    render(
+      <div style={{ width: 800, height: 600 }}>
+        <FlowCanvas flow={fixture} theme="light" />
+      </div>,
+    );
+    const canvas = await screen.findByTestId("flow-canvas");
+    // Empty / undefined dimmedNodeIds → attribute is absent (renders normal).
+    expect(canvas.getAttribute("data-lineage-dim")).toBeNull();
+  });
+
   it("hosts the React Flow edges container after layout", async () => {
     render(
       <div style={{ width: 800, height: 600 }}>

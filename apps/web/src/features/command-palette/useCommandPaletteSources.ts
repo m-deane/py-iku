@@ -144,6 +144,7 @@ export function useCommandPaletteSources(
   } = args;
 
   const currentFlow = useFlowStore((s) => s.currentFlow);
+  const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const theme = useSettingsStore((s) => s.theme);
   const recents = useRecentsStore((s) => s.recents);
@@ -721,6 +722,140 @@ export function useCommandPaletteSources(
         },
       },
       {
+        // Sprint 5 — plugin marketplace.
+        id: "action:browse-plugins",
+        section: "Actions",
+        primary: "Browse plugins",
+        secondary: "Open the plugin marketplace",
+        icon: "⌬",
+        keywords: ["plugin", "marketplace", "extensions", "install", "registry"],
+        description:
+          "Open the plugin marketplace — browse bundled recipe handlers and processor mappings, or inspect what's currently registered.",
+        invoke: () => {
+          onClose();
+          navigate("/plugins");
+        },
+      },
+      {
+        // Sprint 5 — audit log search shortcut.
+        id: "action:search-audit-log",
+        section: "Actions",
+        primary: "Search audit log",
+        secondary: "Search prompts + responses across LLM history",
+        icon: "🔍",
+        keywords: [
+          "audit",
+          "search",
+          "history",
+          "prompt",
+          "response",
+          "llm",
+          "log",
+        ],
+        description:
+          "Open the LLM history page with focus on the search input. Full-text search across prompt + response.",
+        invoke: () => {
+          onClose();
+          navigate("/llm-history?focus=search");
+        },
+      },
+      {
+        // Sprint 5 — GDPR export shortcut.
+        id: "action:export-my-data",
+        section: "Actions",
+        primary: "Export my data",
+        secondary: "Download a ZIP of every user-attributable record",
+        icon: "⤓",
+        keywords: [
+          "gdpr",
+          "export",
+          "download",
+          "data",
+          "audit",
+          "comments",
+          "snapshot",
+          "privacy",
+        ],
+        description:
+          "GDPR — download a ZIP containing your llm-history.jsonl, comments.jsonl, budget-config.json, and flow-snapshots.jsonl.",
+        invoke: () => {
+          onClose();
+          navigate("/llm-history?action=export");
+        },
+      },
+      {
+        // Sprint-5: Explain the selected recipe via the AI explain popover.
+        // Disabled (greyed-out via secondary copy) when no recipe is selected.
+        id: "action:explain-selected-recipe",
+        section: "Actions",
+        primary: "Explain selected recipe",
+        secondary: selectedNodeId
+          ? `Trading-domain explanation for ${selectedNodeId}`
+          : "Select a recipe on the canvas first",
+        icon: "▶",
+        keywords: [
+          "explain",
+          "recipe",
+          "ai",
+          "popover",
+          "what",
+          "trading",
+          selectedNodeId ?? "",
+        ],
+        description:
+          "Open the AI explain-this-recipe popover for the currently selected recipe — three-bullet summary tailored to a trading-desk data engineer.",
+        invoke: () => {
+          onClose();
+          if (!selectedNodeId || !flowAsRecord) return;
+          const recipes =
+            (flowAsRecord.recipes as Array<Record<string, unknown>> | undefined) ??
+            [];
+          const recipe = recipes.find((r) => r.name === selectedNodeId);
+          if (!recipe) return;
+          // The popover is mounted on the canvas — surface a lightweight
+          // signal that the host page picks up to flip the popover open.
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("py-iku:explain-recipe", {
+                detail: { recipeName: selectedNodeId, recipe },
+              }),
+            );
+          }
+        },
+      },
+      {
+        // Sprint-5: Suggest a visual-recipe equivalent for a Python recipe.
+        id: "action:suggest-mapping",
+        section: "Actions",
+        primary: "Suggest mapping for selected recipe",
+        secondary: selectedNodeId
+          ? `Visual-recipe equivalent for ${selectedNodeId}`
+          : "Select a Python recipe on the canvas first",
+        icon: "▶",
+        keywords: [
+          "suggest",
+          "mapping",
+          "python",
+          "rewrite",
+          "visual",
+          "recipe",
+          selectedNodeId ?? "",
+        ],
+        description:
+          "Ask the assistant whether the selected PYTHON recipe could be rewritten as a visual recipe (GROUPING, WINDOW, PREPARE+processor, etc.).",
+        invoke: () => {
+          onClose();
+          if (!selectedNodeId || !flowAsRecord) return;
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("py-iku:suggest-mapping", {
+                detail: { recipeName: selectedNodeId },
+              }),
+            );
+          }
+        },
+      },
+      {
         id: "action:open-llm-history",
         section: "Actions",
         primary: "Open LLM history",
@@ -869,6 +1004,7 @@ export function useCommandPaletteSources(
     recipesQuery.data,
     auditQuery.data,
     currentFlow,
+    selectedNodeId,
     theme,
     setTheme,
     navigate,

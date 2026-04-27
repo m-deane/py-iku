@@ -79,7 +79,7 @@ export function LmpBrowserPage(
   };
 
   return (
-    <section className={styles.page} data-testid="lmp-browser-page">
+    <section className={styles.page} data-testid="lmp-browser-page" data-route="lmp">
       <header className={styles.header}>
         <h1 className={styles.title}>LMP Node Browser</h1>
         <span className={styles.count} data-testid="lmp-count">

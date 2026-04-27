@@ -1,0 +1,169 @@
+[
+  {
+    "id": "book-mtm-eod",
+    "name": "Book MtM End-of-Day",
+    "category": "position-pnl",
+    "summary": "Filter trades to current-year activity, join against the latest forward curve on (commodity, tenor, delivery_location), aggregate exposure by book and tenor, and rank the top 50 books for the EOD desk pack.",
+    "personas": [
+      "risk",
+      "middle-office",
+      "trader"
+    ],
+    "tags": [
+      "MtM",
+      "EOD",
+      "JOIN",
+      "GROUPING",
+      "TOP_N",
+      "WTI",
+      "Henry Hub"
+    ],
+    "verifiedRecipes": [
+      "split",
+      "join",
+      "grouping",
+      "sort",
+      "topn"
+    ],
+    "verifiedDatasets": [
+      "curves",
+      "exposures",
+      "exposures_sorted",
+      "priced",
+      "recent",
+      "top_books",
+      "trades"
+    ],
+    "estimatedSavingMinutes": 60,
+    "pythonSource": "import pandas as pd\n\n# Booking-system trade extract and the latest forward-curve snapshot.\ntrades = pd.read_csv(\"trades.csv\")\nrecent = trades[trades[\"trade_date\"] >= \"2024-01-01\"]\n\n# curves.csv schema: as_of_date, commodity, tenor, delivery_location,\n#                    currency, mid_price, bid, ask, forward_date\ncurves = pd.read_csv(\"curves.csv\")\n\n# Multi-key join \u2014 the canonical price-tape lookup.\npriced = recent.merge(\n    curves,\n    on=[\"commodity\", \"tenor\", \"delivery_location\"],\n    how=\"left\",\n)\n\n# Roll up exposure to (book, commodity, tenor).\nexposures = priced.groupby([\"book\", \"commodity\", \"tenor\"]).agg({\n    \"notional\": \"sum\",\n    \"mid_price\": \"mean\",\n}).reset_index()\n\n# Sort then rank the 50 largest books for the EOD desk pack.\nexposures_sorted = exposures.sort_values([\"book\", \"commodity\"])\ntop_books = exposures_sorted.nlargest(50, \"notional\")\ntop_books.to_csv(\"book_mtm_eod.csv\", index=False)\n"
+  },
+  {
+    "id": "pjm-lmp-tick-analytics",
+    "name": "PJM LMP Tick Analytics",
+    "category": "position-pnl",
+    "summary": "Sort 5-minute LMP ticks per node, then compute a 6-tick (30-min) VWAP proxy and a 12-tick (1-hr) rolling volatility per pricing node \u2014 the canonical real-time WINDOW shape that surfaces the partition/order gap.",
+    "personas": [
+      "trader",
+      "quant"
+    ],
+    "tags": [
+      "PJM",
+      "LMP",
+      "WINDOW",
+      "SORT",
+      "real-time",
+      "VWAP"
+    ],
+    "verifiedRecipes": [
+      "sort",
+      "window"
+    ],
+    "verifiedDatasets": [
+      "ticks",
+      "ticks_sorted",
+      "ticks_vol"
+    ],
+    "estimatedSavingMinutes": 35,
+    "pythonSource": "import pandas as pd\n\n# 5-minute PJM LMP feed.\n# Schema: iso, node_id, node_name, zone, timestamp,\n#         lmp, congestion, losses, energy_component\nticks = pd.read_csv(\"pjm_lmps.csv\")\n\n# Sort by (node_id, timestamp) so per-node windows are well-defined.\nticks_sorted = ticks.sort_values([\"node_id\", \"timestamp\"])\n\n# 30-minute rolling VWAP proxy per node.\nticks_vwap = (\n    ticks_sorted.groupby(\"node_id\")[\"lmp\"]\n    .rolling(6, on=\"timestamp\")\n    .mean()\n    .reset_index()\n    .rename(columns={\"lmp\": \"vwap_30min\"})\n)\n\n# 1-hour rolling volatility per node.\nticks_vol = (\n    ticks_sorted.groupby(\"node_id\")[\"lmp\"]\n    .rolling(12, on=\"timestamp\")\n    .std()\n    .reset_index()\n    .rename(columns={\"lmp\": \"rolling_vol\"})\n)\nticks_vol.to_csv(\"pjm_tick_analytics.csv\", index=False)\n"
+  },
+  {
+    "id": "intraday-pnl-snapshot",
+    "name": "Intraday PnL Snapshot",
+    "category": "position-pnl",
+    "summary": "Filter the trade tape to today, price each row against the live curve, and roll up realised + unrealised PnL per book \u2014 the live intraday PnL board.",
+    "personas": [
+      "trader",
+      "risk"
+    ],
+    "tags": [
+      "intraday",
+      "PnL",
+      "JOIN",
+      "GROUPING",
+      "SPLIT"
+    ],
+    "verifiedRecipes": [
+      "split",
+      "join",
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "by_book",
+      "curves",
+      "priced",
+      "today_trades",
+      "trades"
+    ],
+    "estimatedSavingMinutes": 40,
+    "pythonSource": "import pandas as pd\n\n# Intraday trade tape and the live forward-curve snapshot.\ntrades = pd.read_csv(\"trades.csv\")\ncurves = pd.read_csv(\"curves.csv\")\n\n# Filter to today's activity for the desk's intraday PnL.\ntoday_trades = trades[trades[\"trade_date\"] >= \"2026-04-26\"]\n\n# Price each trade against the live curve.\npriced = today_trades.merge(\n    curves,\n    on=[\"commodity\", \"tenor\", \"delivery_location\"],\n    how=\"left\",\n)\n\n# Per-book intraday PnL: realised + unrealised summed.\nby_book = priced.groupby(\"book\").agg({\n    \"realized_pnl\": \"sum\",\n    \"unrealized_pnl\": \"sum\",\n}).reset_index()\n\nby_book.to_csv(\"intraday_pnl.csv\", index=False)\n"
+  },
+  {
+    "id": "basis-pnl-by-tenor",
+    "name": "Basis PnL by Tenor",
+    "category": "position-pnl",
+    "summary": "Mark a basis-trade book (WTI vs Brent, Henry Hub vs TTF, etc.) leg-by-leg, derive basis PnL via a GREL-translated formula, and roll up by (commodity, tenor) for the basis-desk pack.",
+    "personas": [
+      "trader",
+      "quant",
+      "risk"
+    ],
+    "tags": [
+      "basis",
+      "PnL",
+      "WTI",
+      "Brent",
+      "TTF",
+      "Henry Hub",
+      "JOIN",
+      "GREL",
+      "GROUPING"
+    ],
+    "verifiedRecipes": [
+      "join",
+      "prepare",
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "by_tenor",
+      "curves",
+      "priced",
+      "priced_prepared",
+      "trades"
+    ],
+    "estimatedSavingMinutes": 45,
+    "pythonSource": "import pandas as pd\n\n# Basis-trade book: WTI vs Brent, Henry Hub vs TTF, etc.\n# trades.csv: trade_id, commodity, tenor, leg_a_price, leg_b_price, notional.\ntrades = pd.read_csv(\"trades.csv\")\ncurves = pd.read_csv(\"curves.csv\")\n\n# Mark each leg against today's curves.\npriced = trades.merge(\n    curves,\n    on=[\"commodity\", \"tenor\"],\n    how=\"left\",\n)\n\n# Basis PnL: notional * (leg_a_price - leg_b_price).\npriced = priced.assign(\n    basis_pnl=lambda x: x[\"notional\"] * (x[\"leg_a_price\"] - x[\"leg_b_price\"]),\n)\n\n# Roll up by (commodity, tenor).\nby_tenor = priced.groupby([\"commodity\", \"tenor\"]).agg({\n    \"basis_pnl\": \"sum\",\n    \"notional\": \"sum\",\n}).reset_index()\n\nby_tenor.to_csv(\"basis_pnl_by_tenor.csv\", index=False)\n"
+  },
+  {
+    "id": "fx-currency-exposure",
+    "name": "FX Currency Exposure",
+    "category": "position-pnl",
+    "summary": "Convert a multi-currency commodity trade tape to USD-equivalent via a JOIN to the FX-rate snapshot and a GREL-translated multiplier, then roll up exposure by currency for treasury.",
+    "personas": [
+      "risk",
+      "middle-office"
+    ],
+    "tags": [
+      "FX",
+      "USD",
+      "EUR",
+      "GBP",
+      "JOIN",
+      "GREL",
+      "GROUPING"
+    ],
+    "verifiedRecipes": [
+      "join",
+      "prepare",
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "by_ccy",
+      "fx_rates",
+      "priced",
+      "priced_prepared",
+      "trades"
+    ],
+    "estimatedSavingMinutes": 35,
+    "pythonSource": "import pandas as pd\n\n# Multi-currency commodity trade tape.\n# trades.csv: trade_id, currency (USD/EUR/GBP/JPY), notional, book, commodity.\n# fx_rates.csv: currency, fx_rate (to USD), as_of_date.\ntrades = pd.read_csv(\"trades.csv\")\nfx_rates = pd.read_csv(\"fx_rates.csv\")\n\n# Join FX rates to each trade.\npriced = trades.merge(fx_rates, on=\"currency\", how=\"left\")\n\n# Convert notional to USD-equivalent.\npriced = priced.assign(\n    notional_usd_eq=lambda x: x[\"notional\"] * x[\"fx_rate\"],\n)\n\n# Per-currency exposure summary for treasury.\nby_ccy = priced.groupby(\"currency\").agg({\n    \"notional_usd_eq\": \"sum\",\n    \"trade_id\": \"count\",\n}).reset_index()\n\nby_ccy.to_csv(\"fx_currency_exposure.csv\", index=False)\n"
+  }
+]

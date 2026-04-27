@@ -149,16 +149,85 @@
   min-height: 0;
 }
 
-@media (max-width: 720px) {
+/* ----------------------------------------------------------------------- */
+/* Hamburger + mobile scrim — desktop-hidden, surfaced at <800px           */
+/* ----------------------------------------------------------------------- */
+
+.hamburger {
+  display: none;
+  position: fixed;
+  top: var(--space-2, 8px);
+  left: var(--space-2, 8px);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-strong, #d0d5dd);
+  background: var(--surface, #ffffff);
+  color: var(--fg, #101828);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburger:hover {
+  background: var(--surface-raised, #f7f8fa);
+}
+
+.mobileScrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  z-index: 150;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------------- */
+/* <800px viewport — sidebar collapses into a slide-in drawer.             */
+/* ----------------------------------------------------------------------- */
+
+@media (max-width: 799px) {
   .shell {
     grid-template-columns: 1fr;
     grid-template-areas:
       "header"
-      "sidebar"
       "body";
   }
+
+  .hamburger {
+    display: inline-flex;
+  }
+
+  .header {
+    /* Make space for the fixed hamburger. */
+    padding-left: calc(40px + var(--space-3, 12px) + var(--space-2, 8px));
+  }
+
   .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--border, #eaecf0);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(280px, 80vw);
+    border-right: 1px solid var(--border, #eaecf0);
+    border-bottom: 0;
+    z-index: 160;
+    transform: translateX(-100%);
+    transition: transform var(--duration-base, 200ms) var(--ease-standard, ease);
+    box-shadow: var(--shadow-lg);
+    padding-top: calc(var(--space-7, 48px));
+  }
+
+  .mobileNavOpen .sidebar {
+    transform: translateX(0);
+  }
+
+  .mobileNavOpen .mobileScrim {
+    display: block;
   }
 }

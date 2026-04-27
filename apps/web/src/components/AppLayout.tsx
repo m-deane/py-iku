@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 import { RouteBreadcrumb } from "./RouteBreadcrumb";
 import { SettingsDrawer } from "../features/settings/SettingsDrawer";
@@ -58,6 +58,7 @@ const NAV_CLUSTERS: NavCluster[] = [
       { to: "/catalog", label: "Catalog" },
       { to: "/snippets", label: "Snippets" },
       { to: "/templates", label: "Templates" },
+      { to: "/plugins", label: "Plugins" },
       { to: "/grel", label: "GREL Formulas" },
       { to: "/lmp", label: "LMP Nodes" },
     ],
@@ -89,6 +90,10 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
   const openSettings = useUiStore((s) => s.openSettingsDrawer);
   const openPalette = useCommandPaletteStore((s) => s.open);
   const multiTabEnabled = useSettingsStore((s) => s.multiTabEnabled);
+  // Sprint 5 — mobile sidebar drawer. Closed by default; toggled via the
+  // hamburger button that's only visible at <800px viewports. Closes on any
+  // nav-link click, on Escape, and when the viewport returns to desktop.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   // Mount the global Cmd+K listener once at the shell level. Every route
   // sits below this so the shortcut works everywhere.
   useCommandPaletteHotkey();
@@ -99,14 +104,53 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
   // pasted a share URL.
   useShareUrlBoot();
 
+  // Close the mobile drawer on Escape.
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNavOpen]);
+
   return (
-    <div className={styles.shell}>
+    <div
+      className={`${styles.shell} ${mobileNavOpen ? styles.mobileNavOpen : ""}`}
+      data-mobile-nav-open={mobileNavOpen ? "true" : "false"}
+    >
+      <button
+        type="button"
+        className={styles.hamburger}
+        data-testid="mobile-nav-toggle"
+        aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+        aria-expanded={mobileNavOpen}
+        aria-controls="app-sidebar"
+        onClick={() => setMobileNavOpen((v) => !v)}
+      >
+        {mobileNavOpen ? "✕" : "☰"}
+      </button>
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          aria-hidden
+          tabIndex={-1}
+          className={styles.mobileScrim}
+          data-testid="mobile-nav-scrim"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      ) : null}
       <aside
+        id="app-sidebar"
         className={styles.sidebar}
         aria-label="Primary navigation"
         data-testid="app-sidebar"
       >
-        <Link to="/" className={styles.brand}>
+        <Link
+          to="/"
+          className={styles.brand}
+          onClick={() => setMobileNavOpen(false)}
+        >
           <span className={styles.brandMark} aria-hidden>
             ◆
           </span>
@@ -125,6 +169,7 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
                   <NavLink
                     to={item.to}
                     end={item.end}
+                    onClick={() => setMobileNavOpen(false)}
                     className={({ isActive }) =>
                       `${styles.navItem} ${isActive ? styles.navItemActive : ""}`
                     }

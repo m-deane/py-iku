@@ -1,0 +1,152 @@
+[
+  {
+    "id": "pjm-hub-locational-analysis",
+    "name": "PJM Hub-Locational Analysis",
+    "category": "power",
+    "summary": "Join PJM locational positions to the node-to-zone reference table, then aggregate volume_mwh and position count by (zone, hour_ending) for the WESTERN HUB / AEP / DOM exposure dashboard.",
+    "personas": [
+      "trader",
+      "risk",
+      "data-eng"
+    ],
+    "tags": [
+      "PJM",
+      "WESTERN HUB",
+      "AEP",
+      "DOM",
+      "JOIN",
+      "GROUPING"
+    ],
+    "verifiedRecipes": [
+      "join",
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "by_zone",
+      "enriched",
+      "nodes",
+      "positions"
+    ],
+    "estimatedSavingMinutes": 40,
+    "pythonSource": "import pandas as pd\n\n# lmp_positions.csv: position_id, trader_id, trade_date, iso, node_id, node_name,\n#   zone, volume_mwh, position_type (LONG/SHORT), source_lmp, dest_lmp,\n#   delivery_date, hour_ending\npositions = pd.read_csv(\"lmp_positions.csv\")\n\n# node_to_zone.csv: node_id, node_name, zone, lat, lon, voltage_kv, region\nnodes = pd.read_csv(\"node_to_zone.csv\")\n\n# Enrich each locational position with its zone.\nenriched = positions.merge(\n    nodes,\n    on=\"node_id\",\n    how=\"left\",\n)\n\n# Roll up volume and position count by (zone, hour_ending).\n# Common PJM zones in the data: WESTERN HUB, AEP, DOM, AECO, ComEd.\nby_zone = enriched.groupby([\"zone\", \"hour_ending\"]).agg({\n    \"volume_mwh\": \"sum\",\n    \"position_id\": \"count\",\n}).reset_index()\nby_zone.to_csv(\"pjm_hub_locational.csv\", index=False)\n"
+  },
+  {
+    "id": "trade-event-aggregation",
+    "name": "Trade-Event Aggregation per Trader",
+    "category": "power",
+    "summary": "Real-time trade-lifecycle event stream from Endur and Allegro: count distinct trades and total events per trader for the trading-floor activity dashboard.",
+    "personas": [
+      "middle-office",
+      "data-eng"
+    ],
+    "tags": [
+      "Endur",
+      "Allegro",
+      "trade-events",
+      "GROUPING",
+      "COUNTD"
+    ],
+    "verifiedRecipes": [
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "events",
+      "per_trader"
+    ],
+    "estimatedSavingMinutes": 25,
+    "pythonSource": "import pandas as pd\n\n# trade_events.csv: event_id, trade_id, trader_id, event_type\n#   (BOOKED / AMENDED / CANCELLED / MATCHED / SETTLED), event_at,\n#   source_system (Endur / Allegro / Internal / Exchange),\n#   session_id, instrument, region\nevents = pd.read_csv(\"trade_events.csv\")\n\n# trade_id COUNTD = distinct trades touched per trader.\n# event_id COUNT  = total event volume per trader.\nper_trader = events.groupby(\"trader_id\").agg({\n    \"trade_id\": \"nunique\",\n    \"event_id\": \"count\",\n}).reset_index()\nper_trader.to_csv(\"trade_event_per_trader.csv\", index=False)\n"
+  },
+  {
+    "id": "ercot-zonal-roll",
+    "name": "ERCOT Zonal Roll-Up",
+    "category": "power",
+    "summary": "Roll up the 5-minute ERCOT LMP feed by (zone, hour_ending), averaging lmp/congestion/losses to produce the canonical desk view across HOUSTON / NORTH / SOUTH / WEST.",
+    "personas": [
+      "trader",
+      "data-eng"
+    ],
+    "tags": [
+      "ERCOT",
+      "LMP",
+      "zonal",
+      "GROUPING",
+      "HOUSTON",
+      "NORTH"
+    ],
+    "verifiedRecipes": [
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "ercot_lmp",
+      "zonal_avg"
+    ],
+    "estimatedSavingMinutes": 20,
+    "pythonSource": "import pandas as pd\n\n# 5-minute LMP feed for ERCOT.\n# ercot_lmp.csv: zone (HOUSTON / NORTH / SOUTH / WEST), node_id, hour_ending,\n#   timestamp, lmp, congestion, losses, energy_component.\nercot_lmp = pd.read_csv(\"ercot_lmp.csv\")\n\n# Roll up to (zone, hour_ending) \u2014 the canonical desk view.\nzonal_avg = ercot_lmp.groupby([\"zone\", \"hour_ending\"]).agg({\n    \"lmp\": \"mean\",\n    \"congestion\": \"mean\",\n    \"losses\": \"mean\",\n}).reset_index()\n\nzonal_avg.to_csv(\"ercot_zonal_avg.csv\", index=False)\n"
+  },
+  {
+    "id": "gas-storage-swap-recipe",
+    "name": "Gas Storage Swap Intrinsic",
+    "category": "power",
+    "summary": "Join storage positions to forward curves, derive intrinsic value via a GREL-translated spread formula, and roll up by storage facility \u2014 the gas-storage book's intrinsic-value report.",
+    "personas": [
+      "trader",
+      "quant",
+      "risk"
+    ],
+    "tags": [
+      "gas-storage",
+      "Henry Hub",
+      "JOIN",
+      "GREL",
+      "GROUPING",
+      "intrinsic"
+    ],
+    "verifiedRecipes": [
+      "join",
+      "prepare",
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "by_facility",
+      "forward_curves",
+      "priced",
+      "priced_prepared",
+      "storage_positions"
+    ],
+    "estimatedSavingMinutes": 45,
+    "pythonSource": "import pandas as pd\n\n# Storage-swap intrinsic value: storage positions valued against the\n# inject-month / withdraw-month forward spread.\n# storage_positions.csv: position_id, storage_facility, inject_month,\n#   withdraw_month, volume_mmbtu, inject_price, withdraw_price.\nstorage_positions = pd.read_csv(\"storage_positions.csv\")\nforward_curves = pd.read_csv(\"forward_curves.csv\")\n\n# Pull the live forward at each leg (winter-summer or seasonal spread).\npriced = storage_positions.merge(\n    forward_curves,\n    left_on=\"withdraw_month\",\n    right_on=\"tenor\",\n    how=\"left\",\n)\n\n# Intrinsic value = volume * (withdraw forward - inject forward).\npriced = priced.assign(\n    intrinsic_value=lambda x: x[\"volume_mmbtu\"] * (x[\"withdraw_price\"] - x[\"inject_price\"]),\n)\n\n# Roll up by storage facility for the gas-storage book.\nby_facility = priced.groupby(\"storage_facility\").agg({\n    \"intrinsic_value\": \"sum\",\n    \"volume_mmbtu\": \"sum\",\n}).reset_index()\n\nby_facility.to_csv(\"gas_storage_intrinsic.csv\", index=False)\n"
+  },
+  {
+    "id": "iso-settlement-prep",
+    "name": "ISO Settlement Prep",
+    "category": "power",
+    "summary": "Join positions to settlement charges (MCC + MLC + MWh charge), derive total_settle via GREL, and roll up per-trader settlement totals \u2014 the canonical ISO-settlement reconciliation prep.",
+    "personas": [
+      "middle-office",
+      "data-eng"
+    ],
+    "tags": [
+      "ISO",
+      "settlement",
+      "MCC",
+      "MLC",
+      "JOIN",
+      "GREL",
+      "GROUPING"
+    ],
+    "verifiedRecipes": [
+      "join",
+      "prepare",
+      "grouping"
+    ],
+    "verifiedDatasets": [
+      "by_trader",
+      "positions",
+      "priced",
+      "priced_prepared",
+      "settlement_charges"
+    ],
+    "estimatedSavingMinutes": 40,
+    "pythonSource": "import pandas as pd\n\n# ISO settlement prep: positions joined to MCC, MLC, and MWh charges.\n# positions.csv: trader_id, node_id, settlement_date, mwh, position_type.\n# settlement_charges.csv: node_id, settlement_date, mcc, mlc, mwh_charge.\npositions = pd.read_csv(\"positions.csv\")\nsettlement_charges = pd.read_csv(\"settlement_charges.csv\")\n\n# Join charges onto each settlement-day position.\npriced = positions.merge(\n    settlement_charges,\n    on=[\"node_id\", \"settlement_date\"],\n    how=\"left\",\n)\n\n# Total settle = MCC + MLC + MWh charge, all multiplied by mwh.\npriced = priced.assign(\n    total_settle=lambda x: x[\"mwh\"] * (x[\"mcc\"] + x[\"mlc\"] + x[\"mwh_charge\"]),\n)\n\n# Per-trader settlement summary for the ISO-settlement reconciliation.\nby_trader = priced.groupby(\"trader_id\").agg({\n    \"total_settle\": \"sum\",\n    \"mwh\": \"sum\",\n}).reset_index()\n\nby_trader.to_csv(\"iso_settlement_summary.csv\", index=False)\n"
+  }
+]

@@ -91,8 +91,14 @@ export function TemplatesPage(props: TemplatesPageProps = {}): JSX.Element {
     setSearchParams(next, { replace: true });
   };
 
-  const handleOpenInEditor = (template: FlowTemplate): void => {
-    setCurrentCode(template.pythonSource);
+  const handleOpenInEditor = (
+    template: FlowTemplate,
+    renderedSource?: string,
+  ): void => {
+    // Sprint 5 — parametric templates pass the placeholder-substituted
+    // source through. Non-parametric templates (no ``parameters`` key)
+    // pass nothing and fall back to the raw pythonSource.
+    setCurrentCode(renderedSource ?? template.pythonSource);
     const navFn = props.navigateImpl ?? navigate;
     navFn("/convert");
   };
@@ -103,7 +109,7 @@ export function TemplatesPage(props: TemplatesPageProps = {}): JSX.Element {
   };
 
   return (
-    <section className={styles.page} data-testid="templates-page">
+    <section className={styles.page} data-testid="templates-page" data-route="templates">
       <header className={styles.header}>
         <h1 className={styles.title}>Templates</h1>
         <span className={styles.count} data-testid="templates-count">

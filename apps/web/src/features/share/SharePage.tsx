@@ -5,6 +5,11 @@ import {
   client as defaultClient,
   type SavedFlowResponse,
 } from "../../api/client";
+import {
+  useFixturesStore,
+  totalFixtureRows,
+  fixtureDatasetCount,
+} from "../../store/fixturesStore";
 
 export interface SharePageProps {
   /** Optional client override (test seam). */
@@ -120,6 +125,38 @@ function ShareError(props: {
 
 function SharedFlowReadOnly(props: { data: SavedFlowResponse }): JSX.Element {
   const { data } = props;
+  const setFixtures = useFixturesStore((s) => s.setFixtures);
+  const loaded = useFixturesStore((s) => s.fixtures);
+
+  const fixtures = data.fixtures ?? null;
+  const nDatasets = fixtures
+    ? Object.keys(fixtures.datasets ?? {}).length
+    : 0;
+  const totalRows = fixtures
+    ? Object.values(fixtures.datasets ?? {}).reduce(
+        (acc, rows) => acc + (Array.isArray(rows) ? rows.length : 0),
+        0,
+      )
+    : 0;
+
+  const onLoadFixtures = (): void => {
+    if (!fixtures) return;
+    setFixtures({
+      nRows: fixtures.n_rows,
+      datasets: fixtures.datasets ?? {},
+    });
+  };
+
+  // The currently-loaded fixture slice may be from a different share — only
+  // reflect "Loaded" status when the row count matches what's in the data.
+  const loadedTotal = totalFixtureRows(loaded);
+  const loadedDatasets = fixtureDatasetCount(loaded);
+  const isLoaded =
+    fixtures !== null &&
+    loaded !== null &&
+    loadedTotal === totalRows &&
+    loadedDatasets === nDatasets;
+
   return (
     <div data-testid="share-flow" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
       <div
@@ -133,6 +170,49 @@ function SharedFlowReadOnly(props: { data: SavedFlowResponse }): JSX.Element {
       >
         <strong>{data.name}</strong> · saved {data.created_at}
       </div>
+      {fixtures ? (
+        <div
+          data-testid="share-fixtures-indicator"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.5rem 0.75rem",
+            borderRadius: "var(--radius-md, 6px)",
+            border: "1px solid var(--border, #eaecf0)",
+            background: "var(--accent-bg-soft, #ccfbf1)",
+            color: "var(--accent-hover, #0f766e)",
+            fontSize: "var(--text-xs, 12px)",
+          }}
+        >
+          <span>
+            Includes fixture data:{" "}
+            <strong data-testid="share-fixtures-summary">
+              {nDatasets} dataset{nDatasets === 1 ? "" : "s"}, {totalRows} row
+              {totalRows === 1 ? "" : "s"}
+            </strong>
+          </span>
+          <button
+            type="button"
+            data-testid="share-fixtures-load"
+            disabled={isLoaded}
+            aria-pressed={isLoaded}
+            onClick={onLoadFixtures}
+            style={{
+              marginLeft: "auto",
+              padding: "0.2rem 0.6rem",
+              borderRadius: "var(--radius-sm, 4px)",
+              border: "1px solid var(--accent, #0d9488)",
+              background: isLoaded ? "transparent" : "var(--accent, #0d9488)",
+              color: isLoaded ? "var(--accent-hover, #0f766e)" : "var(--accent-fg, #fff)",
+              cursor: isLoaded ? "default" : "pointer",
+              fontSize: "var(--text-xs, 12px)",
+            }}
+          >
+            {isLoaded ? "Loaded" : "Run with embedded fixtures"}
+          </button>
+        </div>
+      ) : null}
       <button
         type="button"
         disabled

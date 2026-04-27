@@ -58,6 +58,19 @@ export interface FlowCanvasProps {
   onSelectionChange?: (id: string | null) => void;
   /** Externally controlled selection — overrides the canvas-internal state. */
   selectedNodeId?: string | null;
+  /**
+   * External lineage-driven dimming. When non-empty, every node *not* in this
+   * set is rendered at `var(--dim-opacity)` and every edge whose id is in
+   * `highlightedEdgeIds` is stroked with `var(--accent)`.
+   *
+   * Wired by the ColumnLineageOverlay → ConvertPage path. Kept independent
+   * from `focusOnSelect` because the lineage panel publishes its own dimming
+   * domain (recipe ids touched by the column) which is generally different
+   * from selection-driven focus.
+   */
+  dimmedNodeIds?: string[];
+  /** Edge ids to stroke with `var(--accent)` (lineage highlight). */
+  highlightedEdgeIds?: string[];
   className?: string;
   style?: CSSProperties;
 }
@@ -119,6 +132,8 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     simulation,
     onSelectionChange,
     selectedNodeId: externalSelectedNodeId,
+    dimmedNodeIds,
+    highlightedEdgeIds,
     className,
     style,
   } = props;
@@ -164,11 +179,20 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
   });
   const simEnabled = simulation !== undefined;
 
-  // Compose dim + sim status into rendered nodes.
+  // Compose dim + sim status into rendered nodes. Lineage-driven dimming
+  // (`dimmedNodeIds`) is OR-ed into the existing focus dim signal so a column
+  // pick from the inspector and a focus-on-select selection both contribute.
+  const lineageDimSet = useMemo(
+    () => new Set(dimmedNodeIds ?? []),
+    [dimmedNodeIds],
+  );
+  const lineageDimActive = lineageDimSet.size > 0;
   const renderedNodes = useMemo<RFNode[]>(() => {
     return nodes.map((n) => {
       const isFocused = focus.isFocusActive ? focus.focusedIds.has(n.id) : true;
-      const dimmed = focus.isFocusActive && !isFocused;
+      const focusDim = focus.isFocusActive && !isFocused;
+      const lineageDim = lineageDimActive && lineageDimSet.has(n.id);
+      const dimmed = focusDim || lineageDim;
       const simStatus = simEnabled ? sim.nodeStatuses.get(n.id) : undefined;
       const status =
         simStatus === undefined
@@ -183,7 +207,27 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
         },
       };
     });
-  }, [nodes, focus, simEnabled, sim.nodeStatuses]);
+  }, [nodes, focus, simEnabled, sim.nodeStatuses, lineageDimActive, lineageDimSet]);
+
+  // Compose lineage-highlighted edges. Highlighted edges get `data-highlighted`
+  // + an inline accent stroke so renderers downstream of <ReactFlow/> can
+  // honour either signal.
+  const highlightedEdgeSet = useMemo(
+    () => new Set(highlightedEdgeIds ?? []),
+    [highlightedEdgeIds],
+  );
+  const renderedEdges = useMemo<RFEdge[]>(() => {
+    if (highlightedEdgeSet.size === 0) return edges;
+    return edges.map((e) => {
+      const highlighted = highlightedEdgeSet.has(e.id);
+      if (!highlighted) return e;
+      return {
+        ...e,
+        data: { ...(e.data as Record<string, unknown> | undefined), highlighted: true },
+        style: { ...(e.style ?? {}), stroke: "var(--accent)", strokeWidth: 2 },
+      };
+    });
+  }, [edges, highlightedEdgeSet]);
 
   function handleNodeChanges(changes: NodeChange[]): void {
     setNodes((prev) => applyNodeChanges(changes, prev));
@@ -220,6 +264,7 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
       data-zones={showZones ? "true" : undefined}
       data-focus={focus.isFocusActive ? "true" : undefined}
       data-sim={simEnabled ? "true" : undefined}
+      data-lineage-dim={lineageDimActive ? "true" : undefined}
       style={{ width: "100%", height: "100%", ...style }}
     >
       <ReactFlowProvider>
@@ -232,7 +277,7 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
         )}
         <ReactFlow
           nodes={renderedNodes}
-          edges={edges}
+          edges={renderedEdges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView

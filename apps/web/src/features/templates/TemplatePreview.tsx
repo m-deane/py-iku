@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MonacoEditor } from "../editor/MonacoEditor";
+import { ParameterForm } from "./ParameterForm";
 import type { FlowTemplate } from "./templates-data";
-import { TEMPLATE_CATEGORIES } from "./templates-data";
+import {
+  TEMPLATE_CATEGORIES,
+  applyTemplateParameters,
+  defaultParameterValues,
+} from "./templates-data";
 import styles from "./TemplatesPage.module.css";
 
 export interface TemplatePreviewProps {
   template: FlowTemplate | null;
   onClose: () => void;
-  onOpenInEditor: (template: FlowTemplate) => void;
+  /**
+   * Sprint 5 — parametric templates. The page receives the *rendered*
+   * source (placeholders substituted) so it can pre-load the editor with
+   * the user's filled-in values.
+   */
+  onOpenInEditor: (template: FlowTemplate, renderedSource: string) => void;
   /** Test seam — render a textarea instead of Monaco in jsdom. */
   fallbackTextarea?: boolean;
 }
@@ -21,6 +31,7 @@ function categoryLabel(value: FlowTemplate["category"]): string {
 export function TemplatePreview(props: TemplatePreviewProps): JSX.Element | null {
   const { template, onClose, onOpenInEditor, fallbackTextarea } = props;
   const [copied, setCopied] = useState(false);
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
 
   // Close on Escape so the drawer behaves like a standard modal.
   useEffect(() => {
@@ -32,17 +43,33 @@ export function TemplatePreview(props: TemplatePreviewProps): JSX.Element | null
     return () => document.removeEventListener("keydown", onKey);
   }, [template, onClose]);
 
-  // Reset the "Copied" hint whenever the active template changes.
+  // Reset the "Copied" hint and re-seed parameter defaults whenever the
+  // active template changes.
   useEffect(() => {
     setCopied(false);
-  }, [template?.id]);
+    if (template) {
+      setParamValues(defaultParameterValues(template));
+    } else {
+      setParamValues({});
+    }
+  }, [template?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Compute the rendered source — used both for the live preview and for
+  // the "Copy" / "Open in Editor" actions, so what you see is what you get.
+  const renderedSource = useMemo(() => {
+    if (!template) return "";
+    if (!template.parameters || template.parameters.length === 0) {
+      return template.pythonSource;
+    }
+    return applyTemplateParameters(template.pythonSource, paramValues);
+  }, [template, paramValues]);
 
   if (!template) return null;
 
   const handleCopy = async (): Promise<void> => {
     if (typeof navigator === "undefined" || !navigator.clipboard) return;
     try {
-      await navigator.clipboard.writeText(template.pythonSource);
+      await navigator.clipboard.writeText(renderedSource);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -126,14 +153,46 @@ export function TemplatePreview(props: TemplatePreviewProps): JSX.Element | null
             </div>
           </section>
 
+          {template.parameters && template.parameters.length > 0 ? (
+            <section
+              className={styles.section}
+              data-testid="template-preview-parameters"
+            >
+              <h3 className={styles.sectionTitle}>
+                Parameters ({template.parameters.length})
+              </h3>
+              <ParameterForm
+                parameters={template.parameters}
+                values={paramValues}
+                onChange={(name, value) =>
+                  setParamValues((prev) => ({ ...prev, [name]: value }))
+                }
+              />
+            </section>
+          ) : null}
+
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>Python source</h3>
+            <h3 className={styles.sectionTitle}>
+              Python source
+              {template.parameters && template.parameters.length > 0 ? (
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: "var(--text-xs, 12px)",
+                    color: "var(--fg-muted, #5b6470)",
+                    fontWeight: 400,
+                  }}
+                >
+                  (with substituted parameters)
+                </span>
+              ) : null}
+            </h3>
             <div
               className={styles.editorHost}
               data-testid="template-preview-source"
             >
               <MonacoEditor
-                value={template.pythonSource}
+                value={renderedSource}
                 readOnly
                 height="380px"
                 fallbackTextarea={fallbackTextarea}
@@ -158,7 +217,7 @@ export function TemplatePreview(props: TemplatePreviewProps): JSX.Element | null
             type="button"
             className={styles.primaryBtn}
             data-testid="template-preview-open"
-            onClick={() => onOpenInEditor(template)}
+            onClick={() => onOpenInEditor(template, renderedSource)}
           >
             Open in Editor
           </button>

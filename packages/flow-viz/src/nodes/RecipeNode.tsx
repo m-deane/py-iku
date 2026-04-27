@@ -29,7 +29,28 @@ interface RecipeNodeProps extends NodeProps<RecipeNodeData> {
    * package itself stays Monaco-free.
    */
   onSourceLinesClick?: (range: [number, number]) => void;
+  /**
+   * Sprint-5 explain-this-recipe adapter. The host app (apps/web) wires this
+   * to the AI explain popover so the package itself stays free of API/
+   * provider concerns. When present, a small `(i)` icon renders on the card;
+   * clicking it (or hovering for ~700ms) flips ``open`` and the host renders
+   * its popover via ``renderPopover``.
+   */
+  explainAdapter?: ExplainAdapter;
 }
+
+export interface ExplainAdapter {
+  /** Called the first time the popover should open (hover or click). */
+  onExplainRequested: (recipeName: string, recipeType: RecipeType) => void;
+  /**
+   * Render-prop the host uses to mount its popover JSX inside the card. The
+   * function is called with `{ open, close }` so the host can react to RecipeNode-
+   * driven open/close transitions (Esc, outside-click).
+   */
+  renderPopover: (args: { open: boolean; close: () => void }) => React.ReactNode;
+}
+
+const EXPLAIN_HOVER_DELAY_MS = 700;
 
 /** Confidence shading bands. */
 type ConfidenceBand = "high" | "medium" | "low" | "rule-based";
@@ -67,6 +88,7 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
     theme: themeProp,
     category: categoryProp,
     onSourceLinesClick,
+    explainAdapter,
   } = props;
   const theme: ThemeName = themeProp ?? readTheme();
   const colors = getRecipeColor(data.type, theme);
@@ -136,6 +158,76 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
     }
   }, [data.sourceLines, onSourceLinesClick]);
 
+  // ---------------------------------------------------------------------
+  // Explain-this-recipe trigger (Sprint 5).  Hover for 700ms OR click the
+  // (i) icon to flip ``explainOpen``. The host app renders the popover via
+  // the ``explainAdapter.renderPopover`` render-prop.
+  // ---------------------------------------------------------------------
+  const [explainOpen, setExplainOpen] = useState(false);
+  const explainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeExplain = useCallback(() => setExplainOpen(false), []);
+
+  const triggerExplain = useCallback((): void => {
+    if (!explainAdapter) return;
+    explainAdapter.onExplainRequested(data.name, data.type);
+    setExplainOpen(true);
+  }, [explainAdapter, data.name, data.type]);
+
+  const onCardHoverEnter = useCallback((): void => {
+    if (!explainAdapter) return;
+    if (explainTimerRef.current) clearTimeout(explainTimerRef.current);
+    explainTimerRef.current = setTimeout(() => {
+      triggerExplain();
+    }, EXPLAIN_HOVER_DELAY_MS);
+  }, [explainAdapter, triggerExplain]);
+
+  const onCardHoverLeave = useCallback((): void => {
+    if (explainTimerRef.current) {
+      clearTimeout(explainTimerRef.current);
+      explainTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (explainTimerRef.current) clearTimeout(explainTimerRef.current);
+    };
+  }, []);
+
+  const onExplainIconClick = useCallback(
+    (e: React.MouseEvent): void => {
+      e.stopPropagation();
+      if (!explainAdapter) return;
+      if (explainOpen) {
+        setExplainOpen(false);
+      } else {
+        triggerExplain();
+      }
+    },
+    [explainAdapter, explainOpen, triggerExplain],
+  );
+
+  // Close explain popover on outside click. Re-uses the existing card ref.
+  useEffect(() => {
+    if (!explainOpen) return;
+    const onDocPointer = (e: MouseEvent): void => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (cardRef.current && !cardRef.current.contains(target)) {
+        setExplainOpen(false);
+      }
+    };
+    const onDocKey = (e: globalThis.KeyboardEvent): void => {
+      if (e.key === "Escape") setExplainOpen(false);
+    };
+    document.addEventListener("mousedown", onDocPointer);
+    document.addEventListener("keydown", onDocKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocPointer);
+      document.removeEventListener("keydown", onDocKey);
+    };
+  }, [explainOpen]);
+
   const styleVars: CSSProperties = {
     ["--node-bg" as string]: colors.bg,
     ["--node-border" as string]: colors.border,
@@ -181,6 +273,8 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
       aria-haspopup="dialog"
       aria-controls={popoverOpen ? popoverId : undefined}
       onKeyDown={onCardKey}
+      onMouseEnter={explainAdapter ? onCardHoverEnter : undefined}
+      onMouseLeave={explainAdapter ? onCardHoverLeave : undefined}
     >
       <Handle type="target" position={Position.Left} />
       <span className={styles.icon} aria-hidden="true">
@@ -235,6 +329,37 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
         />
       )}
       {status === "executing" && <span className={styles.shimmer} aria-hidden="true" />}
+      {explainAdapter && (
+        <button
+          type="button"
+          data-testid={`explain-icon-${data.name}`}
+          aria-label={`Explain recipe ${data.name}`}
+          onClick={onExplainIconClick}
+          style={{
+            position: "absolute",
+            top: 4,
+            right: 4,
+            width: 18,
+            height: 18,
+            borderRadius: "var(--radius-sm, 4px)",
+            border: "1px solid var(--border, #e0e0e0)",
+            background: "var(--surface, #ffffff)",
+            color: "var(--fg-muted, #5b6470)",
+            cursor: "pointer",
+            fontSize: "var(--text-2xs, 10px)",
+            lineHeight: 1,
+            padding: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+          }}
+        >
+          i
+        </button>
+      )}
+      {explainAdapter &&
+        explainAdapter.renderPopover({ open: explainOpen, close: closeExplain })}
       <Handle type="source" position={Position.Right} />
       {popoverOpen && (
         <div

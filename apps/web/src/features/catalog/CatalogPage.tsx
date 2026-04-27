@@ -37,7 +37,7 @@ export function CatalogPage(props: CatalogPageProps): JSX.Element {
   const onClose = useCallback(() => setSelection(null), []);
 
   return (
-    <section className={styles.page} data-testid="catalog-page">
+    <section className={styles.page} data-testid="catalog-page" data-route="catalog">
       <header className={styles.header}>
         <h1 className={styles.title}>Catalog</h1>
         <div role="tablist" aria-label="Catalog tabs" className={styles.tabs}>

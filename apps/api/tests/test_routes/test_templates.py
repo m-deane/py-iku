@@ -6,13 +6,14 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_list_templates_returns_ten_entries(client) -> None:  # type: ignore[no-untyped-def]
-    """The Trade-Blotter Recipe-Template Gallery ships with exactly 10 templates."""
+async def test_list_templates_returns_twenty_five_entries(client) -> None:  # type: ignore[no-untyped-def]
+    """The Trade-Blotter Recipe-Template Gallery ships with exactly 25 templates
+    (Sprint 5 expansion: 5 categories × 5 templates each)."""
     response = await client.get("/templates")
     assert response.status_code == 200, response.text
     body = response.json()
     assert isinstance(body, list)
-    assert len(body) == 10
+    assert len(body) == 25
 
 
 @pytest.mark.asyncio
@@ -52,7 +53,7 @@ async def test_list_templates_carries_required_fields(client) -> None:  # type: 
 
 @pytest.mark.asyncio
 async def test_list_templates_covers_all_five_categories(client) -> None:  # type: ignore[no-untyped-def]
-    """Each of the five categories has at least one entry, and totals = 10."""
+    """Each of the five categories ships exactly 5 entries; totals = 25."""
     response = await client.get("/templates")
     cats = [t["category"] for t in response.json()]
     expected = {
@@ -65,10 +66,10 @@ async def test_list_templates_covers_all_five_categories(client) -> None:  # typ
     assert set(cats) == expected, (
         f"Expected categories {expected}, got {set(cats)}"
     )
-    # Two per category — sprint spec.
+    # Sprint 5: five per category, twenty-five total.
     for cat in expected:
-        assert cats.count(cat) == 2, (
-            f"Category {cat!r} should have 2 templates, found {cats.count(cat)}"
+        assert cats.count(cat) == 5, (
+            f"Category {cat!r} should have 5 templates, found {cats.count(cat)}"
         )
 
 

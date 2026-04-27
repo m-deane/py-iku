@@ -46,6 +46,7 @@ async def post_convert(
     audit: AuditRepo = Depends(get_audit_repo),
     llm_audit: LlmAuditRepo = Depends(get_llm_audit_repo),
     meter: CostMeter = Depends(get_cost_meter),
+    force: bool = False,
 ) -> ConvertResponse:
     """Convert Python code to a DataikuFlow.
 
@@ -53,8 +54,38 @@ async def post_convert(
     - **mode=llm**: LLM-assisted, requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
       set in the server environment. Max 30-second wall-clock timeout.
 
+    Pre-call budget enforcement: when ``mode=llm`` and the projected call cost
+    would breach the per-call or monthly budget cap, the route returns 402 with
+    the projected cost in the body. Pass ``?force=true`` to acknowledge the
+    warning and proceed; the actual cost is still recorded post-call.
+
     Errors in the py2dataiku hierarchy are mapped to RFC 7807 problem+json.
     """
+    # Pre-call budget gate (LLM mode only). Mock-shaped or rule-mode paths
+    # never spend tokens so they bypass the gate unconditionally.
+    if (
+        body.mode == ConvertMode.LLM
+        and body.options
+        and body.options.provider
+        and body.options.provider != "mock"
+        and not force
+    ):
+        # Projection mirrors the chat-route heuristic — token counts are
+        # estimated from a fixed convert-call ceiling.
+        model_name = body.options.model or "claude-3-5-sonnet-latest"
+        projected = estimate_cost_usd(model_name, 6_000, 800)
+        allowed, reason = meter.check_call_allowed(projected)
+        if not allowed:
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "title": "Budget exceeded",
+                    "reason": reason,
+                    "projected_cost_usd": projected,
+                    "budget": meter.summary().to_dict(),
+                },
+            )
+
     try:
         result = await asyncio.wait_for(
             run_in_threadpool(convert_sync, body),

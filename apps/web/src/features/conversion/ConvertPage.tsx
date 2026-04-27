@@ -7,11 +7,17 @@ import { Banner } from "../../components/Banner";
 import { ExportButtons } from "../export/ExportButtons";
 import { ValidationPanel } from "../validation/ValidationPanel";
 import { NodeInspector } from "../inspector/NodeInspector";
+import { ColumnLineageOverlay } from "../inspector/ColumnLineageOverlay";
+import { LintBadge } from "../inspector/LintPanel";
+import { LintPanel } from "../inspector/LintPanel";
+import { BudgetConfirmModal } from "./BudgetConfirmModal";
 import {
   client,
   ApiError,
   type ConvertResponse,
   type ConversionMode,
+  type LineageResponse,
+  type LintResponse,
 } from "../../api/client";
 import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
@@ -54,6 +60,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const status = useFlowStore((s) => s.conversionStatus);
   const setStatus = useFlowStore((s) => s.setConversionStatus);
   const setFlow = useFlowStore((s) => s.setFlow);
+  const setLineageFocus = useFlowStore((s) => s.setLineageFocus);
   const apiKeyAlias = useSettingsStore((s) => s.apiKeyAlias);
   const provider = useSettingsStore((s) => s.llmProvider);
   const model = useSettingsStore((s) => s.llmModel);
@@ -130,9 +137,62 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const [validationOpen, setValidationOpen] = useState(false);
   const [savedFlowId, setSavedFlowId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  // Lint result published into a state slot so the metric-tile-row LintBadge
+  // and the inline LintPanel can both subscribe.
+  const [lintResult, setLintResult] = useState<LintResponse | null>(null);
+  const [lintPanelOpen, setLintPanelOpen] = useState(false);
+  // Sprint 5 — mobile pane toggle. At <800px the editor + flow stack vertically;
+  // this state picks which is visible (default: editor) so users on phones can
+  // focus on one pane at a time. Desktop CSS overrides this.
+  const [mobilePane, setMobilePane] = useState<"editor" | "flow">("editor");
+  // Budget confirmation modal — opened when the API returns 402.
+  const [budgetModal, setBudgetModal] = useState<{
+    projectedCostUsd: number;
+    todayRemainingUsd: number;
+    onConfirm: () => void;
+  } | null>(null);
   // Stash the last convert attempt so the inline error Banner's Retry button
   // can re-fire the same request without the user having to re-click Convert.
   const lastAttempt = useRef<(() => void) | null>(null);
+
+  // The full client used for save/share/lint calls. Resolved early so handlers
+  // (lint refresh, lineage fetch) can reach it without temporal-dead-zone gymnastics.
+  const cli = props.shareClientImpl ?? client;
+
+  /**
+   * Translate a `LineageResponse` into the canvas-side dimming domain.
+   *
+   * dimmedNodeIds — every recipe id NOT in `lineage.recipes`.
+   * highlightedEdgeIds — derived from each lineage edge as
+   *   `{input_dataset}->{recipe_id}` and `{recipe_id}->{output_dataset}`,
+   *   matching the convention flow-viz callers use when wiring edges.
+   *
+   * Empty lineage → cleared focus (canvas renders normally).
+   */
+  const handleLineageHighlight = (lineage: LineageResponse | null): void => {
+    if (!lineage || lineage.edges.length === 0) {
+      setLineageFocus(null);
+      return;
+    }
+    const flow = response?.flow as Record<string, unknown> | undefined;
+    const allRecipeIds: string[] = Array.isArray(flow?.recipes)
+      ? (flow.recipes as Array<{ name?: string }>)
+          .map((r) => (typeof r?.name === "string" ? r.name : ""))
+          .filter((n): n is string => n.length > 0)
+      : [];
+    const touched = new Set(lineage.recipes);
+    const dimmed = allRecipeIds.filter((id) => !touched.has(id));
+    const edgeIds = new Set<string>();
+    for (const e of lineage.edges) {
+      edgeIds.add(`${e.input_dataset}->${e.recipe_id}`);
+      edgeIds.add(`${e.recipe_id}->${e.output_dataset}`);
+    }
+    setLineageFocus({
+      column: lineage.column,
+      dimmedNodeIds: dimmed,
+      highlightedEdgeIds: Array.from(edgeIds),
+    });
+  };
 
   // Streaming hook (always-on for M5 unless explicitly disabled by tests).
   const useStreamHook = props.streamConvertImpl ?? useConvertStream;
@@ -162,6 +222,12 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         warnings: stream.warnings ?? [],
       };
       setResponse(fakeResp);
+      // Refresh lint badge in the background — fire-and-forget; failures are
+      // tolerated because the badge gracefully renders null when missing.
+      void cli
+        .lint(stream.flow as Record<string, unknown>)
+        .then((r) => setLintResult(r))
+        .catch(() => setLintResult(null));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFlow(stream.flow as any);
       setStatus("done");
@@ -232,17 +298,24 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     // REST path (legacy / test compatibility).
     if (props.useRestOnly || props.convertImpl) {
       setStatus("running");
-      try {
+      const runConvert = async (force: boolean): Promise<void> => {
         const convert = props.convertImpl ?? client.convert;
-        const result = await convert({
-          code,
-          mode,
-          options: mode === "llm" ? { provider, model } : undefined,
-        });
+        const result = await convert(
+          {
+            code,
+            mode,
+            options: mode === "llm" ? { provider, model } : undefined,
+          },
+          force ? ({ force: true } as { force: boolean }) : undefined,
+        );
         setResponse(result);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setFlow(result.flow as any);
         setStatus("done");
+        void cli
+          .lint(result.flow as Record<string, unknown>)
+          .then((r) => setLintResult(r))
+          .catch(() => setLintResult(null));
         recordRecent(code, result.flow);
         recordRun({
           source: code,
@@ -265,7 +338,60 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             `Converted with ${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}`,
           );
         }
+      };
+      try {
+        await runConvert(false);
       } catch (err) {
+        // 402 → open the budget confirmation modal and retry on confirm.
+        if (err instanceof ApiError && err.status === 402) {
+          // The 402 problem-detail body is namespaced under `detail` server-side
+          // but ApiError stores the parsed body under `data` (or, for fastapi
+          // HTTPException, exposes a flat `detail`). We tolerate both shapes.
+          const raw =
+            (err as unknown as { data?: Record<string, unknown> }).data ?? {};
+          const detail = (raw.detail as Record<string, unknown> | undefined) ?? raw;
+          const projected =
+            typeof detail.projected_cost_usd === "number"
+              ? (detail.projected_cost_usd as number)
+              : 0;
+          const budget = (detail.budget as Record<string, unknown> | undefined) ?? {};
+          const monthlyCap =
+            typeof (budget.budget as Record<string, unknown> | undefined)?.monthly_cap_usd ===
+            "number"
+              ? ((budget.budget as Record<string, number>).monthly_cap_usd as number)
+              : 0;
+          const monthUsd =
+            typeof budget.month_usd === "number" ? (budget.month_usd as number) : 0;
+          const remaining = Math.max(0, monthlyCap - monthUsd);
+          setBudgetModal({
+            projectedCostUsd: projected,
+            todayRemainingUsd: remaining,
+            onConfirm: () => {
+              setBudgetModal(null);
+              setError(null);
+              setStatus("running");
+              void runConvert(true).catch((e) => {
+                const inner =
+                  e instanceof ApiError
+                    ? e
+                    : new ApiError({
+                        type: "about:blank",
+                        title: "Unexpected error",
+                        status: 0,
+                        detail: e instanceof Error ? e.message : String(e),
+                      });
+                setError({
+                  title: friendlyTitle(inner.status, inner.title),
+                  detail: inner.detail,
+                  status: inner.status,
+                });
+                setStatus("error");
+              });
+            },
+          });
+          setStatus("idle");
+          return;
+        }
         const apiErr =
           err instanceof ApiError
             ? err
@@ -307,8 +433,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     if (!inFlight) return;
     stream.cancel();
   };
-
-  const cli = props.shareClientImpl ?? client;
 
   const onShare = async (): Promise<void> => {
     if (!response) return;
@@ -362,7 +486,20 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const visibleError = error ?? stream.error;
 
   return (
+    <>
+    {budgetModal ? (
+      <BudgetConfirmModal
+        projectedCostUsd={budgetModal.projectedCostUsd}
+        todayRemainingUsd={budgetModal.todayRemainingUsd}
+        onConfirm={budgetModal.onConfirm}
+        onCancel={() => setBudgetModal(null)}
+      />
+    ) : null}
     <section
+      data-testid="convert-page"
+      data-route="convert"
+      data-mobile-pane={mobilePane}
+      className="convert-page"
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(320px, 1fr) minmax(320px, 1fr)",
@@ -372,7 +509,25 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         margin: "0 auto",
       }}
     >
-      <div>
+      <div className="convert-pane-toggle" data-testid="convert-pane-toggle">
+        <button
+          type="button"
+          data-testid="convert-pane-editor-btn"
+          aria-pressed={mobilePane === "editor"}
+          onClick={() => setMobilePane("editor")}
+        >
+          Editor
+        </button>
+        <button
+          type="button"
+          data-testid="convert-pane-flow-btn"
+          aria-pressed={mobilePane === "flow"}
+          onClick={() => setMobilePane("flow")}
+        >
+          Flow
+        </button>
+      </div>
+      <div className="convert-pane convert-pane-editor" data-pane="editor">
         <header
           style={{
             display: "flex",
@@ -458,7 +613,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         <ReplayTimeline />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className="convert-pane convert-pane-flow" data-pane="flow" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div
           style={{
             display: "flex",
@@ -550,6 +705,8 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           mode={mode}
           response={response}
           error={error}
+          lintResult={lintResult}
+          onOpenLint={() => setLintPanelOpen((v) => !v)}
         />
 
         {response ? (
@@ -601,6 +758,21 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
               key={validationOpen ? "open" : "closed"}
               clientImpl={cli}
             />
+            <ColumnLineageOverlay
+              flow={response.flow as Record<string, unknown>}
+              onHighlight={handleLineageHighlight}
+            />
+            {lintPanelOpen ? (
+              <LintPanel
+                flow={response.flow as Record<string, unknown>}
+                initialResult={lintResult ?? undefined}
+                onFlowReplaced={(f) => {
+                  setResponse({ ...response, flow: f as ConvertResponse["flow"] });
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  setFlow(f as any);
+                }}
+              />
+            ) : null}
             <NodeList flow={response.flow} />
             <NodeInspector />
             <JsonView value={response.flow} />
@@ -608,6 +780,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         ) : null}
       </div>
     </section>
+    </>
   );
 }
 
@@ -919,8 +1092,10 @@ function StatusPanel(props: {
   mode: ConversionMode;
   response: ConvertResponse | null;
   error: { title: string; detail?: string; status: number } | null;
+  lintResult: LintResponse | null;
+  onOpenLint: () => void;
 }): JSX.Element {
-  const { status, mode, response, error } = props;
+  const { status, mode, response, error, lintResult, onOpenLint } = props;
   const card = (label: string, value: string | number, testId?: string) => (
     <div
       key={label}
@@ -976,6 +1151,7 @@ function StatusPanel(props: {
           flow={response.flow as Record<string, unknown>}
         />
         {response.warnings.length > 0 ? card("Warnings", response.warnings.length) : null}
+        <LintBadge result={lintResult} onClick={onOpenLint} />
       </div>
     );
   }

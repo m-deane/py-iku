@@ -173,7 +173,8 @@ def post_share(
     flows: FlowsRepo = Depends(get_flows_repo),
     audit: AuditRepo = Depends(get_audit_repo),
 ) -> ShareFlowResponse:
-    if flows.get(flow_id) is None:
+    record = flows.get(flow_id)
+    if record is None:
         raise HTTPException(status_code=404, detail=f"flow '{flow_id}' not found")
     ttl = body.ttl_seconds or settings.share_default_ttl_seconds
     scopes = list(body.scopes or ["read"])
@@ -183,13 +184,31 @@ def post_share(
     expires_at = datetime.fromtimestamp(
         datetime.now(tz=UTC).timestamp() + ttl, tz=UTC
     ).isoformat()
+
+    # Sprint 4D follow-up: inline fixtures in the share record so the
+    # recipient can Run-with-embedded-fixtures without a side-channel bundle
+    # download. The payload is compressed (gzip+base64) before being persisted.
+    if body.include_fixtures:
+        from ..services.share_service import (
+            build_share_bundle,
+            encode_bundle_gzip_b64,
+        )
+
+        bundle = build_share_bundle(record.flow, n_rows=body.fixtures_n_rows)
+        encoded = encode_bundle_gzip_b64(bundle)
+        flows.update(flow_id, fixtures_b64=encoded)
+
     audit.append(
         AuditEvent(
             actor=_client_actor(request),
             action="flow.share",
             resource_type="flow",
             resource_id=flow_id,
-            details={"ttl_seconds": ttl, "scopes": scopes},
+            details={
+                "ttl_seconds": ttl,
+                "scopes": scopes,
+                "include_fixtures": body.include_fixtures,
+            },
         )
     )
     return ShareFlowResponse(

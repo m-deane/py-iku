@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Editor, { type OnMount } from "@monaco-editor/react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useFlowStore } from "../../state/flowStore";
 import { getDefaultCode } from "./snippets";
 
@@ -18,52 +17,48 @@ export interface MonacoEditorProps {
 
 const DEBOUNCE_MS = 250;
 
-function readDataTheme(): "vs" | "vs-dark" {
-  if (typeof document === "undefined") return "vs";
-  const t = document.documentElement.dataset.theme;
-  return t === "dark" ? "vs-dark" : "vs";
-}
+/**
+ * Lazy-loaded inner Monaco editor.
+ *
+ * `@monaco-editor/react` AND the `monaco-editor` worker setup are both
+ * deferred behind this `React.lazy()` boundary. On a cold load of `/convert`,
+ * the user sees a `<textarea>` fallback first; the moment they focus the
+ * editor we trigger the dynamic import, swap the chunks in, and re-render
+ * with the real Monaco surface. This keeps Monaco out of the initial
+ * navigation waterfall — the chunk only ships when the user actually edits.
+ *
+ * The split point is `./MonacoEditorInner.tsx` so the bundler can carve
+ * `@monaco-editor/react` into its own JS chunk.
+ */
+const MonacoEditorInner = lazy(() =>
+  import("./MonacoEditorInner").then((m) => ({ default: m.MonacoEditorInner })),
+);
 
 /**
- * Thin wrapper around `@monaco-editor/react`'s `<Editor>` configured for
- * Python. The component owns local state for snappy keystroke updates and
- * debounces writes back to `flowStore.currentCode` so the rest of the app
- * doesn't re-render on every keypress.
+ * Public Monaco editor wrapper used across the app.
  *
- * Theme tracks `<html data-theme>` (toggled by `ThemeApplier` in `providers.tsx`)
- * via a MutationObserver, so light/dark switching is fully reactive.
+ * Behaviour:
+ *   1. Renders a styled `<textarea>` fallback for first paint — the user can
+ *      already type, so the editor is interactive from millisecond one.
+ *   2. On the first `focus` event we set `boost=true`, which causes the
+ *      `Suspense` boundary below to start loading the `@monaco-editor/react`
+ *      chunk + worker. Once it resolves, the inner component takes over and
+ *      preserves the in-progress text via the `value` prop.
+ *   3. The `fallbackTextarea` prop forces the textarea path forever. jsdom
+ *      and visual regression tests rely on it.
  */
 export function MonacoEditor(props: MonacoEditorProps): JSX.Element {
   const setCurrentCode = useFlowStore((s) => s.setCurrentCode);
   const initial = useMemo(() => props.value ?? getDefaultCode(), [props.value]);
   const [localValue, setLocalValue] = useState<string>(initial);
-  const [theme, setTheme] = useState<"vs" | "vs-dark">(() => readDataTheme());
+  const [boosted, setBoosted] = useState<boolean>(false);
   const debounceRef = useRef<number | null>(null);
 
   // Push initial value into the store on first mount so consumers (Convert
   // button, etc.) see something even before the user types.
   useEffect(() => {
     setCurrentCode(initial);
-    // Intentionally only on mount — subsequent updates are debounced below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Reactive theme: watch the `data-theme` attribute on <html>.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const html = document.documentElement;
-    const apply = (): void => setTheme(readDataTheme());
-    apply();
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (m.type === "attributes" && m.attributeName === "data-theme") {
-          apply();
-          return;
-        }
-      }
-    });
-    observer.observe(html, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => observer.disconnect();
   }, []);
 
   // External `value` prop changes win over local state (e.g. snippet picker).
@@ -75,8 +70,7 @@ export function MonacoEditor(props: MonacoEditorProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.value]);
 
-  const handleChange = (v: string | undefined): void => {
-    const next = v ?? "";
+  const handleChange = (next: string): void => {
     setLocalValue(next);
     if (debounceRef.current !== null) {
       window.clearTimeout(debounceRef.current);
@@ -87,12 +81,7 @@ export function MonacoEditor(props: MonacoEditorProps): JSX.Element {
     }, DEBOUNCE_MS);
   };
 
-  const handleMount: OnMount = (_editor, _monaco) => {
-    // Reserved for future M5 hooks (cursor position, decorations, etc.).
-  };
-
-  // jsdom can't render Monaco; tests pass `fallbackTextarea` to swap in a
-  // plain textarea so component tests don't need to mock the editor module.
+  // jsdom + visual-regression suites pin the textarea forever.
   if (props.fallbackTextarea) {
     return (
       <textarea
@@ -100,43 +89,64 @@ export function MonacoEditor(props: MonacoEditorProps): JSX.Element {
         value={localValue}
         readOnly={props.readOnly}
         onChange={(e) => handleChange(e.target.value)}
-        style={{
-          width: "100%",
-          height: props.height ?? "60vh",
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-          fontSize: 14,
-          padding: 12,
-          border: "1px solid var(--color-grid, #e0e0e0)",
-          borderRadius: 6,
-          background: "var(--color-background, #fafafa)",
-          color: "var(--color-fg, #212121)",
-        }}
+        style={textareaStyle(props.height)}
+      />
+    );
+  }
+
+  // Cold-load path. We render a textarea until the user focuses it; on focus
+  // we set `boosted` and the Suspense boundary kicks in to fetch the Monaco
+  // chunks. The Suspense fallback continues to show the textarea so the
+  // typing surface never disappears mid-load.
+  if (!boosted) {
+    return (
+      <textarea
+        data-testid="monaco-fallback"
+        aria-label="Python code"
+        value={localValue}
+        readOnly={props.readOnly}
+        onFocus={() => setBoosted(true)}
+        onChange={(e) => handleChange(e.target.value)}
+        style={textareaStyle(props.height)}
       />
     );
   }
 
   return (
-    <div data-testid="monaco-editor">
-      <Editor
-        height={props.height ?? "60vh"}
-        defaultLanguage="python"
-        language="python"
+    <Suspense
+      fallback={
+        <textarea
+          data-testid="monaco-fallback-loading"
+          aria-label="Python code"
+          aria-busy="true"
+          value={localValue}
+          readOnly={props.readOnly}
+          onChange={(e) => handleChange(e.target.value)}
+          style={textareaStyle(props.height)}
+        />
+      }
+    >
+      <MonacoEditorInner
         value={localValue}
-        theme={theme}
-        onMount={handleMount}
+        height={props.height}
+        readOnly={props.readOnly}
         onChange={handleChange}
-        options={{
-          minimap: { enabled: false },
-          fontSize: 14,
-          tabSize: 4,
-          automaticLayout: true,
-          wordWrap: "on",
-          scrollBeyondLastLine: false,
-          readOnly: props.readOnly ?? false,
-          renderWhitespace: "selection",
-          fixedOverflowWidgets: true,
-        }}
       />
-    </div>
+    </Suspense>
   );
+}
+
+function textareaStyle(height: string | undefined): React.CSSProperties {
+  return {
+    width: "100%",
+    height: height ?? "60vh",
+    fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, monospace)",
+    fontSize: 14,
+    padding: 12,
+    border: "1px solid var(--border, #eaecf0)",
+    borderRadius: "var(--radius-md, 6px)",
+    background: "var(--surface, #fafafa)",
+    color: "var(--fg, #212121)",
+    resize: "vertical",
+  };
 }

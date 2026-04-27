@@ -24,15 +24,23 @@ export class ApiError extends Error {
   readonly status: number;
   readonly detail?: string;
   readonly requestId?: string;
+  /**
+   * Full problem-detail body. Some endpoints (e.g. `/convert` 402) attach
+   * structured payloads (`projected_cost_usd`, `budget`) under `detail` —
+   * callers that need those fields read them off `data` instead of `detail`.
+   */
+  readonly data: Record<string, unknown>;
 
   constructor(problem: ApiProblem, requestId?: string) {
-    super(problem.detail ?? problem.title);
+    const flat = typeof problem.detail === "string" ? problem.detail : problem.title;
+    super(flat);
     this.name = "ApiError";
     this.type = problem.type;
     this.title = problem.title;
     this.status = problem.status;
-    this.detail = problem.detail;
+    this.detail = typeof problem.detail === "string" ? problem.detail : undefined;
     this.requestId = requestId;
+    this.data = { ...problem } as Record<string, unknown>;
   }
 }
 
@@ -282,6 +290,13 @@ export interface CreatedFlowResponse {
   created_at: string;
 }
 
+export interface FixturesBundle {
+  /** Per-input-dataset row cap declared by the producer. */
+  n_rows: number;
+  /** Raw rows keyed by dataset name. */
+  datasets: Record<string, Array<Record<string, unknown>>>;
+}
+
 export interface SavedFlowResponse {
   id: string;
   name: string;
@@ -289,11 +304,18 @@ export interface SavedFlowResponse {
   created_at: string;
   updated_at: string;
   tags: string[];
+  /** Optional embedded fixtures payload — populated by the share endpoint
+   * when the share record was minted with `include_fixtures=true`. */
+  fixtures?: FixturesBundle | null;
 }
 
 export interface ShareFlowRequest {
   ttl_seconds?: number;
   scopes?: string[];
+  /** When true, snapshot+inline fixture rows into the share record. */
+  include_fixtures?: boolean;
+  /** Per-input-dataset row cap (default 100). */
+  fixtures_n_rows?: number;
 }
 
 export interface ShareFlowResponse {
@@ -356,6 +378,52 @@ export interface ChatResponse {
   cost_usd: number;
 }
 
+// ---------------------------------------------------------------------------
+// Explain-this-recipe popover (Sprint 5)
+// ---------------------------------------------------------------------------
+
+export interface ExplainRecipeRequest {
+  recipe: Record<string, unknown>;
+  context?: Record<string, unknown> | null;
+  flow_id?: string | null;
+  provider?: "anthropic" | "openai" | "mock";
+  model?: string | null;
+}
+
+export interface ExplainRecipeResponse {
+  what_this_does: string;
+  trading_context: string;
+  watch_out_for: string;
+  recipe_type: string;
+  cache_key: string;
+  cache_hit: boolean;
+  model: string;
+  usage: { input_tokens?: number; output_tokens?: number };
+  cost_usd: number;
+}
+
+// ---------------------------------------------------------------------------
+// Suggest-mapping (Sprint 5)
+// ---------------------------------------------------------------------------
+
+export interface SuggestMappingRequest {
+  python_source: string;
+  context?: Record<string, unknown> | null;
+  flow_id?: string | null;
+  provider?: "anthropic" | "openai" | "mock";
+  model?: string | null;
+}
+
+export interface SuggestMappingResponse {
+  confidence: number;
+  suggested_recipe_type: string;
+  transformed_pandas: string;
+  reasoning: string;
+  model: string;
+  usage: { input_tokens?: number; output_tokens?: number };
+  cost_usd: number;
+}
+
 export interface LlmHistoryRecord {
   ts: string;
   mode: "rule" | "llm";
@@ -384,6 +452,40 @@ export interface ListLlmHistoryOptions extends ClientOptions {
   until?: string;
   limit?: number;
   cursor?: string;
+  /** Sprint 4D — free-text search across prompt + response. */
+  q?: string;
+  /** Sprint 5 — filter by Studio user. */
+  user?: string;
+  /** Sprint 5 — filter by derived severity (success / warning / error). */
+  severity?: "success" | "warning" | "error";
+}
+
+/** Sprint 5 — plugin marketplace. */
+export interface PluginCatalogEntry {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  supported_recipes: string[];
+  supported_processors: string[];
+  source_code_url: string;
+  install_command: string;
+  tags: string[];
+  homepage_url?: string | null;
+}
+
+export interface PluginCatalogResponse {
+  entries: PluginCatalogEntry[];
+  count: number;
+}
+
+export interface PluginsInstalledResponse {
+  plugins: Record<string, Record<string, unknown>>;
+  recipe_mappings: Record<string, string>;
+  processor_mappings: Record<string, string>;
+  method_handlers: string[];
+  recipe_handlers: string[];
+  processor_handlers: string[];
 }
 
 export interface CostSummary {
@@ -429,9 +531,13 @@ export const client = {
   health(opts?: ClientOptions): Promise<HealthResponse> {
     return request<HealthResponse>("/health", { method: "GET" }, opts);
   },
-  convert(req: ConvertRequest, opts?: ClientOptions): Promise<ConvertResponse> {
+  convert(
+    req: ConvertRequest,
+    opts?: ClientOptions & { force?: boolean },
+  ): Promise<ConvertResponse> {
+    const path = opts?.force ? "/convert?force=true" : "/convert";
     return request<ConvertResponse>(
-      "/convert",
+      path,
       { method: "POST", body: JSON.stringify(req) },
       opts,
     );
@@ -585,6 +691,26 @@ export const client = {
       opts,
     );
   },
+  explainRecipe(
+    req: ExplainRecipeRequest,
+    opts?: ClientOptions,
+  ): Promise<ExplainRecipeResponse> {
+    return request<ExplainRecipeResponse>(
+      "/explain-recipe",
+      { method: "POST", body: JSON.stringify(req) },
+      opts,
+    );
+  },
+  suggestMapping(
+    req: SuggestMappingRequest,
+    opts?: ClientOptions,
+  ): Promise<SuggestMappingResponse> {
+    return request<SuggestMappingResponse>(
+      "/suggest-mapping",
+      { method: "POST", body: JSON.stringify(req) },
+      opts,
+    );
+  },
   listLlmHistory(opts?: ListLlmHistoryOptions): Promise<LlmHistoryListResponse> {
     const params = new URLSearchParams();
     if (opts?.provider) params.set("provider", opts.provider);
@@ -593,9 +719,68 @@ export const client = {
     if (opts?.until) params.set("until", opts.until);
     if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
     if (opts?.cursor) params.set("cursor", opts.cursor);
+    if (opts?.q) params.set("q", opts.q);
+    if (opts?.user) params.set("user", opts.user);
+    if (opts?.severity) params.set("severity", opts.severity);
     const qs = params.toString();
     const path = qs ? `/llm-history?${qs}` : "/llm-history";
     return request<LlmHistoryListResponse>(path, { method: "GET" }, opts);
+  },
+  /** Sprint 5 — GDPR: download a per-user export ZIP. */
+  async exportUserData(
+    user: string,
+    opts?: ClientOptions,
+  ): Promise<ExportResult> {
+    const baseUrl = (opts?.baseUrl ?? getBaseUrl(opts ?? {})).replace(/\/$/, "");
+    const url = `${baseUrl}/llm-history/export?user=${encodeURIComponent(user)}`;
+    const fetchImpl = opts?.fetchImpl ?? fetch;
+    const response = await fetchImpl(url, { method: "GET" });
+    if (!response.ok) {
+      throw new ApiError(
+        {
+          type: "about:blank",
+          title: "Export failed",
+          status: response.status,
+          detail: `Status ${response.status}`,
+        },
+        undefined,
+      );
+    }
+    const blob = await response.blob();
+    const contentType = response.headers.get("content-type") ?? "application/zip";
+    const filename = parseFilename(
+      response.headers.get("content-disposition"),
+      `py-iku-studio-export-${user}.zip`,
+    );
+    return { blob, filename, contentType };
+  },
+  /** Sprint 5 — GDPR: delete every record for a user. */
+  deleteUserData(
+    user: string,
+    opts?: ClientOptions,
+  ): Promise<{ user: string; removed: number }> {
+    const path = `/llm-history?user=${encodeURIComponent(user)}&confirm=yes`;
+    return request<{ user: string; removed: number }>(
+      path,
+      { method: "DELETE" },
+      opts,
+    );
+  },
+  /** Sprint 5 — plugin marketplace catalog. */
+  listPluginCatalog(opts?: ClientOptions): Promise<PluginCatalogResponse> {
+    return request<PluginCatalogResponse>(
+      "/plugins/catalog",
+      { method: "GET" },
+      opts,
+    );
+  },
+  /** Sprint 5 — live PluginRegistry introspection. */
+  listPluginsInstalled(opts?: ClientOptions): Promise<PluginsInstalledResponse> {
+    return request<PluginsInstalledResponse>(
+      "/plugins/installed",
+      { method: "GET" },
+      opts,
+    );
   },
   getLlmCostSummary(opts?: ClientOptions): Promise<CostSummary> {
     return request<CostSummary>("/llm-cost-summary", { method: "GET" }, opts);

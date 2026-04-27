@@ -1,0 +1,155 @@
+[
+  {
+    "id": "trade-ingestion-validation",
+    "name": "Trade Ingestion + Validation",
+    "category": "trade-capture",
+    "summary": "Drop invalid rows, type-cast trade dates, regex-extract a commodity code, filter to current-year activity, and pivot a per-book exposure view from the nightly booking-system extract.",
+    "personas": [
+      "data-eng",
+      "middle-office"
+    ],
+    "tags": [
+      "trade-blotter",
+      "WTI",
+      "TTF",
+      "Henry Hub",
+      "PIVOT",
+      "PREPARE",
+      "SPLIT"
+    ],
+    "verifiedRecipes": [
+      "prepare",
+      "prepare",
+      "split",
+      "pivot"
+    ],
+    "verifiedDatasets": [
+      "filtered",
+      "filtered_pivoted",
+      "trades",
+      "trades_prepared",
+      "trades_prepared_prepared"
+    ],
+    "estimatedSavingMinutes": 45,
+    "pythonSource": "import pandas as pd\n\n# Nightly booking-system extract: WTI, Brent, Henry Hub, TTF, JKM, PJM trades.\n# Schema: trade_id, trader_id, trade_date, value_date, settlement_date,\n#         counterparty_id, instrument, commodity, product_type, notional, unit,\n#         price, currency, buy_sell, book, portfolio, region, delivery_location, booked_at\ntrades = pd.read_csv(\"trades.csv\")\n\n# Booking systems sometimes emit half-written rows on overnight cutover.\ntrades = trades.dropna(subset=[\"trade_id\", \"trade_date\", \"notional\"])\n\n# Normalise the two date columns Risk uses for valuation.\ntrades[\"trade_date\"] = pd.to_datetime(trades[\"trade_date\"]).dt.date\ntrades[\"value_date\"] = pd.to_datetime(trades[\"value_date\"]).dt.date\n\n# Pull the commodity prefix off the instrument string (e.g. WTI-DEC25 -> WTI).\ntrades[\"commodity_code\"] = trades[\"instrument\"].str.extract(r\"^([A-Z]+)\")\n\n# Drop non-positive notionals and any future-dated rows.\nfiltered = trades[(trades[\"notional\"] > 0) & (trades[\"trade_date\"] <= \"2026-04-26\")]\n\n# Per-book daily exposure across CRUDE / NATGAS / POWER.\nexposure = filtered.pivot(index=\"book\", columns=\"commodity\", values=\"notional\")\nexposure.to_csv(\"trade_blotter.csv\")\n"
+  },
+  {
+    "id": "trade-dedup-multi-system",
+    "name": "Trade Dedup Across Booking Systems",
+    "category": "trade-capture",
+    "summary": "Stack overlapping Endur, Allegro, and internal extracts during a migration window, dedup on (trade_id, version), keep the most recent booked copy, and emit a consolidated trade tape.",
+    "personas": [
+      "data-eng",
+      "middle-office"
+    ],
+    "tags": [
+      "Endur",
+      "Allegro",
+      "STACK",
+      "DEDUP",
+      "SORT"
+    ],
+    "verifiedRecipes": [
+      "stack",
+      "prepare",
+      "sort"
+    ],
+    "verifiedDatasets": [
+      "allegro",
+      "combined",
+      "combined_prepared",
+      "combined_prepared_sorted",
+      "endur",
+      "internal"
+    ],
+    "estimatedSavingMinutes": 30,
+    "pythonSource": "import pandas as pd\n\n# Three parallel booking systems during the Endur -> Allegro migration window.\n# All three emit the canonical trade schema plus a `version` increment.\nendur = pd.read_csv(\"endur_trades.csv\")\nallegro = pd.read_csv(\"allegro_trades.csv\")\ninternal = pd.read_csv(\"internal_trades.csv\")\n\n# Stack the three extracts into a single tape.\ncombined = pd.concat([endur, allegro, internal])\n\n# Dedup on (trade_id, version) so a version-stamped amendment is kept once.\ncombined = combined.drop_duplicates(subset=[\"trade_id\", \"version\"])\n\n# Most-recently booked copy wins any reporting tie.\ncombined = combined.sort_values(\"booked_at\", ascending=False)\n\ncombined.to_csv(\"consolidated_trades.csv\", index=False)\n"
+  },
+  {
+    "id": "trade-amend-tracking",
+    "name": "Trade Amend Tracking",
+    "category": "trade-capture",
+    "summary": "Join the booking-system amend log to the canonical trade record, then filter to material amendments where the new notional moved more than 0.5% from the original \u2014 the audit slice middle-office reviews each morning.",
+    "personas": [
+      "middle-office",
+      "data-eng",
+      "risk"
+    ],
+    "tags": [
+      "amends",
+      "audit",
+      "JOIN",
+      "FilterOnFormula",
+      "trade-blotter"
+    ],
+    "verifiedRecipes": [
+      "join",
+      "split"
+    ],
+    "verifiedDatasets": [
+      "amends",
+      "audit",
+      "joined",
+      "trades"
+    ],
+    "estimatedSavingMinutes": 35,
+    "pythonSource": "import pandas as pd\n\n# Original trades extracted EOD; amends.csv from the booking-system audit log.\n# trades.csv columns: trade_id, trader_id, trade_date, counterparty_id,\n#   instrument, commodity, notional, price, currency, book, region.\n# amends.csv columns: amend_id, trade_id, amended_at, field_changed,\n#   old_notional, new_notional, old_price, new_price, amended_by.\ntrades = pd.read_csv(\"trades.csv\")\namends = pd.read_csv(\"amends.csv\")\n\n# Inner-join amends to the canonical trade record by trade_id.\njoined = amends.merge(trades, on=\"trade_id\", how=\"inner\")\n\n# Material amend: notional changed by more than 0.5% from the booked value.\naudit = joined[\n    (joined[\"new_notional\"] - joined[\"old_notional\"]).abs()\n    > (joined[\"old_notional\"] * 0.005)\n]\n\naudit.to_csv(\"amend_audit.csv\", index=False)\n"
+  },
+  {
+    "id": "trade-fail-recon",
+    "name": "Trade Fail Reconciliation",
+    "category": "trade-capture",
+    "summary": "Roll up the post-trade failure queue by (counterparty, reason_code), then sort the worst counterparties to the top so middle-office knows who to chase.",
+    "personas": [
+      "middle-office",
+      "data-eng"
+    ],
+    "tags": [
+      "fails",
+      "reconciliation",
+      "GROUPING",
+      "SORT",
+      "post-trade"
+    ],
+    "verifiedRecipes": [
+      "grouping",
+      "sort"
+    ],
+    "verifiedDatasets": [
+      "by_cp_reason",
+      "by_cp_reason_sorted",
+      "fails"
+    ],
+    "estimatedSavingMinutes": 20,
+    "pythonSource": "import pandas as pd\n\n# Daily failed-trade extract from the post-trade settlement queue.\n# trade_fails.csv: fail_id, trade_id, counterparty_id, settlement_date,\n#   reason_code (UNMATCHED / DK / INSUFFICIENT_FUNDS / WRONG_CURRENCY /\n#   COUNTERPARTY_LIMIT), notional, currency, age_days\nfails = pd.read_csv(\"trade_fails.csv\")\n\n# Roll up by (counterparty, reason) so middle office can chase the worst.\nby_cp_reason = fails.groupby([\"counterparty_id\", \"reason_code\"]).agg({\n    \"fail_id\": \"count\",\n    \"notional\": \"sum\",\n}).reset_index()\n\n# Sort the top offenders to the top of the queue.\nranked = by_cp_reason.sort_values(\"fail_id\", ascending=False)\nranked.to_csv(\"fails_by_counterparty.csv\", index=False)\n"
+  },
+  {
+    "id": "broker-confirm-matching",
+    "name": "Broker-Confirm STP Matching",
+    "category": "trade-capture",
+    "summary": "STP-match internal trades against broker confirms by stacking both feeds and dropping duplicates on (trade_id, execution_time) \u2014 the canonical OTC commodity confirmation pattern.",
+    "personas": [
+      "middle-office",
+      "data-eng"
+    ],
+    "tags": [
+      "broker-confirms",
+      "STP",
+      "STACK",
+      "DEDUP",
+      "OTC"
+    ],
+    "verifiedRecipes": [
+      "stack",
+      "prepare"
+    ],
+    "verifiedDatasets": [
+      "broker_confirms",
+      "combined",
+      "combined_prepared",
+      "internal_trades"
+    ],
+    "estimatedSavingMinutes": 30,
+    "pythonSource": "import pandas as pd\n\n# Internal trades vs broker confirms \u2014 STP matching for OTC commodity trades.\n# Both sides share trade_id + execution_time on a successful match.\ninternal_trades = pd.read_csv(\"internal_trades.csv\")\nbroker_confirms = pd.read_csv(\"broker_confirms.csv\")\n\n# Stack into one tape of candidate matches.\ncombined = pd.concat([internal_trades, broker_confirms])\n\n# A confirm-match key: drop duplicates on (trade_id, execution_time) so\n# the matched pair collapses to a single row in the consolidated tape.\nmatched = combined.drop_duplicates(subset=[\"trade_id\", \"execution_time\"])\n\nmatched.to_csv(\"broker_confirm_matched.csv\", index=False)\n"
+  }
+]
