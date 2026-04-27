@@ -77,3 +77,6 @@ storybook-static/
 
 # API virtualenv
 .venv-api/
+
+# Runtime data from the FastAPI dev server (apps/api)
+apps/api/.py-iku-flows/
