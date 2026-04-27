@@ -1,0 +1,148 @@
+.page {
+  padding: 1rem 1.25rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.tabs {
+  display: inline-flex;
+  border: 1px solid var(--color-grid, #e0e0e0);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tab {
+  padding: 0.45rem 1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tabActive {
+  background: var(--color-connectionhover, #1976d2);
+  color: white;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.searchInput,
+.categorySelect {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-grid, #e0e0e0);
+  border-radius: 6px;
+  background: var(--color-bg, #ffffff);
+  color: inherit;
+  font-size: 14px;
+  min-width: 220px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.card {
+  border: 1px solid var(--color-grid, #e0e0e0);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  background: var(--color-bg, #ffffff);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.card:hover {
+  border-color: var(--color-connectionhover, #1976d2);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-connectionhover, #1976d2);
+  outline-offset: 2px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 14px;
+  word-break: break-word;
+  flex: 1;
+}
+
+.cardMeta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--color-grid, #eeeeee);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: var(--color-grid, #555);
+  line-height: 1.4;
+}
+
+.empty {
+  padding: 1rem;
+  font-style: italic;
+  color: var(--color-grid, #888);
+}
+
+.loading,
+.error {
+  padding: 1rem;
+  font-size: 13px;
+  color: var(--color-grid, #888);
+}
+
+.error {
+  color: #b71c1c;
+}

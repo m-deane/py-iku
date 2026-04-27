@@ -1,0 +1,2379 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "py-iku Studio API",
+    "description": "FastAPI wrapper around py2dataiku for py-iku Studio",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Service liveness check",
+        "description": "Return service status, API version, and the underlying py2dataiku version.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convert": {
+      "post": {
+        "tags": [
+          "convert"
+        ],
+        "summary": "Convert Python code to a Dataiku flow (synchronous)",
+        "description": "Convert Python code to a DataikuFlow.\n\n- **mode=rule** (default): AST-based, offline, fast.\n- **mode=llm**: LLM-assisted, requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`\n  set in the server environment. Max 30-second wall-clock timeout.\n\nErrors in the py2dataiku hierarchy are mapped to RFC 7807 problem+json.",
+        "operationId": "post_convert_convert_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvertResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Python syntax"
+          },
+          "413": {
+            "description": "Code exceeds max_code_size_bytes"
+          },
+          "422": {
+            "description": "Validation error or conversion failure"
+          },
+          "500": {
+            "description": "Internal error or configuration problem"
+          },
+          "502": {
+            "description": "LLM provider error"
+          }
+        }
+      }
+    },
+    "/catalog/recipes": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List all 37 Dataiku recipe types",
+        "description": "Return catalog entries for all 37 RecipeType values.\n\nResponse is cached for 60 seconds (public, max-age=60).",
+        "operationId": "get_recipes_catalog_recipes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecipeCatalogEntry"
+                  },
+                  "type": "array",
+                  "title": "Response Get Recipes Catalog Recipes Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/processors": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List Dataiku Prepare processors",
+        "description": "Return catalog entries for Prepare processors (up to 122).\n\nOptional filters: `q` (name/description substring) and `category` (exact match).\nResponse is cached for 60 seconds.",
+        "operationId": "get_processors_catalog_processors_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by name or description substring",
+              "title": "Q"
+            },
+            "description": "Filter by name or description substring"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by exact category name",
+              "title": "Category"
+            },
+            "description": "Filter by exact category name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProcessorCatalogEntry"
+                  },
+                  "title": "Response Get Processors Catalog Processors Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog/processors/{processor_type}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Get a single processor catalog entry by type",
+        "description": "Return the catalog entry for a single processor type.\n\n`processor_type` should be the DSS canonical name (e.g. `ColumnRenamer`).\nReturns 404 if the type is not in the catalog.",
+        "operationId": "get_processor_catalog_processors__processor_type__get",
+        "parameters": [
+          {
+            "name": "processor_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Processor Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProcessorCatalogEntry"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diff": {
+      "post": {
+        "tags": [
+          "diff"
+        ],
+        "summary": "Compute the per-node diff between two flows",
+        "description": "Compare two flows by recipe name (the node id) and return added/removed/changed.\n\n- **added**: recipe present in B but not in A.\n- **removed**: recipe present in A but not in B.\n- **changed**: recipe present in both with a different ``type`` or\n  different settings/steps.",
+        "operationId": "post_diff_diff_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiffRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiffResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/score": {
+      "post": {
+        "tags": [
+          "score"
+        ],
+        "summary": "Compute a complexity score for a flow",
+        "description": "Compute the complexity score from a flow payload.\n\nThe flow is hydrated into a real ``DataikuFlow`` via ``from_dict`` so\nthe FlowGraph metrics computed by ``score_flow`` are accurate.",
+        "operationId": "post_score_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataikuFlowModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplexityScore"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/export/{format}": {
+      "post": {
+        "tags": [
+          "export"
+        ],
+        "summary": "Export a DataikuFlow as a binary payload",
+        "description": "Render the flow as ``format`` and stream it back as an attachment.",
+        "operationId": "post_export_export__format__post",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ExportFormat"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Binary export payload (zip / json / yaml / svg / png / pdf)",
+            "content": {
+              "application/zip": {},
+              "application/json": {},
+              "application/x-yaml": {},
+              "image/svg+xml": {},
+              "image/png": {},
+              "application/pdf": {}
+            }
+          },
+          "422": {
+            "description": "Invalid format or malformed flow body"
+          },
+          "501": {
+            "description": "Format not supported in this environment"
+          }
+        }
+      }
+    },
+    "/flows": {
+      "post": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Persist a flow",
+        "operationId": "post_flow_flows_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveFlowRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedFlowResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flows/{flow_id}": {
+      "get": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Read a saved flow",
+        "operationId": "get_flow_flows__flow_id__get",
+        "parameters": [
+          {
+            "name": "flow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Flow Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFlowResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Patch a saved flow",
+        "operationId": "patch_flow_flows__flow_id__patch",
+        "parameters": [
+          {
+            "name": "flow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Flow Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFlowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFlowResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flows/{flow_id}/share": {
+      "post": {
+        "tags": [
+          "flows"
+        ],
+        "summary": "Mint a signed share token for a flow",
+        "operationId": "post_share_flows__flow_id__share_post",
+        "parameters": [
+          {
+            "name": "flow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Flow Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareFlowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareFlowResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/share/{token}": {
+      "get": {
+        "tags": [
+          "share"
+        ],
+        "summary": "Public read-only view of a shared flow",
+        "operationId": "get_share_share__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedFlowResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token signature is invalid"
+          },
+          "404": {
+            "description": "Token references an unknown flow"
+          },
+          "410": {
+            "description": "Token expired"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/audit": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "List audit-log events",
+        "operationId": "get_audit_audit_get",
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO timestamp lower bound",
+              "title": "Since"
+            },
+            "description": "ISO timestamp lower bound"
+          },
+          {
+            "name": "actor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to a single actor",
+              "title": "Actor"
+            },
+            "description": "Filter to a single actor"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "exclusiveMinimum": 0,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Pagination cursor",
+              "title": "Cursor"
+            },
+            "description": "Pagination cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditEventModel": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "resource_type": {
+            "type": "string",
+            "title": "Resource Type"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          },
+          "ts": {
+            "type": "string",
+            "title": "Ts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "actor",
+          "action",
+          "resource_type",
+          "resource_id",
+          "ts"
+        ],
+        "title": "AuditEventModel",
+        "description": "A single audit log entry returned by ``GET /audit``."
+      },
+      "AuditListResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventModel"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events"
+        ],
+        "title": "AuditListResponse",
+        "description": "Paginated audit response."
+      },
+      "ColumnSchemaModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "nullable": {
+            "type": "boolean",
+            "title": "Nullable",
+            "default": true
+          },
+          "default": {
+            "title": "Default"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "ColumnSchemaModel",
+        "description": "Mirrors ColumnSchema.to_dict()."
+      },
+      "ComplexityScore": {
+        "properties": {
+          "recipe_count": {
+            "type": "integer",
+            "title": "Recipe Count",
+            "description": "Total number of recipes"
+          },
+          "processor_count": {
+            "type": "integer",
+            "title": "Processor Count",
+            "description": "Total prepare steps across all PREPARE recipes"
+          },
+          "max_depth": {
+            "type": "integer",
+            "title": "Max Depth",
+            "description": "Longest path from root to leaf (node hops)"
+          },
+          "fan_out_max": {
+            "type": "integer",
+            "title": "Fan Out Max",
+            "description": "Maximum out-degree of any single node"
+          },
+          "complexity": {
+            "type": "number",
+            "title": "Complexity",
+            "description": "Composite complexity score [0, ∞)"
+          },
+          "cost_estimate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Estimate",
+            "description": "Estimated LLM cost in USD (LLM mode only)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recipe_count",
+          "processor_count",
+          "max_depth",
+          "fan_out_max",
+          "complexity"
+        ],
+        "title": "ComplexityScore",
+        "description": "Flow complexity metrics derived from FlowGraph analysis."
+      },
+      "ConvertMode": {
+        "type": "string",
+        "enum": [
+          "rule",
+          "llm"
+        ],
+        "title": "ConvertMode",
+        "description": "Conversion mode: rule-based AST or LLM-assisted."
+      },
+      "ConvertOptions": {
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "anthropic",
+                  "openai"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "LLM provider (llm mode only)"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "description": "LLM model name override"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 2,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature",
+            "description": "LLM temperature"
+          },
+          "optimize": {
+            "type": "boolean",
+            "title": "Optimize",
+            "description": "Run flow optimizer after conversion",
+            "default": true
+          },
+          "max_code_size_bytes": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Code Size Bytes",
+            "description": "Maximum allowed code size in bytes",
+            "default": 262144
+          }
+        },
+        "type": "object",
+        "title": "ConvertOptions",
+        "description": "Optional per-request conversion options."
+      },
+      "ConvertRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Python source code to convert"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ConvertMode",
+            "description": "Conversion mode",
+            "default": "rule"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConvertOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "ConvertRequest",
+        "description": "Request body for POST /convert."
+      },
+      "ConvertResponse": {
+        "properties": {
+          "flow": {
+            "$ref": "#/components/schemas/DataikuFlowModel"
+          },
+          "score": {
+            "$ref": "#/components/schemas/ComplexityScore"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow",
+          "score"
+        ],
+        "title": "ConvertResponse",
+        "description": "Response body from POST /convert."
+      },
+      "CreatedFlowResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at"
+        ],
+        "title": "CreatedFlowResponse",
+        "description": "Slim response from ``POST /flows``."
+      },
+      "DataikuDatasetModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DatasetTypeEnum"
+          },
+          "connection_type": {
+            "$ref": "#/components/schemas/DatasetConnectionTypeEnum",
+            "default": "Filesystem"
+          },
+          "schema": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnSchemaModel"
+            },
+            "type": "array",
+            "title": "Schema"
+          },
+          "source_variable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Variable"
+          },
+          "source_line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Line"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "DataikuDatasetModel",
+        "description": "Mirrors DataikuDataset.to_dict() exactly."
+      },
+      "DataikuFlowModel": {
+        "properties": {
+          "flow_name": {
+            "type": "string",
+            "title": "Flow Name",
+            "default": "converted_flow"
+          },
+          "generated_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated From"
+          },
+          "generation_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Timestamp"
+          },
+          "total_recipes": {
+            "type": "integer",
+            "title": "Total Recipes",
+            "default": 0
+          },
+          "total_datasets": {
+            "type": "integer",
+            "title": "Total Datasets",
+            "default": 0
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DataikuDatasetModel"
+            },
+            "type": "array",
+            "title": "Datasets"
+          },
+          "recipes": {
+            "items": {
+              "$ref": "#/components/schemas/DataikuRecipeModel"
+            },
+            "type": "array",
+            "title": "Recipes"
+          },
+          "optimization_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Optimization Notes"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/FlowRecommendationModel"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/FlowZoneModel"
+            },
+            "type": "array",
+            "title": "Zones"
+          }
+        },
+        "type": "object",
+        "title": "DataikuFlowModel",
+        "description": "Mirrors DataikuFlow.to_dict() shape exactly.\n\nValidates that all recipe inputs/outputs reference datasets that exist\nin the datasets list."
+      },
+      "DataikuRecipeModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RecipeTypeEnum"
+          },
+          "inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Inputs"
+          },
+          "outputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Outputs"
+          },
+          "source_lines": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Source Lines"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/PrepareSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GroupingSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/JoinSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/WindowSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SamplingSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SplitSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SortSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TopNSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DistinctSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StackSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PythonSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PivotSettingsModel"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "distinct": "#/components/schemas/DistinctSettingsModel",
+                    "grouping": "#/components/schemas/GroupingSettingsModel",
+                    "join": "#/components/schemas/JoinSettingsModel",
+                    "pivot": "#/components/schemas/PivotSettingsModel",
+                    "prepare": "#/components/schemas/PrepareSettingsModel",
+                    "python": "#/components/schemas/PythonSettingsModel",
+                    "sampling": "#/components/schemas/SamplingSettingsModel",
+                    "sort": "#/components/schemas/SortSettingsModel",
+                    "split": "#/components/schemas/SplitSettingsModel",
+                    "stack": "#/components/schemas/StackSettingsModel",
+                    "topn": "#/components/schemas/TopNSettingsModel",
+                    "window": "#/components/schemas/WindowSettingsModel"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings",
+            "description": "Composed recipe settings (discriminated union over 12 subclasses). Not populated by py-iku to_dict(); present here to expose the full settings schema contract in /openapi.json."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "DataikuRecipeModel",
+        "description": "Mirrors DataikuRecipe.to_dict() shape.\n\npy-iku's to_dict() inlines recipe-type-specific settings via to_display_dict()\nrather than nesting them under a 'settings' key. Those fields pass through via\n`extra=\"allow\"`.\n\nThe `settings` field is declared here as Optional so all 12 RecipeSettings\nsubclass schemas are registered in the OpenAPI component registry. In practice\nit will be None for flows produced by py-iku's to_dict(), but callers that\nconstruct recipes directly may populate it."
+      },
+      "DatasetConnectionTypeEnum": {
+        "type": "string",
+        "enum": [
+          "Filesystem",
+          "PostgreSQL",
+          "MySQL",
+          "BigQuery",
+          "Snowflake",
+          "Redshift",
+          "S3",
+          "GCS",
+          "Azure",
+          "HDFS",
+          "ManagedFolder",
+          "MongoDB",
+          "Elasticsearch"
+        ],
+        "title": "DatasetConnectionTypeEnum",
+        "description": "Dataset connection types — mirrors DatasetConnectionType enum values."
+      },
+      "DatasetTypeEnum": {
+        "type": "string",
+        "enum": [
+          "input",
+          "intermediate",
+          "output"
+        ],
+        "title": "DatasetTypeEnum",
+        "description": "Dataset types — mirrors DatasetType enum values."
+      },
+      "DiffRequest": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/DataikuFlowModel",
+            "description": "The 'before' flow (e.g., rule output)"
+          },
+          "b": {
+            "$ref": "#/components/schemas/DataikuFlowModel",
+            "description": "The 'after' flow (e.g., LLM output)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "a",
+          "b"
+        ],
+        "title": "DiffRequest",
+        "description": "Request body for POST /diff."
+      },
+      "DiffResponse": {
+        "properties": {
+          "added": {
+            "items": {
+              "$ref": "#/components/schemas/NodeDiff"
+            },
+            "type": "array",
+            "title": "Added"
+          },
+          "removed": {
+            "items": {
+              "$ref": "#/components/schemas/NodeDiff"
+            },
+            "type": "array",
+            "title": "Removed"
+          },
+          "changed": {
+            "items": {
+              "$ref": "#/components/schemas/NodeDiff"
+            },
+            "type": "array",
+            "title": "Changed"
+          }
+        },
+        "type": "object",
+        "title": "DiffResponse",
+        "description": "Response body for POST /diff."
+      },
+      "DistinctSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "distinct",
+            "title": "Kind",
+            "default": "distinct"
+          },
+          "computeCount": {
+            "type": "boolean",
+            "title": "Computecount",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "DistinctSettingsModel",
+        "description": "Mirrors DistinctSettings.to_dict(): computeCount."
+      },
+      "ExportFormat": {
+        "type": "string",
+        "enum": [
+          "zip",
+          "json",
+          "yaml",
+          "svg",
+          "png",
+          "pdf"
+        ],
+        "title": "ExportFormat",
+        "description": "Supported export formats for ``POST /export/{format}``."
+      },
+      "ExportRequest": {
+        "properties": {
+          "flow": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Flow",
+            "description": "DataikuFlow.to_dict() payload"
+          },
+          "opts": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opts",
+            "description": "Optional format-specific options (passed through to the sink)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow"
+        ],
+        "title": "ExportRequest",
+        "description": "Request body for ``POST /export/{format}``.\n\n``flow`` is the raw ``DataikuFlow.to_dict()`` payload (round-trippable via\n``DataikuFlow.from_dict``).  ``opts`` is a free-form dict reserved for\nformat-specific knobs (e.g. ``{\"scale\": 2.0}`` for PNG)."
+      },
+      "FlowRecommendationModel": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "source_lines": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Source Lines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "priority",
+          "message"
+        ],
+        "title": "FlowRecommendationModel",
+        "description": "Mirrors FlowRecommendation.to_dict()."
+      },
+      "FlowZoneModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color",
+            "default": "#4b96e6"
+          },
+          "datasets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Datasets"
+          },
+          "recipes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recipes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "FlowZoneModel",
+        "description": "Mirrors FlowZone.to_dict()."
+      },
+      "GroupingSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "grouping",
+            "title": "Kind",
+            "default": "grouping"
+          },
+          "keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keys"
+          },
+          "aggregations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Aggregations"
+          }
+        },
+        "type": "object",
+        "title": "GroupingSettingsModel",
+        "description": "Mirrors GroupingSettings.to_display_dict(): keys + aggregations."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "py_iku_version": {
+            "type": "string",
+            "title": "Py Iku Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "py_iku_version"
+        ],
+        "title": "HealthResponse"
+      },
+      "JoinSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "join",
+            "title": "Kind",
+            "default": "join"
+          },
+          "join_type": {
+            "type": "string",
+            "title": "Join Type",
+            "default": "LEFT"
+          },
+          "join_keys": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Join Keys"
+          },
+          "selected_columns": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Columns"
+          }
+        },
+        "type": "object",
+        "title": "JoinSettingsModel",
+        "description": "Mirrors JoinSettings.to_display_dict(): join_type, join_keys, selected_columns."
+      },
+      "NodeDiff": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Recipe name used as the node id"
+          },
+          "recipe_type_a": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Type A",
+            "description": "Recipe type in flow A (None when added in B)"
+          },
+          "recipe_type_b": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Type B",
+            "description": "Recipe type in flow B (None when removed from B)"
+          },
+          "diff": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diff",
+            "description": "When kind=changed: which fields differ ({field: {a, b}})."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "NodeDiff",
+        "description": "A single per-node difference entry.\n\nFor ``added`` and ``removed`` entries ``diff`` is None. For ``changed`` entries\n``diff`` enumerates which fields differ between A and B."
+      },
+      "PivotSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "pivot",
+            "title": "Kind",
+            "default": "pivot"
+          },
+          "rowColumns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rowcolumns"
+          },
+          "columnColumn": {
+            "type": "string",
+            "title": "Columncolumn",
+            "default": ""
+          },
+          "valueColumn": {
+            "type": "string",
+            "title": "Valuecolumn",
+            "default": ""
+          },
+          "aggregation": {
+            "type": "string",
+            "title": "Aggregation",
+            "default": "SUM"
+          }
+        },
+        "type": "object",
+        "title": "PivotSettingsModel",
+        "description": "Mirrors PivotSettings.to_dict(): rowColumns, columnColumn, valueColumn, aggregation."
+      },
+      "PrepareSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "prepare",
+            "title": "Kind",
+            "default": "prepare"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PrepareStepModel"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "step_count": {
+            "type": "integer",
+            "title": "Step Count",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PrepareSettingsModel",
+        "description": "Mirrors PrepareSettings.to_display_dict(): steps + step_count."
+      },
+      "PrepareStepModel": {
+        "properties": {
+          "metaType": {
+            "type": "string",
+            "title": "Metatype",
+            "description": "PROCESSOR or GROUP",
+            "default": "PROCESSOR"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "DSS processor type string (e.g. 'ColumnRenamer')"
+          },
+          "disabled": {
+            "type": "boolean",
+            "title": "Disabled",
+            "default": false
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional step label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "PrepareStepModel",
+        "description": "Mirrors PrepareStep.to_dict() output.\n\nFields: metaType, type (processor DSS string), disabled, params, name."
+      },
+      "ProcessorCatalogEntry": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProcessorTypeEnum"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Type",
+            "description": "ProcessorType enum value"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "DSS processor name (canonical)"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Processor category"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Short description"
+          },
+          "required_params": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Params"
+          },
+          "optional_params": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Optional Params"
+          },
+          "examples": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Examples",
+            "description": "Example parameter values"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "name",
+          "category",
+          "description"
+        ],
+        "title": "ProcessorCatalogEntry",
+        "description": "A single entry in the processor catalog (from ProcessorCatalog.get_processor)."
+      },
+      "ProcessorTypeEnum": {
+        "type": "string",
+        "enum": [
+          "ColumnRenamer",
+          "ColumnCopier",
+          "ColumnsSelector",
+          "ColumnReorder",
+          "ColumnsConcat",
+          "FillEmptyWithValue",
+          "RemoveRowsOnEmpty",
+          "UpDownFill",
+          "FillEmptyWithComputedValue",
+          "ImputeWithML",
+          "StringTransformer",
+          "Tokenizer",
+          "PatternExtract",
+          "FindReplace",
+          "ColumnsSplitter",
+          "HtmlStripper",
+          "MultiColumnFindReplace",
+          "Ngrammer",
+          "SimplifyText",
+          "StemText",
+          "LemmatizeText",
+          "LanguageDetector",
+          "SentimentAnalyzer",
+          "TextHasher",
+          "UnicodeNormalizer",
+          "URLParser",
+          "IPAddressParser",
+          "EmailDomainExtractor",
+          "PhoneFormatter",
+          "CountryNormalizer",
+          "UserAgentParser",
+          "NumericalTransformer",
+          "Round",
+          "NumberClipping",
+          "Binner",
+          "MeasureNormalize",
+          "TypeSetter",
+          "DateParser",
+          "DateFormatter",
+          "DateComponentExtractor",
+          "DateDifference",
+          "HolidaysComputer",
+          "TimezoneConverter",
+          "DateRangeClassifier",
+          "TimestampExtractor",
+          "FilterOnValue",
+          "FilterOnBadType",
+          "FilterOnFormula",
+          "FilterOnDateRange",
+          "FilterOnNumericRange",
+          "FilterOnMultipleValues",
+          "FilterOnNullNumeric",
+          "FilterOnGeoZone",
+          "FilterOnCustomCondition",
+          "FlagOnValue",
+          "FlagOnFormula",
+          "FlagOnBadType",
+          "FlagOnDateRange",
+          "FlagOnNumericRange",
+          "RemoveDuplicates",
+          "SortRows",
+          "SampleRows",
+          "ShuffleRows",
+          "CreateColumnWithGREL",
+          "Formula",
+          "MultiColumnFormula",
+          "ColumnPseudoAnonymizer",
+          "HashComputer",
+          "UUIDGenerator",
+          "LongTailGrouper",
+          "CategoricalEncoder",
+          "GeoPointCreator",
+          "GeoEncoder",
+          "GeoIPResolver",
+          "GeoDistanceCalculator",
+          "GeoPolygonMatcher",
+          "AddressParser",
+          "ReverseGeocoder",
+          "IfThenElse",
+          "SwitchCase",
+          "TranslateValues",
+          "ExtractWithJSONPath",
+          "SplitURL",
+          "FoldMultipleColumns",
+          "TransposeRowsToColumns",
+          "Unfold",
+          "Coalesce",
+          "FillColumn",
+          "ArraySplitter",
+          "ArrayJoiner",
+          "ArraySorter",
+          "ArrayUnfold",
+          "ArrayFold",
+          "ArrayElementExtractor",
+          "JSONFlattener",
+          "JSONExtractor",
+          "XMLExtractor",
+          "NestedProcessor",
+          "ProcessorGroup",
+          "PythonUDF"
+        ],
+        "title": "ProcessorTypeEnum",
+        "description": "All 122 unique ProcessorType values from py2dataiku."
+      },
+      "PythonSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "python",
+            "title": "Kind",
+            "default": "python"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "PythonSettingsModel",
+        "description": "Mirrors PythonSettings.to_dict(): code."
+      },
+      "RecipeCatalogEntry": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/RecipeTypeEnum"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Human-readable recipe name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Recipe category (e.g. Visual, Code, ML)"
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "description": "Unicode or ASCII icon character"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Short description of the recipe"
+          },
+          "pandas_examples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pandas Examples",
+            "description": "pandas patterns that map to this recipe"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "name",
+          "category",
+          "icon",
+          "description"
+        ],
+        "title": "RecipeCatalogEntry",
+        "description": "A single entry in the recipe catalog."
+      },
+      "RecipeTypeEnum": {
+        "type": "string",
+        "enum": [
+          "prepare",
+          "sync",
+          "grouping",
+          "window",
+          "join",
+          "fuzzyjoin",
+          "geojoin",
+          "stack",
+          "split",
+          "sort",
+          "distinct",
+          "topn",
+          "pivot",
+          "sampling",
+          "download",
+          "generate_features",
+          "generate_statistics",
+          "push_to_editable",
+          "list_folder_contents",
+          "dynamic_repeat",
+          "extract_failed_rows",
+          "upsert",
+          "list_access",
+          "python",
+          "r",
+          "sql_script",
+          "hive",
+          "impala",
+          "spark_sql_query",
+          "pyspark",
+          "spark_scala",
+          "sparkr",
+          "shell",
+          "prediction_scoring",
+          "clustering_scoring",
+          "standalone_evaluation",
+          "ai_assistant_generate"
+        ],
+        "title": "RecipeTypeEnum",
+        "description": "All 37 Dataiku DSS recipe types."
+      },
+      "SamplingSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "sampling",
+            "title": "Kind",
+            "default": "sampling"
+          },
+          "samplingMethod": {
+            "type": "string",
+            "title": "Samplingmethod",
+            "default": "RANDOM_FIXED_NB"
+          },
+          "sampleSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Samplesize"
+          }
+        },
+        "type": "object",
+        "title": "SamplingSettingsModel",
+        "description": "Mirrors SamplingSettings.to_dict(): samplingMethod + sampleSize."
+      },
+      "SaveFlowRequest": {
+        "properties": {
+          "flow": {
+            "$ref": "#/components/schemas/DataikuFlowModel"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "flow",
+          "name"
+        ],
+        "title": "SaveFlowRequest",
+        "description": "Request body for ``POST /flows``."
+      },
+      "SavedFlowResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "flow": {
+            "$ref": "#/components/schemas/DataikuFlowModel"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "flow",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SavedFlowResponse",
+        "description": "Full saved-flow record."
+      },
+      "ShareFlowRequest": {
+        "properties": {
+          "ttl_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl Seconds",
+            "description": "Token validity in seconds (default: server-configured TTL)."
+          },
+          "scopes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scopes",
+            "description": "Token scopes (default: ['read'])."
+          }
+        },
+        "type": "object",
+        "title": "ShareFlowRequest",
+        "description": "Body for ``POST /flows/{id}/share``."
+      },
+      "ShareFlowResponse": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "url",
+          "expires_at"
+        ],
+        "title": "ShareFlowResponse",
+        "description": "Response from ``POST /flows/{id}/share``."
+      },
+      "SortSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "sort",
+            "title": "Kind",
+            "default": "sort"
+          },
+          "sortColumns": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sortcolumns"
+          }
+        },
+        "type": "object",
+        "title": "SortSettingsModel",
+        "description": "Mirrors SortSettings.to_dict(): sortColumns."
+      },
+      "SplitSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "split",
+            "title": "Kind",
+            "default": "split"
+          },
+          "splitMode": {
+            "type": "string",
+            "title": "Splitmode",
+            "default": "FILTER"
+          },
+          "condition": {
+            "type": "string",
+            "title": "Condition",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "SplitSettingsModel",
+        "description": "Mirrors SplitSettings.to_dict(): splitMode + condition."
+      },
+      "StackSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "stack",
+            "title": "Kind",
+            "default": "stack"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "UNION"
+          }
+        },
+        "type": "object",
+        "title": "StackSettingsModel",
+        "description": "Mirrors StackSettings.to_dict(): mode."
+      },
+      "TopNSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "topn",
+            "title": "Kind",
+            "default": "topn"
+          },
+          "topN": {
+            "type": "integer",
+            "title": "Topn",
+            "default": 10
+          },
+          "rankingColumn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rankingcolumn"
+          }
+        },
+        "type": "object",
+        "title": "TopNSettingsModel",
+        "description": "Mirrors TopNSettings.to_dict(): topN + rankingColumn."
+      },
+      "UpdateFlowRequest": {
+        "properties": {
+          "flow": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataikuFlowModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "title": "UpdateFlowRequest",
+        "description": "Request body for ``PATCH /flows/{id}`` — every field is optional."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WindowSettingsModel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "window",
+            "title": "Kind",
+            "default": "window"
+          },
+          "partitionColumns": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Partitioncolumns"
+          },
+          "orderColumns": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Ordercolumns"
+          },
+          "aggregations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Aggregations"
+          }
+        },
+        "type": "object",
+        "title": "WindowSettingsModel",
+        "description": "Mirrors WindowSettings.to_dict(): partitionColumns, orderColumns, aggregations."
+      }
+    }
+  }
+}

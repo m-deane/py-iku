@@ -1,0 +1,26 @@
+"""Route aggregator — collects all sub-routers into a single ``router``."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter
+
+from .audit import router as audit_router
+from .catalog import router as catalog_router
+from .convert import router as convert_router
+from .diff import router as diff_router
+from .export import router as export_router
+from .flows import router as flows_router
+from .health import router as health_router
+from .score import router as score_router
+from .share import router as share_router
+
+router = APIRouter()
+router.include_router(health_router)
+router.include_router(convert_router)
+router.include_router(catalog_router)
+router.include_router(diff_router)
+router.include_router(score_router)
+router.include_router(export_router)
+router.include_router(flows_router)
+router.include_router(share_router)
+router.include_router(audit_router)

@@ -1,0 +1,277 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: pytest tests/ -x --tb=short
+      - name: Lint
+        run: ruff check py2dataiku/
+      - name: Type check
+        run: mypy py2dataiku/
+
+  api:
+    name: API (FastAPI) coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python deps
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+      - name: Run pytest with coverage
+        run: |
+          pytest apps/api/tests \
+            --cov=apps/api/app \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=80
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage-xml
+          path: coverage.xml
+          retention-days: 14
+
+  node:
+    name: Node 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+      - name: Build
+        run: pnpm -r --if-present build
+      - name: Test (with web coverage gate)
+        run: |
+          pnpm --filter @py-iku-studio/types --if-present test
+          pnpm --filter @py-iku-studio/flow-viz --if-present test
+          pnpm --filter apps-web run test:coverage
+      - name: Upload web coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-coverage
+          path: apps/web/coverage/
+          retention-days: 14
+
+  types-drift:
+    name: Types drift check
+    runs-on: ubuntu-latest
+    # Snapshot is current as of M7 — flip on M8 (test-engineer milestone).
+    continue-on-error: false
+    needs: [node]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Node dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Install Python deps (API)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+
+      - name: Check for openapi.json drift
+        run: pnpm --filter @py-iku-studio/types check-drift
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: [node]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Install Python deps (API)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+
+      - name: Install Playwright browsers
+        run: pnpm --filter apps-web exec playwright install --with-deps chromium webkit
+
+      - name: Run E2E + Visual + A11y suites
+        env:
+          CI: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        run: bash scripts/e2e.sh --project=chromium --project=visual --project=a11y
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright test-results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: apps/web/test-results/
+          retention-days: 14
+
+  storybook:
+    name: Storybook (flow-viz)
+    runs-on: ubuntu-latest
+    needs: [node]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Cache Playwright browsers (for test-storybook)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('packages/flow-viz/package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Build Storybook static site
+        run: pnpm --filter @py-iku-studio/flow-viz build-storybook
+
+      - name: Install Playwright for test-storybook
+        run: pnpm --filter @py-iku-studio/flow-viz exec playwright install --with-deps chromium
+
+      - name: Run Storybook tests against static build
+        run: |
+          pnpm --filter @py-iku-studio/flow-viz exec concurrently \
+            --kill-others \
+            --success first \
+            "pnpm --filter @py-iku-studio/flow-viz exec http-server storybook-static --port 6006 --silent" \
+            "pnpm --filter @py-iku-studio/flow-viz exec wait-on http://localhost:6006 && pnpm --filter @py-iku-studio/flow-viz exec test-storybook --url http://localhost:6006"
+
+      - name: Upload Storybook visual diff outputs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: storybook-test-output
+          path: |
+            packages/flow-viz/storybook-static/
+            packages/flow-viz/test-results/
+          retention-days: 14
+
+  studio-docs:
+    name: Studio Docs (Docusaurus)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: API reference drift check
+        run: pnpm dlx tsx apps/docs/scripts/sync-api-reference.ts
+
+      - name: Build Studio Docs
+        run: pnpm --filter apps-docs build
+
+      - name: Upload Studio Docs build
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-docs-build
+          path: apps/docs/build/
+          retention-days: 14

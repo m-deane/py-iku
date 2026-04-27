@@ -57,3 +57,23 @@ Thumbs.db
 .env.*
 !.env.example
 secrets/
+
+# Node / pnpm
+node_modules/
+.next/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.pnpm-store/
+
+# Generated design tokens (regenerated from docs/design/tokens.json by sync-tokens.ts)
+apps/web/src/styles/tokens.css
+packages/flow-viz/src/theme/tokens.css
+
+# Storybook build output
+storybook-static/
+
+# API virtualenv
+.venv-api/

@@ -1,0 +1,10 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'docs dev server placeholder (Docusaurus arrives in M9)'",
+    "build": "echo 'docs build placeholder'",
+    "start": "echo 'docs start placeholder'"
+  }
+}

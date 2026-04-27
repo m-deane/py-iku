@@ -1,0 +1,75 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background, #fafafa);
+  color: var(--color-fg, #212121);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-grid, #e0e0e0);
+  background: var(--color-background, #fafafa);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logoMark {
+  color: var(--color-connectionhover, #1976d2);
+  font-size: 1.25rem;
+}
+
+.nav {
+  display: flex;
+  gap: 1rem;
+  margin-left: 1rem;
+}
+
+.nav a {
+  text-decoration: none;
+  color: inherit;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.nav a:hover {
+  background: var(--color-grid, #eeeeee);
+}
+
+.headerActions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid transparent;
+}
+
+.iconBtn:hover {
+  border-color: var(--color-grid, #e0e0e0);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+}

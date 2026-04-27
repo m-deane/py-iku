@@ -13,6 +13,14 @@ Generates Dataiku DSS 14 compatible configurations with support for:
 - 37 recipe types (visual, code, ML, plugin)
 - 122 processor types (prepare recipe steps)
 
+## py-iku Studio
+
+py-iku Studio is a browser-based visual editor that wraps this library: paste a Python data-processing script, get an interactive Dataiku DSS flow graph you can inspect, diff, export, and share. It adds a FastAPI backend (`apps/api`), a React SPA (`apps/web`), and a React Flow visualization library (`packages/flow-viz`) on top of `py2dataiku` — the core conversion logic is unchanged.
+
+- Local dev setup and feature docs: [`apps/docs/`](apps/docs/) (run `pnpm --filter apps-docs start`)
+- Live Studio docs (future): https://m-deane.github.io/py-iku/studio/
+- Library API docs: https://m-deane.github.io/py-iku/
+
 ## Installation
 
 ```bash

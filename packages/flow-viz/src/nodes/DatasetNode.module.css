@@ -1,0 +1,65 @@
+.datasetNode {
+  width: 160px;
+  height: 50px;
+  border-radius: 6px;
+  background: var(--ds-bg);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+  font-family: var(--typography-fontfamily-base, Arial, Helvetica, sans-serif);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.datasetNode:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.datasetNode.selected {
+  outline: 2px solid var(--color-connectionhover, #1976d2);
+  outline-offset: 1px;
+}
+
+.datasetNode.dimmed {
+  opacity: 0.25;
+  filter: saturate(0.4);
+}
+
+.shape {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ds-text);
+}
+
+.tag {
+  font-size: 9px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text);
+}
