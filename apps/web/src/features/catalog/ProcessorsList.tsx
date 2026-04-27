@@ -75,7 +75,7 @@ export function ProcessorsList(props: ProcessorsListProps): JSX.Element {
             </option>
           ))}
         </select>
-        <span style={{ fontSize: 12, color: "var(--color-grid, #888)" }}>
+        <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>
           {items.length} result{items.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -85,31 +85,44 @@ export function ProcessorsList(props: ProcessorsListProps): JSX.Element {
       ) : query.isError ? (
         <div className={styles.error}>Failed to load processors.</div>
       ) : items.length === 0 ? (
-        <div className={styles.empty}>No processors match.</div>
-      ) : (
-        <div className={styles.grid} role="list">
-          {items.map((p) => (
-            <button
-              key={p.name}
-              type="button"
-              role="listitem"
-              className={styles.card}
-              data-testid={`processor-card-${p.name}`}
-              onClick={() => props.onSelect(p)}
-            >
-              <div className={styles.cardHeader}>
-                <span className={styles.icon} aria-hidden>
-                  ⚙
-                </span>
-                <span className={styles.cardTitle}>{p.name}</span>
-              </div>
-              <div className={styles.cardMeta}>
-                <span className={styles.tag}>{p.category}</span>
-              </div>
-              <div className={styles.cardDesc}>{p.description}</div>
-            </button>
-          ))}
+        <div
+          className={styles.empty}
+          data-testid="processors-empty"
+          style={{ fontStyle: "normal", padding: "1.25rem 1rem" }}
+        >
+          <strong style={{ display: "block", marginBottom: 4 }}>
+            {debouncedQ || category
+              ? "No processors match this search"
+              : "Processor catalog unavailable"}
+          </strong>
+          {debouncedQ || category
+            ? "Clear the search box or category to see all 100 processor types — column transforms, filters, splits, formulas, and date/time helpers."
+            : "The catalog lists every processor that can run inside a PREPARE recipe. Confirm the API base URL in settings, then reload."}
         </div>
+      ) : (
+        <ul className={`${styles.grid} ${styles.cardList}`.trim()} role="list">
+          {items.map((p) => (
+            <li key={p.name} className={styles.cardListItem}>
+              <button
+                type="button"
+                className={styles.card}
+                data-testid={`processor-card-${p.name}`}
+                onClick={() => props.onSelect(p)}
+              >
+                <div className={styles.cardHeader}>
+                  <span className={styles.icon} aria-hidden>
+                    ⚙
+                  </span>
+                  <span className={styles.cardTitle}>{p.name}</span>
+                </div>
+                <div className={styles.cardMeta}>
+                  <span className={styles.tag}>{p.category}</span>
+                </div>
+                <div className={styles.cardDesc}>{p.description}</div>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

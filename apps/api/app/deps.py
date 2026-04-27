@@ -35,8 +35,25 @@ class Settings(BaseSettings):
 
     env: str = Field(default="dev", description="Runtime environment: dev or prod")
     cors_origins: list[str] = Field(
-        default=["http://localhost:5173"],
-        description="Allowed CORS origins",
+        default=[
+            # Local dev — both hostnames Vite serves on
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            # Hugging Face Spaces (root + canonical app shell)
+            "https://huggingface.co",
+            # GitHub Pages docs site
+            "https://m-deane.github.io",
+        ],
+        description="Allowed CORS origins (exact match). Use cors_origin_regex for wildcards.",
+    )
+    cors_origin_regex: str | None = Field(
+        default=r"https://.*\.hf\.space",
+        description=(
+            "Regex matched against the Origin header in addition to cors_origins. "
+            "Default whitelists *.hf.space (Hugging Face Spaces production hostnames)."
+        ),
     )
     secret_key: str = Field(
         default="change-me-in-production",

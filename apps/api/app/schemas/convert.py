@@ -69,6 +69,10 @@ class ComplexityScore(BaseModel):
 
     recipe_count: int = Field(..., description="Total number of recipes")
     processor_count: int = Field(..., description="Total prepare steps across all PREPARE recipes")
+    dataset_count: int = Field(
+        default=0,
+        description="Total number of datasets in the flow (input + intermediate + output)",
+    )
     max_depth: int = Field(..., description="Longest path from root to leaf (node hops)")
     fan_out_max: int = Field(..., description="Maximum out-degree of any single node")
     complexity: float = Field(..., description="Composite complexity score [0, ∞)")

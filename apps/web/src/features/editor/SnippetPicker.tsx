@@ -119,7 +119,7 @@ export function SnippetPicker(props: SnippetPickerProps): JSX.Element {
           </form>
           <ul role="listbox" style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {filtered.length === 0 ? (
-              <li style={{ padding: "0.75rem", color: "var(--color-grid, #888)" }}>
+              <li style={{ padding: "0.75rem", color: "var(--fg-muted, #5b6470)" }}>
                 No snippets match.
               </li>
             ) : (
@@ -141,7 +141,7 @@ export function SnippetPicker(props: SnippetPickerProps): JSX.Element {
                     }}
                   >
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--color-grid, #666)" }}>
+                    <div style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>
                       {s.description}
                     </div>
                   </button>

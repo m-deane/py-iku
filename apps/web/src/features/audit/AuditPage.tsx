@@ -77,8 +77,10 @@ export function AuditPage(props: AuditPageProps): JSX.Element {
     >
       <header>
         <h1 style={{ margin: 0, fontSize: "1.4rem" }}>Audit log</h1>
-        <p style={{ margin: "0.25rem 0 0", color: "var(--color-grid, #888)", fontSize: 13 }}>
-          Conversion, save, share, and patch events recorded by the API.
+        <p style={{ margin: "0.25rem 0 0", color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
+          Every Convert, Save, Share, and Patch action is recorded with
+          timestamp, actor, and resource. Filter by actor or by ISO timestamp
+          to scope the view.
         </p>
       </header>
 
@@ -143,9 +145,19 @@ export function AuditPage(props: AuditPageProps): JSX.Element {
               <td
                 colSpan={5}
                 data-testid="audit-empty"
-                style={{ padding: "1rem", color: "var(--color-grid, #888)" }}
+                style={{ padding: "1.25rem 1rem", color: "var(--fg-muted, #5b6470)" }}
               >
-                No audit events.
+                <div style={{ fontWeight: 600, color: "inherit", marginBottom: 4 }}>
+                  No audit events match the current filter.
+                </div>
+                <div style={{ fontSize: 13 }}>
+                  Each Convert, Save, Share, and Patch action lands here with
+                  a timestamp, actor, and the resulting flow id.{" "}
+                  <a href="/convert" style={{ color: "var(--accent-hover, #0f766e)" }}>
+                    Run a conversion
+                  </a>{" "}
+                  to populate the log.
+                </div>
               </td>
             </tr>
           ) : (
@@ -169,17 +181,26 @@ export function AuditPage(props: AuditPageProps): JSX.Element {
       </table>
 
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-        <button
-          type="button"
-          onClick={onLoadMore}
-          disabled={!nextCursor || loading}
-          data-testid="audit-load-more"
-          style={btnStyle}
-        >
-          {loading ? "Loading…" : nextCursor ? "Load more" : "No more"}
-        </button>
+        {nextCursor || loading ? (
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={!nextCursor || loading}
+            data-testid="audit-load-more"
+            style={btnStyle}
+          >
+            {loading ? "Loading…" : "Load more"}
+          </button>
+        ) : events.length > 0 ? (
+          <span
+            data-testid="audit-end-of-log"
+            style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}
+          >
+            End of log.
+          </span>
+        ) : null}
         {cursor ? (
-          <span style={{ fontSize: 12, color: "var(--color-grid, #888)" }}>
+          <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>
             cursor: {cursor}
           </span>
         ) : null}
@@ -227,7 +248,7 @@ function Th({ children }: { children: React.ReactNode }): JSX.Element {
         fontSize: 12,
         textTransform: "uppercase",
         letterSpacing: 0.4,
-        color: "var(--color-grid, #666)",
+        color: "var(--fg-muted, #5b6470)",
       }}
     >
       {children}

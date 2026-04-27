@@ -29,6 +29,7 @@ async def test_score_empty_flow(client) -> None:  # type: ignore[no-untyped-def]
     body = response.json()
     assert body["recipe_count"] == 0
     assert body["processor_count"] == 0
+    assert body["dataset_count"] == 0
     assert body["max_depth"] == 0
     assert body["fan_out_max"] == 0
     assert body["complexity"] == 0.0
@@ -57,6 +58,7 @@ async def test_score_single_recipe(client) -> None:  # type: ignore[no-untyped-d
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["recipe_count"] == 1
+    assert body["dataset_count"] == 2
     assert body["complexity"] >= 1.0
 
 

@@ -69,7 +69,7 @@ export function SharePage(props: SharePageProps): JSX.Element {
         <p
           style={{
             margin: "0.25rem 0 0",
-            color: "var(--color-grid, #888)",
+            color: "var(--fg-muted, #5b6470)",
             fontSize: 13,
           }}
         >
@@ -143,7 +143,7 @@ function SharedFlowReadOnly(props: { data: SavedFlowResponse }): JSX.Element {
           borderRadius: 6,
           border: "1px solid var(--color-grid, #e0e0e0)",
           background: "transparent",
-          color: "var(--color-grid, #888)",
+          color: "var(--fg-muted, #5b6470)",
           cursor: "not-allowed",
           width: "fit-content",
         }}

@@ -187,8 +187,9 @@ export function SettingsDrawer(): JSX.Element | null {
             marginBottom: "1rem",
           }}
         >
-          Key registration backend pending (M7). Aliases are stored locally;
-          the actual key never touches the browser.
+          API keys for Anthropic and OpenAI are read from the server
+          environment. Save an alias here to identify which provider key the
+          server should use — the actual key is never sent from the browser.
         </div>
 
         <form onSubmit={onSave}>
@@ -322,7 +323,7 @@ export function SettingsDrawer(): JSX.Element | null {
 function Section(props: { title: string; children: React.ReactNode }): JSX.Element {
   return (
     <section style={{ marginBottom: "1.25rem" }}>
-      <h3 style={{ margin: "0 0 0.6rem 0", fontSize: "0.9rem", color: "var(--color-grid, #666)" }}>
+      <h3 style={{ margin: "0 0 0.6rem 0", fontSize: "0.9rem", color: "var(--fg-muted, #5b6470)" }}>
         {props.title}
       </h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -343,7 +344,7 @@ function Field(props: {
       <span>{props.label}</span>
       {props.children}
       {props.hint ? (
-        <span style={{ fontSize: 12, color: "var(--color-grid, #888)" }}>{props.hint}</span>
+        <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>{props.hint}</span>
       ) : null}
       {props.error ? (
         <span role="alert" style={{ fontSize: 12, color: "#d32f2f" }}>

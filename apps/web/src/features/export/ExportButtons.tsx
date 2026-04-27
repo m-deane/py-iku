@@ -67,7 +67,7 @@ export function ExportButtons(props: ExportButtonsProps): JSX.Element {
       data-testid="export-buttons"
       style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}
     >
-      <span style={{ fontSize: 12, color: "var(--color-grid, #888)", alignSelf: "center" }}>
+      <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)", alignSelf: "center" }}>
         Export:
       </span>
       {FORMATS.map((fmt) => (

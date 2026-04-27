@@ -77,7 +77,7 @@
 .sectionTitle {
   font-size: 11px;
   text-transform: uppercase;
-  color: var(--color-grid, #888);
+  color: var(--fg-muted, #5b6470);
   margin-bottom: 0.4rem;
   letter-spacing: 0.04em;
 }
@@ -90,7 +90,7 @@
 }
 
 .kvKey {
-  color: var(--color-grid, #888);
+  color: var(--fg-muted, #5b6470);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -100,7 +100,7 @@
 }
 
 .empty {
-  color: var(--color-grid, #aaa);
+  color: var(--fg-muted, #5b6470);
   font-style: italic;
   font-size: 12px;
 }

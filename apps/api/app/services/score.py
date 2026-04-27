@@ -19,6 +19,7 @@ def score_flow(flow: DataikuFlow) -> ComplexityScore:
     graph = flow.graph
 
     recipe_count = len(flow.recipes)
+    dataset_count = len(flow.datasets)
 
     # Count total prepare steps across all PREPARE recipes
     processor_count = sum(
@@ -41,6 +42,7 @@ def score_flow(flow: DataikuFlow) -> ComplexityScore:
     return ComplexityScore(
         recipe_count=recipe_count,
         processor_count=processor_count,
+        dataset_count=dataset_count,
         max_depth=max_depth,
         fan_out_max=fan_out_max,
         complexity=round(complexity, 4),

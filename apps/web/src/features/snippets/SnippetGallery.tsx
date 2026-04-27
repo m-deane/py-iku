@@ -52,7 +52,7 @@ export function SnippetGallery(props: SnippetGalleryProps): JSX.Element {
     >
       <header style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
         <h1 style={{ margin: 0, fontSize: "1.4rem" }}>Snippets</h1>
-        <span style={{ color: "var(--color-grid, #888)", fontSize: 13 }}>
+        <span style={{ color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
           {filtered.length} of {SNIPPETS.length} examples
         </span>
       </header>
@@ -107,12 +107,36 @@ export function SnippetGallery(props: SnippetGalleryProps): JSX.Element {
       </div>
 
       {filtered.length === 0 ? (
-        <p
+        <div
           data-testid="snippet-gallery-empty"
-          style={{ color: "var(--color-grid, #888)" }}
+          style={{
+            padding: "1.25rem 1rem",
+            border: "1px dashed var(--color-grid, #e0e0e0)",
+            borderRadius: 6,
+            color: "var(--fg-muted, #5b6470)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.4rem",
+          }}
         >
-          No snippets match the current filter.
-        </p>
+          <strong style={{ color: "inherit" }}>No snippets match this search</strong>
+          <span style={{ fontSize: 13 }}>
+            Clear the filters to see every example —{" "}
+            <a
+              href="/snippets"
+              style={{ color: "var(--accent-hover, #0f766e)" }}
+              onClick={(e) => {
+                e.preventDefault();
+                setQuery("");
+                setFilter("all");
+              }}
+            >
+              reset the gallery
+            </a>
+            . Trade-capture, P&amp;L, counterparty, and curve-build templates
+            ship under the relevant categories.
+          </span>
+        </div>
       ) : (
         <div
           data-testid="snippet-gallery-grid"

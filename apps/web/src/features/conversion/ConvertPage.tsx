@@ -360,8 +360,8 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           <div data-testid="response-panel">
             <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem" }}>
               Flow JSON{" "}
-              <span style={{ fontSize: 12, color: "var(--color-grid, #888)" }}>
-                (visualization lands in M5)
+              <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>
+                — recipes, datasets, and the DAG payload below
               </span>
             </h2>
             <div
@@ -483,9 +483,9 @@ function ProgressLog(props: {
     >
       {props.events.map((e) => (
         <li key={`${e.seq}-${e.event}`} data-testid={`progress-${e.event}`}>
-          <span style={{ color: "var(--color-grid, #888)" }}>{shortTs(e.ts)}</span>{" "}
+          <span style={{ color: "var(--fg-muted, #5b6470)" }}>{shortTs(e.ts)}</span>{" "}
           <strong>{e.event}</strong>
-          {summary(e) ? <span style={{ color: "var(--color-grid, #666)" }}> — {summary(e)}</span> : null}
+          {summary(e) ? <span style={{ color: "var(--fg-muted, #5b6470)" }}> — {summary(e)}</span> : null}
         </li>
       ))}
     </ol>
@@ -587,7 +587,7 @@ function StatusPanel(props: {
         minWidth: 120,
       }}
     >
-      <div style={{ fontSize: 11, color: "var(--color-grid, #888)", textTransform: "uppercase" }}>
+      <div style={{ fontSize: 11, color: "var(--fg-muted, #5b6470)", textTransform: "uppercase" }}>
         {label}
       </div>
       <div style={{ fontSize: 18, fontWeight: 600 }}>{value}</div>
@@ -625,7 +625,11 @@ function StatusPanel(props: {
         {card("Mode", mode)}
         {card("Complexity", response.score.complexity, "stat-complexity")}
         {card("Recipes", response.score.recipe_count)}
-        {card("Datasets", response.score.dataset_count)}
+        <DatasetsTile
+          loading={status === "running" || status === "streaming"}
+          count={response.score.dataset_count}
+          flow={response.flow as Record<string, unknown>}
+        />
         {response.warnings.length > 0 ? card("Warnings", response.warnings.length) : null}
       </div>
     );
@@ -638,13 +642,132 @@ function StatusPanel(props: {
         padding: "0.75rem 1rem",
         borderRadius: 6,
         border: "1px dashed var(--color-grid, #e0e0e0)",
-        color: "var(--color-grid, #888)",
+        color: "var(--fg-muted, #5b6470)",
         fontSize: 13,
       }}
     >
       {status === "running" || status === "streaming"
         ? "Converting…"
         : "Pick a snippet or paste Python, then click Convert."}
+    </div>
+  );
+}
+
+/**
+ * Dedicated tile for the Datasets metric. Renders three states:
+ *  - loading: a skeleton bar while a conversion is in flight.
+ *  - empty: explanatory copy when the conversion produced no datasets.
+ *  - populated: the count plus a tiny inline bar marker so the tile carries
+ *    visual weight even before a real sparkline series is wired up.
+ */
+function DatasetsTile(props: {
+  loading: boolean;
+  count: number;
+  flow: Record<string, unknown>;
+}): JSX.Element {
+  const { loading, count } = props;
+  const tile: React.CSSProperties = {
+    padding: "0.6rem 0.8rem",
+    borderRadius: 6,
+    border: "1px solid var(--color-grid, #e0e0e0)",
+    minWidth: 140,
+  };
+  const label = (
+    <div
+      style={{
+        fontSize: 11,
+        color: "var(--fg-muted, #5b6470)",
+        textTransform: "uppercase",
+      }}
+    >
+      Datasets
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div data-testid="stat-datasets" data-state="loading" style={tile}>
+        {label}
+        <div
+          aria-hidden
+          style={{
+            marginTop: 6,
+            height: 18,
+            width: 64,
+            borderRadius: 3,
+            background:
+              "linear-gradient(90deg, var(--color-grid, #e0e0e0) 25%, var(--color-bg, #fafafa) 50%, var(--color-grid, #e0e0e0) 75%)",
+            backgroundSize: "200% 100%",
+            animation: "py-iku-skeleton 1.2s ease-in-out infinite",
+          }}
+        />
+        <span style={{ position: "absolute", left: -9999 }}>Loading datasets…</span>
+      </div>
+    );
+  }
+
+  if (count <= 0) {
+    return (
+      <div data-testid="stat-datasets" data-state="empty" style={tile}>
+        {label}
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--fg-muted, #5b6470)",
+            marginTop: 4,
+            lineHeight: 1.35,
+          }}
+        >
+          No datasets in this conversion.
+        </div>
+      </div>
+    );
+  }
+
+  // Populated: show the count plus a tiny visual marker. We don't have a
+  // historical series available client-side, so render a deterministic bar
+  // sized to the count (clamped) — a real sparkline plugs in once the API
+  // exposes per-conversion history.
+  const filled = Math.min(8, Math.max(1, count));
+  return (
+    <div data-testid="stat-datasets" data-state="populated" style={tile}>
+      {label}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: "0.5rem",
+          marginTop: 2,
+        }}
+      >
+        <div style={{ fontSize: 18, fontWeight: 600 }}>{count}</div>
+        <div
+          aria-hidden
+          style={{
+            display: "flex",
+            gap: 2,
+            height: 14,
+            alignItems: "flex-end",
+          }}
+        >
+          {Array.from({ length: 8 }).map((_, i) => (
+            <span
+              key={i}
+              style={{
+                display: "inline-block",
+                width: 3,
+                height: 4 + ((i % 4) + 1) * 2,
+                background:
+                  i < filled
+                    ? "var(--color-connectionhover, #1976d2)"
+                    : "var(--color-grid, #e0e0e0)",
+                borderRadius: 1,
+                opacity: i < filled ? 0.85 : 0.5,
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -669,11 +792,13 @@ function Spinner(): JSX.Element {
 }
 
 // Inject keyframes once. CSS-in-JS to keep the page self-contained — no
-// extra stylesheet needed for one tiny animation.
+// extra stylesheet needed for these tiny animations.
 if (typeof document !== "undefined" && !document.getElementById("py-iku-spin-keyframes")) {
   const style = document.createElement("style");
   style.id = "py-iku-spin-keyframes";
-  style.textContent = "@keyframes py-iku-spin { to { transform: rotate(360deg); } }";
+  style.textContent =
+    "@keyframes py-iku-spin { to { transform: rotate(360deg); } } " +
+    "@keyframes py-iku-skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }";
   document.head.appendChild(style);
 }
 

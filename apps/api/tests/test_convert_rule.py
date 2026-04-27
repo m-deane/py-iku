@@ -107,6 +107,11 @@ async def test_convert_rule_returns_score(client) -> None:  # type: ignore[no-un
     score = data["score"]
     assert score["recipe_count"] >= 0
     assert score["processor_count"] >= 0
+    # dataset_count powers the DATASETS dashboard tile — must be present
+    # and >= the number of datasets actually serialised in the flow.
+    assert "dataset_count" in score
+    assert score["dataset_count"] >= 0
+    assert score["dataset_count"] == len(data["flow"]["datasets"])
     assert score["max_depth"] >= 0
     assert score["fan_out_max"] >= 0
     assert score["complexity"] >= 0.0

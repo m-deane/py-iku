@@ -152,7 +152,7 @@ function Token({ text, kind }: { text: string; kind: string }): JSX.Element {
     string: "var(--color-recipe-grouping-light-text, #2e7d32)",
     number: "var(--color-recipe-window-light-text, #00838f)",
     bool: "var(--color-recipe-prepare-light-text, #e65100)",
-    null: "var(--color-grid, #888)",
+    null: "var(--fg-muted, #5b6470)",
     other: "inherit",
   };
   return <span style={{ color: colorMap[kind] ?? "inherit" }}>{text}</span>;

@@ -9,20 +9,20 @@ import { SnippetGallery } from "../features/snippets/SnippetGallery";
 
 function PlaceholderPage({
   title,
-  milestone,
+  body,
   disabled = false,
   hint,
 }: {
   title: string;
-  milestone: string;
+  body: string;
   disabled?: boolean;
   hint?: string;
 }): JSX.Element {
   return (
     <section style={{ padding: "2rem", maxWidth: 960, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>{title}</h1>
-      <p style={{ color: "var(--color-grid, #888)" }}>
-        {milestone} will fill this in.
+      <p style={{ color: "var(--fg-muted, #5b6470)" }}>
+        {body}
         {hint ? ` ${hint}` : ""}
       </p>
       {disabled ? (
@@ -37,7 +37,7 @@ function PlaceholderPage({
             cursor: "not-allowed",
           }}
         >
-          Future feature — disabled
+          Disabled — not yet available
         </button>
       ) : null}
     </section>
@@ -48,22 +48,64 @@ function HomePage(): JSX.Element {
   return (
     <section style={{ padding: "2rem", maxWidth: 960, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>py-iku-studio</h1>
-      <p>Convert pandas / numpy / scikit-learn code to Dataiku DSS recipes and flows.</p>
-      <p style={{ color: "var(--color-grid, #888)" }}>M5/M6/M7 will fill this home page.</p>
-      <a
-        href="/convert"
+      <p style={{ fontSize: "1.05rem" }}>
+        Convert pandas pipelines to Dataiku DSS flows. Review every recipe
+        before you deploy.
+      </p>
+      <p style={{ color: "var(--fg-muted, #5b6470)", maxWidth: 640 }}>
+        Paste a trade-capture script, a curve-build, or a counterparty rollup
+        and Studio renders the equivalent Dataiku recipes, datasets, and DAG.
+        Export as JSON, SVG, or a DSS-ready ZIP.
+      </p>
+      <div
         style={{
-          display: "inline-block",
-          marginTop: "1rem",
-          padding: "0.5rem 1rem",
-          background: "var(--color-connectionhover, #1976d2)",
-          color: "white",
-          textDecoration: "none",
-          borderRadius: 6,
+          display: "flex",
+          gap: "0.75rem",
+          marginTop: "1.25rem",
+          flexWrap: "wrap",
         }}
       >
-        Paste Python →
-      </a>
+        <a
+          href="/convert"
+          style={{
+            display: "inline-block",
+            padding: "0.5rem 1rem",
+            background: "var(--color-connectionhover, #1976d2)",
+            color: "white",
+            textDecoration: "none",
+            borderRadius: 6,
+            fontWeight: 600,
+          }}
+        >
+          Paste Python →
+        </a>
+        <a
+          href="/snippets"
+          style={{
+            display: "inline-block",
+            padding: "0.5rem 1rem",
+            border: "1px solid var(--color-grid, #e0e0e0)",
+            color: "inherit",
+            textDecoration: "none",
+            borderRadius: 6,
+          }}
+        >
+          Browse snippets
+        </a>
+        <a
+          href="/catalog"
+          style={{
+            display: "inline-block",
+            padding: "0.5rem 1rem",
+            border: "1px solid var(--color-grid, #e0e0e0)",
+            color: "inherit",
+            textDecoration: "none",
+            borderRadius: 6,
+          }}
+        >
+          Open catalog
+        </a>
+      </div>
     </section>
   );
 }
@@ -85,7 +127,12 @@ export function AppRouter(): JSX.Element {
           <Route path="/convert" element={<ConvertPage />} />
           <Route
             path="/flow/:id"
-            element={<PlaceholderPage title="Flow viewer" milestone="M5" />}
+            element={
+              <PlaceholderPage
+                title="Flow viewer"
+                body="Standalone flow viewer is not yet wired into this build. Open a flow from the Convert page to inspect its recipes and DAG."
+              />
+            }
           />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/diff" element={<DiffPage />} />
@@ -94,16 +141,21 @@ export function AppRouter(): JSX.Element {
           <Route path="/audit" element={<AuditPage />} />
           <Route
             path="/settings"
-            element={<PlaceholderPage title="Settings" milestone="M4b/M5" />}
+            element={
+              <PlaceholderPage
+                title="Settings"
+                body="Open the settings drawer from the gear icon in the header to configure provider, model alias, theme, and API base URL. A full settings page is on the roadmap."
+              />
+            }
           />
           <Route
             path="/settings/connections"
             element={
               <PlaceholderPage
                 title="DSS Connections"
-                milestone="M7+"
+                body="Direct DSS write-back is a future capability. For now, export the flow as JSON or ZIP from the Convert page and import it into your DSS project."
                 disabled
-                hint="DSS write-back is a future capability — see docs/future-dss-writeback.md."
+                hint="See docs/future-dss-writeback.md for the planned design."
               />
             }
           />
@@ -112,8 +164,8 @@ export function AppRouter(): JSX.Element {
             element={
               <PlaceholderPage
                 title="404 — Not Found"
-                milestone="The current build"
-                hint="Use the header to navigate."
+                body="That route does not exist in this build."
+                hint="Use the header to navigate to Convert, Catalog, Snippets, Diff, or Audit."
               />
             }
           />

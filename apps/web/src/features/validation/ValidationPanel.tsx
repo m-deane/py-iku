@@ -95,7 +95,7 @@ export function ValidationPanel(props: ValidationPanelProps): JSX.Element {
       >
         <span aria-hidden>{open ? "▾" : "▸"}</span>
         <span>Validation</span>
-        <span style={{ color: "var(--color-grid, #888)", fontWeight: 400, fontSize: 12 }}>
+        <span style={{ color: "var(--fg-muted, #5b6470)", fontWeight: 400, fontSize: 12 }}>
           {warnings.length} warning{warnings.length === 1 ? "" : "s"}
           {score ? ` · complexity ${score.complexity.toFixed(1)}` : ""}
         </span>
@@ -113,7 +113,7 @@ export function ValidationPanel(props: ValidationPanelProps): JSX.Element {
         >
           <Section title="Warnings" testId="validation-warnings">
             {warnings.length === 0 ? (
-              <p style={{ margin: 0, color: "var(--color-grid, #888)", fontSize: 13 }}>
+              <p style={{ margin: 0, color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
                 No warnings.
               </p>
             ) : (
@@ -129,7 +129,7 @@ export function ValidationPanel(props: ValidationPanelProps): JSX.Element {
 
           <Section title="Score breakdown" testId="validation-score">
             {scoring ? (
-              <p style={{ margin: 0, color: "var(--color-grid, #888)", fontSize: 13 }}>
+              <p style={{ margin: 0, color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
                 Computing…
               </p>
             ) : scoreError ? (
@@ -137,7 +137,7 @@ export function ValidationPanel(props: ValidationPanelProps): JSX.Element {
             ) : score ? (
               <ScoreList score={score} />
             ) : (
-              <p style={{ margin: 0, color: "var(--color-grid, #888)", fontSize: 13 }}>
+              <p style={{ margin: 0, color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
                 No score available.
               </p>
             )}
@@ -145,7 +145,7 @@ export function ValidationPanel(props: ValidationPanelProps): JSX.Element {
 
           <Section title="Recipe types" testId="validation-recipe-tally">
             {tallies.size === 0 ? (
-              <p style={{ margin: 0, color: "var(--color-grid, #888)", fontSize: 13 }}>
+              <p style={{ margin: 0, color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
                 No recipes.
               </p>
             ) : (

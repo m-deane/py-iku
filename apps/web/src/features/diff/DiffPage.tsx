@@ -96,12 +96,25 @@ export function DiffPage(props: DiffPageProps): JSX.Element {
       <header
         style={{
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: "0.75rem",
           flexWrap: "wrap",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: "1.25rem" }}>Rule vs LLM Diff</h1>
+        <div style={{ flex: "1 1 auto", minWidth: 240 }}>
+          <h1 style={{ margin: 0, fontSize: "1.25rem" }}>Rule vs LLM Diff</h1>
+          <p
+            style={{
+              margin: "0.25rem 0 0",
+              color: "var(--fg-muted, #5b6470)",
+              fontSize: 13,
+            }}
+          >
+            Run the current Python through both engines and compare the
+            resulting flows recipe-by-recipe. Useful before switching a P&amp;L
+            or curve-build pipeline from rule to LLM.
+          </p>
+        </div>
         <button
           type="button"
           data-testid="compare-button"
@@ -149,14 +162,29 @@ export function DiffPage(props: DiffPageProps): JSX.Element {
           <div
             data-testid="diff-empty"
             style={{
-              padding: "1rem",
+              padding: "1.25rem 1rem",
               border: "1px dashed var(--color-grid, #e0e0e0)",
               borderRadius: 6,
-              color: "var(--color-grid, #888)",
+              color: "var(--fg-muted, #5b6470)",
               fontSize: 13,
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.4rem",
             }}
           >
-            Run a comparison to populate the diff list.
+            <strong style={{ color: "inherit" }}>No flows compared yet</strong>
+            <span>
+              Compare runs the current Python through the rule engine and the
+              LLM, then lists every recipe that was added, removed, or
+              changed.{" "}
+              <a
+                href="/convert"
+                style={{ color: "var(--accent-hover, #0f766e)" }}
+              >
+                Paste or pick a snippet on Convert
+              </a>{" "}
+              first, then click Compare.
+            </span>
           </div>
         ) : entries.length === 0 ? (
           <div
@@ -210,7 +238,7 @@ function FlowPanel({
         style={{
           fontSize: 11,
           textTransform: "uppercase",
-          color: "var(--color-grid, #888)",
+          color: "var(--fg-muted, #5b6470)",
           marginBottom: "0.25rem",
           letterSpacing: "0.04em",
         }}
@@ -225,8 +253,8 @@ function FlowPanel({
           <JsonView value={flow.flow} initialDepth={1} />
         </>
       ) : (
-        <div style={{ color: "var(--color-grid, #888)", fontSize: 13 }}>
-          (empty — run compare)
+        <div style={{ color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
+          {label} flow renders here once Compare runs.
         </div>
       )}
     </div>
@@ -285,7 +313,7 @@ function DiffEntryRow({
         {entry.kind}
       </span>
       <code style={{ fontSize: 13 }}>{entry.id}</code>
-      <span style={{ fontSize: 12, color: "var(--color-grid, #666)" }}>
+      <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>
         {entry.recipe_type_a && entry.recipe_type_b
           ? entry.recipe_type_a === entry.recipe_type_b
             ? entry.recipe_type_a

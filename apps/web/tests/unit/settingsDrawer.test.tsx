@@ -92,9 +92,11 @@ describe("<SettingsDrawer />", () => {
     expect(saveBtn).toBeDisabled();
   });
 
-  it("shows the M7-pending banner for key registration", () => {
+  it("shows the API-key provenance banner for key registration", () => {
     render(<SettingsDrawer />);
     openDrawer();
-    expect(screen.getByText(/key registration backend pending/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/api keys for anthropic and openai are read from the server/i),
+    ).toBeInTheDocument();
   });
 });

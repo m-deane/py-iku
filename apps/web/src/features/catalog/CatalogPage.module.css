@@ -64,6 +64,21 @@
   gap: 0.75rem;
 }
 
+.cardList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cardListItem {
+  display: flex;
+}
+
+.cardListItem > .card {
+  flex: 1;
+  width: 100%;
+}
+
 .card {
   border: 1px solid var(--color-grid, #e0e0e0);
   border-radius: 8px;
@@ -126,21 +141,21 @@
 
 .cardDesc {
   font-size: 13px;
-  color: var(--color-grid, #555);
+  color: var(--fg-muted, #5b6470);
   line-height: 1.4;
 }
 
 .empty {
   padding: 1rem;
   font-style: italic;
-  color: var(--color-grid, #888);
+  color: var(--fg-muted, #5b6470);
 }
 
 .loading,
 .error {
   padding: 1rem;
   font-size: 13px;
-  color: var(--color-grid, #888);
+  color: var(--fg-muted, #5b6470);
 }
 
 .error {

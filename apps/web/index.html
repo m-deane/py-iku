@@ -4,6 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>py-iku-studio</title>
+    <!-- Inter (variable) + JetBrains Mono via Google Fonts. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+    <style>
+      /*
+       * Map the Google-Fonts family names to the "Variable" aliases that
+       * ui-tokens.css references. This keeps the tokens portable to a
+       * later @fontsource-variable self-host swap.
+       */
+      @font-face {
+        font-family: "Inter Variable";
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: local("Inter");
+      }
+      @font-face {
+        font-family: "Inter Tight Variable";
+        font-style: normal;
+        font-weight: 500 700;
+        font-display: swap;
+        src: local("Inter Tight");
+      }
+      @font-face {
+        font-family: "JetBrains Mono Variable";
+        font-style: normal;
+        font-weight: 400 600;
+        font-display: swap;
+        src: local("JetBrains Mono");
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -115,25 +115,61 @@ async def test_export_zip_bundle(client) -> None:  # type: ignore[no-untyped-def
 
 @pytest.mark.asyncio
 async def test_export_png(client) -> None:  # type: ignore[no-untyped-def]
-    """PNG export requires cairosvg; it's listed as an env dep but tolerate skip."""
-    pytest.importorskip("cairosvg")
+    """PNG export uses py-iku's matplotlib visualizer."""
+    pytest.importorskip("matplotlib")
     payload = {"flow": _flow_dict()}
     response = await client.post("/export/png", json=payload)
     assert response.status_code == 200, response.text
     assert response.headers["content-type"].startswith("image/png")
+    cd = response.headers.get("content-disposition", "")
+    assert "attachment" in cd
+    assert ".png" in cd
     # PNG magic bytes
     assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
 
 
 @pytest.mark.asyncio
+async def test_export_png_with_dpi_opt(client) -> None:  # type: ignore[no-untyped-def]
+    """PNG export should accept a custom DPI option."""
+    pytest.importorskip("matplotlib")
+    payload = {"flow": _flow_dict(), "opts": {"dpi": 100}}
+    response = await client.post("/export/png", json=payload)
+    assert response.status_code == 200, response.text
+    assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+@pytest.mark.asyncio
 async def test_export_pdf(client) -> None:  # type: ignore[no-untyped-def]
-    """PDF export requires cairosvg; tolerate skip if not installed."""
-    pytest.importorskip("cairosvg")
+    """PDF export wraps the SVG in HTML and renders via WeasyPrint."""
+    pytest.importorskip("weasyprint")
     payload = {"flow": _flow_dict()}
     response = await client.post("/export/pdf", json=payload)
     assert response.status_code == 200, response.text
     assert response.headers["content-type"].startswith("application/pdf")
+    cd = response.headers.get("content-disposition", "")
+    assert "attachment" in cd
+    assert ".pdf" in cd
     assert response.content[:5] == b"%PDF-"
+
+
+@pytest.mark.asyncio
+async def test_export_pdf_empty_flow(client) -> None:  # type: ignore[no-untyped-def]
+    """PDF export should still produce a valid PDF for an empty flow."""
+    pytest.importorskip("weasyprint")
+    payload = {"flow": {"flow_name": "empty", "datasets": [], "recipes": []}}
+    response = await client.post("/export/pdf", json=payload)
+    assert response.status_code == 200, response.text
+    assert response.content[:5] == b"%PDF-"
+
+
+@pytest.mark.asyncio
+async def test_export_png_empty_flow(client) -> None:  # type: ignore[no-untyped-def]
+    """PNG export should still produce a valid PNG for an empty flow."""
+    pytest.importorskip("matplotlib")
+    payload = {"flow": {"flow_name": "empty", "datasets": [], "recipes": []}}
+    response = await client.post("/export/png", json=payload)
+    assert response.status_code == 200, response.text
+    assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
 
 
 # ---------------------------------------------------------------------------

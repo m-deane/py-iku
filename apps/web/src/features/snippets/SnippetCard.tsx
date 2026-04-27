@@ -43,7 +43,7 @@ export function SnippetCard({ snippet, onOpen }: SnippetCardProps): JSX.Element 
           {snippet.category}
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: 13, color: "var(--color-grid, #666)" }}>
+      <p style={{ margin: 0, fontSize: 13, color: "var(--fg-muted, #5b6470)" }}>
         {snippet.description}
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -55,7 +55,7 @@ export function SnippetCard({ snippet, onOpen }: SnippetCardProps): JSX.Element 
               padding: "0.1rem 0.4rem",
               borderRadius: 4,
               border: "1px solid var(--color-grid, #e0e0e0)",
-              color: "var(--color-grid, #888)",
+              color: "var(--fg-muted, #5b6470)",
             }}
           >
             {t}
