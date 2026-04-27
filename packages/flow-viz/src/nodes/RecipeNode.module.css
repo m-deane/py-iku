@@ -193,3 +193,88 @@
     background: rgba(255, 255, 255, 0.2);
   }
 }
+
+/* -------------------------------------------------------------------------
+ * LLM confidence shading
+ *
+ * Bands match the spec:
+ *   high  (>= 0.85, or null)   -> no shading
+ *   medium (0.60–0.84)         -> 2px var(--warn-border) + ⚠ top-right
+ *   low   (< 0.60)             -> 2px var(--danger-border) + ⚠ + pulse
+ *
+ * Colors come exclusively from semantic tokens (--warn-border /
+ * --danger-border) so light/dark themes Just Work and the contract
+ * with sprint-3 design tokens is preserved (no inline hex anywhere).
+ * ----------------------------------------------------------------------- */
+
+.recipeNode.confidenceMedium {
+  border: 2px solid var(--warn-border);
+  border-left: 4px solid var(--node-border);
+}
+
+.recipeNode.confidenceLow {
+  border: 2px solid var(--danger-border);
+  border-left: 4px solid var(--node-border);
+  animation: flow-viz-confidence-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes flow-viz-confidence-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger-border) 60%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger-border) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipeNode.confidenceLow {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--danger-border);
+  }
+}
+
+/* ⚠ glyph anchored top-right, replacing/complementing the status badge. */
+.confidenceWarn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--warn-bg, transparent);
+  color: var(--warn-fg);
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+  font-weight: 700;
+  z-index: 3;
+  user-select: none;
+}
+
+.confidenceWarn.confidenceLowGlyph {
+  background: var(--danger-bg, transparent);
+  color: var(--danger-fg);
+}
+
+/* "R" rule-based badge anchored bottom-left. Anchored away from the
+ * subLabel which sits in the same corner — the rule-based path produces
+ * recipes that have no subLabel (only code-recipe types do) so this
+ * tracks fine in practice; if both were ever set, the subLabel wins
+ * via z-index. */
+.ruleBadge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--typography-fontfamily-mono, "Courier New", Courier, monospace);
+  background: var(--surface-sunken, var(--node-bg));
+  color: var(--fg-muted, var(--node-text));
+  border: 1px solid var(--border, var(--node-border));
+  padding: 0 3px;
+  border-radius: 3px;
+  line-height: 12px;
+  z-index: 2;
+}

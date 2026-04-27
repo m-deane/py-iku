@@ -67,6 +67,47 @@ class LLMFlowGenerator(BaseFlowGenerator):
         super().__init__()
         self.dataset_map: dict[str, str] = {}  # variable name -> dataset name
 
+    @staticmethod
+    def _apply_step_metadata(
+        recipe: "DataikuRecipe", step: DataStep, *extra_steps: DataStep
+    ) -> None:
+        """Copy LLM confidence + reasoning + source_lines from the originating
+        ``DataStep`` (and optional sibling steps for merged PREPARE recipes)
+        onto the created ``DataikuRecipe``.
+
+        Confidence aggregation across merged prepare buffers uses the *minimum*
+        of available confidences — a single low-confidence step in a merged
+        recipe must drag the recipe's confidence down to that level so the UI
+        does not falsely greenlight a partly-uncertain mapping.
+        """
+        all_steps = (step, *extra_steps)
+        confidences = [
+            s.confidence for s in all_steps if s.confidence is not None
+        ]
+        if confidences:
+            recipe.confidence = min(confidences)
+
+        # Reasoning: prefer the originating step's reasoning. For merged
+        # prepare recipes we already append per-step reasoning into
+        # recipe.notes, so this is the headline reasoning shown in the
+        # popover.
+        if step.reasoning:
+            recipe.reasoning = step.reasoning
+
+        # Source-line span: use the union of all participating steps so a
+        # merged PREPARE recipe highlights every contributing source line.
+        # ``DataStep.source_lines`` is already a list of 1-indexed line
+        # numbers (analyzer schema); preserve order, dedupe.
+        seen: set[int] = set()
+        merged_lines: list[int] = []
+        for s in all_steps:
+            for ln in s.source_lines:
+                if isinstance(ln, int) and ln not in seen:
+                    seen.add(ln)
+                    merged_lines.append(ln)
+        if merged_lines:
+            recipe.source_lines = merged_lines
+
     def generate(
         self,
         analysis: AnalysisResult,
@@ -346,6 +387,13 @@ class LLMFlowGenerator(BaseFlowGenerator):
             if step.reasoning:
                 recipe.notes.append(step.reasoning)
 
+        # Apply confidence + reasoning + source_lines metadata from the
+        # originating steps. The first step is treated as primary (its
+        # reasoning is the recipe-level headline); confidence is the MIN
+        # across the merged buffer.
+        if steps:
+            self._apply_step_metadata(recipe, steps[0], *steps[1:])
+
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -617,6 +665,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -662,6 +711,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -683,6 +733,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
             outputs=[output_name],
         )
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -715,6 +766,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -733,6 +785,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
             outputs=[output_name],
         )
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -752,6 +805,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
             sort_columns=step.sort_columns,
         )
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -795,6 +849,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -820,6 +875,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
                 DataikuDataset(name=output_name, dataset_type=DatasetType.OUTPUT)
             )
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -862,6 +918,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -908,6 +965,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -959,6 +1017,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
         return output_name
 
@@ -1001,6 +1060,7 @@ output_dataset.write_with_schema(df)
         if step.reasoning:
             recipe.notes.append(step.reasoning)
 
+        self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
 
         # Add recommendation

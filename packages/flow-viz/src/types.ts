@@ -51,6 +51,24 @@ export interface RecipeNodeData {
   outputs: number;
   status?: NodeStatus;
   dimmed?: boolean;
+  /**
+   * LLM mapping confidence in [0, 1]. ``null`` / ``undefined`` means
+   * rule-based or unspecified — the card renders an "R" rule-based
+   * badge in that case. The `<RecipeNode>` component derives its
+   * shading band from this:
+   *   confidence == null OR >= 0.85 -> no shade
+   *   0.60 <= confidence < 0.85    -> warn (2px var(--warn-border) + ⚠)
+   *   confidence < 0.60            -> danger (2px var(--danger-border) + ⚠ + pulse)
+   */
+  confidence?: number | null;
+  /**
+   * Inclusive [start, end] 1-indexed source-line span. Surfaced to the
+   * recipe popover as "Lines X-Y of source ↗"; clicking the link drives
+   * `monaco.editor.deltaDecorations` in the Convert page editor.
+   */
+  sourceLines?: [number, number] | null;
+  /** One-sentence rationale rendered in the popover above the source-link. */
+  reasoning?: string | null;
 }
 
 /** Dataset node payload as stored on a React Flow node. */

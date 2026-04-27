@@ -67,6 +67,30 @@ class OperationType(Enum):
     UNKNOWN = "unknown"
 
 
+def _coerce_confidence(value: Any) -> Optional[float]:
+    """Coerce an LLM-reported confidence value into [0.0, 1.0] or None.
+
+    The LLM occasionally returns confidence as a string ("0.85"), an int (1),
+    a percent (85), or None. Normalize all of these to a float in [0,1] so the
+    UI shading bands are well-defined. Out-of-range or unparseable values
+    fall back to None ("unspecified") rather than raising — the per-step
+    field is purely advisory.
+    """
+    if value is None:
+        return None
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    # Treat 0–100 inputs as percent for tolerance — anything > 1.0 we assume
+    # the model meant a percentage.
+    if f > 1.0:
+        f = f / 100.0
+    if f < 0.0 or f > 1.0:
+        return None
+    return f
+
+
 @dataclass
 class ColumnTransform:
     """Details of a column transformation."""
@@ -145,6 +169,11 @@ class DataStep:
     suggested_processors: list[str] = field(default_factory=list)
     requires_python_recipe: bool = False
     reasoning: Optional[str] = None  # LLM's explanation for the mapping
+    # LLM self-reported mapping confidence in [0.0, 1.0]; None = not provided
+    # (rule-based path or older LLM responses that pre-date the field).
+    # The Studio UI uses this to shade recipe cards (high/medium/low) so
+    # trader-engineers can spot risky mappings at a glance.
+    confidence: Optional[float] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -181,6 +210,7 @@ class DataStep:
             "suggested_processors": self.suggested_processors,
             "requires_python_recipe": self.requires_python_recipe,
             "reasoning": self.reasoning,
+            "confidence": self.confidence,
         }
 
     @classmethod
@@ -240,6 +270,7 @@ class DataStep:
             suggested_processors=data.get("suggested_processors", []),
             requires_python_recipe=data.get("requires_python_recipe", False),
             reasoning=data.get("reasoning"),
+            confidence=_coerce_confidence(data.get("confidence")),
         )
 
 
@@ -425,7 +456,16 @@ ANALYSIS_JSON_SCHEMA = {
                     "suggested_recipe": {"type": "string"},
                     "suggested_processors": {"type": "array", "items": {"type": "string"}},
                     "requires_python_recipe": {"type": "boolean"},
-                    "reasoning": {"type": "string"}
+                    "reasoning": {"type": "string"},
+                    "confidence": {
+                        "type": ["number", "null"],
+                        "minimum": 0.0,
+                        "maximum": 1.0,
+                        "description": (
+                            "Self-reported mapping confidence in [0,1]. "
+                            "Omit or set null when unsure."
+                        )
+                    }
                 }
             }
         },

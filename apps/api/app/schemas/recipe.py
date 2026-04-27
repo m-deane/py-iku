@@ -216,6 +216,30 @@ class DataikuRecipeModel(BaseModel):
     source_lines: list[int] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
+    # ------------------------------------------------------------------
+    # LLM-mode mapping metadata. All three fields are optional and
+    # ``None`` for the rule-based path (the UI renders an "R" rule-based
+    # badge for that case). Adding optional fields is backward-compatible
+    # for existing /convert and /score response consumers.
+    # ------------------------------------------------------------------
+    confidence: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "LLM self-reported mapping confidence in [0.0, 1.0]. "
+            "None means rule-based or unspecified. UI shading bands: "
+            ">=0.85 high (no shade), 0.60-0.84 medium (warn), <0.60 low (danger)."
+        ),
+    )
+    reasoning: str | None = Field(
+        default=None,
+        description=(
+            "One-sentence rationale for the recipe mapping. None for "
+            "rule-based recipes."
+        ),
+    )
+
     # Optional composed settings — exposes all 12 subclasses in /openapi.json.
     # py-iku to_dict() inlines these fields instead of nesting them, so this
     # will be None for round-tripped flows.

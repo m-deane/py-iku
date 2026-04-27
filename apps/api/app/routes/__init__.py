@@ -13,9 +13,12 @@ from .flows import router as flows_router
 from .health import router as health_router
 from .score import router as score_router
 from .share import router as share_router
+from .templates import router as templates_router
+from .version import router as version_router
 
 router = APIRouter()
 router.include_router(health_router)
+router.include_router(version_router)
 router.include_router(convert_router)
 router.include_router(catalog_router)
 router.include_router(diff_router)
@@ -24,3 +27,4 @@ router.include_router(export_router)
 router.include_router(flows_router)
 router.include_router(share_router)
 router.include_router(audit_router)
+router.include_router(templates_router)

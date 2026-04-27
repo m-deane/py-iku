@@ -157,6 +157,23 @@ Use canonical DSS names in ``aggregations[].function``: ``SUM``, ``AVG`` (not ``
 
 For each Python statement, internally: (1) identify the pandas/numpy/sklearn operation, (2) pick the OperationType, (3) apply the Mapping Rules to pick the recipe, (4) pick processors if recipe is "prepare". Capture a one-sentence reasoning in the step's ``reasoning`` field. Do NOT emit reasoning text outside the JSON object.
 
+# Confidence + Source-line Attribution (per step)
+
+For EVERY step also emit:
+
+- ``confidence`` (number in [0.0, 1.0]) — your self-rated confidence that this step's recipe + processor mapping faithfully represents the user's Python. Calibrate as follows:
+  - **>= 0.85 (high)**: textbook pandas operation with an exact DSS visual equivalent (e.g. ``df.merge(..., on=...)`` -> JOIN, ``df.dropna()`` -> RemoveRowsOnEmpty, simple ``df.groupby().agg({{col: "sum"}})``). The mapping is unambiguous.
+  - **0.60 - 0.84 (medium)**: the operation has a visual equivalent but you had to make a judgement call — ambiguous filter routing, a transform you mapped to GREL because the closest processor isn't an exact fit, multi-function aggregations, sklearn preprocessing where the strategy enum isn't fully spelled out.
+  - **< 0.60 (low)**: the mapping is a best-effort guess, you fell back to a Python recipe, the user code uses a UDF/lambda whose intent you can't fully read, or a non-pandas library you're approximating. Always emit a low confidence rather than skipping the step.
+  - Use ``null`` only when you have no opinion at all (rare — prefer a numeric value).
+- ``source_lines`` (array ``[start, end]`` of 1-indexed line numbers from the user's code, inclusive) — the source-code span this step came from. The Studio UI uses this to highlight the originating Python lines on hover. If you can't locate it, omit ``source_lines`` (do not invent a span). Numbering is 1-indexed and matches the line numbers shown in a Monaco editor.
+- ``reasoning`` (one short sentence) — what you matched and why. Examples:
+  - "df.merge(other, on='id', how='left') -> JOIN with left join_type and one EXACT join key on 'id'."
+  - "df['x'] = df['x'].astype(int) -> PREPARE+ColumnTypeChanger because the cast is a single per-column dtype change."
+  - "Custom apply(my_udf): no visual equivalent — emitted Python recipe with TODO comment."
+
+The downstream UI bands (high >= 0.85, medium 0.60-0.84, low < 0.60) are derived from your numeric value. Be honest — a low score on a hard mapping is more valuable than a falsely-high one.
+
 ## Examples
 
 The following worked examples show the EXACT JSON shape expected. Each example demonstrates a different operation class. Use them as a template; do not copy field values verbatim — adapt to the user's code.
@@ -179,8 +196,8 @@ Expected JSON:
     {{"name": "totals", "source": "derived", "is_input": false, "is_output": true}}
   ],
   "steps": [
-    {{"step_number": 1, "operation": "read_data", "description": "Read sales.csv", "output_dataset": "sales", "suggested_recipe": "sync"}},
-    {{"step_number": 2, "operation": "group_aggregate", "description": "Sum amount per region", "input_datasets": ["sales"], "output_dataset": "totals", "group_by_columns": ["region"], "aggregations": [{{"column": "amount", "function": "SUM", "output_column": "amount_sum"}}], "suggested_recipe": "grouping", "reasoning": "groupby+agg -> grouping; canonical SUM"}}
+    {{"step_number": 1, "operation": "read_data", "description": "Read sales.csv", "output_dataset": "sales", "suggested_recipe": "sync", "source_lines": [1, 1], "confidence": 0.95, "reasoning": "pd.read_csv -> SYNC recipe, source path captured."}},
+    {{"step_number": 2, "operation": "group_aggregate", "description": "Sum amount per region", "input_datasets": ["sales"], "output_dataset": "totals", "group_by_columns": ["region"], "aggregations": [{{"column": "amount", "function": "SUM", "output_column": "amount_sum"}}], "suggested_recipe": "grouping", "source_lines": [2, 2], "confidence": 0.92, "reasoning": "groupby+agg -> grouping; canonical SUM"}}
   ],
   "recommendations": [], "warnings": []
 }}

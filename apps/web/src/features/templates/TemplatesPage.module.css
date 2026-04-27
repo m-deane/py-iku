@@ -1,0 +1,451 @@
+/*
+ * TemplatesPage.module.css — Trade-Blotter Recipe-Template Gallery.
+ *
+ * Tokens only — no inline hex. All colour, spacing, radius, shadow, typography,
+ * and motion values come from `src/styles/ui-tokens.css`.
+ */
+
+.page {
+  padding: var(--space-5);
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--fg);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--fg);
+}
+
+.count {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.subtitle {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+  max-width: 70ch;
+  line-height: var(--lh-base);
+}
+
+.controls {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search {
+  flex: 0 1 320px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: var(--text-sm);
+  font-family: inherit;
+}
+
+.search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.chips {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  transition: background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.chip:hover {
+  background: var(--surface-raised);
+  color: var(--fg);
+}
+
+.chipActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.chipActive:hover {
+  background: var(--accent-hover);
+  color: var(--fg-on-accent);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.empty {
+  padding: var(--space-5);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--fg-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  text-align: center;
+}
+
+.emptyTitle {
+  color: var(--fg);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+/* ----------------------------------------------------------------------- */
+/* Card                                                                    */
+/* ----------------------------------------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+
+.categoryChip {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-bg-soft);
+  color: var(--accent-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.cardSummary {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+  line-height: var(--lh-base);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.personas {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.personaBadge {
+  font-size: var(--text-xs);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--fg-muted);
+  border: 1px solid var(--border);
+}
+
+.cardFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  gap: var(--space-2);
+}
+
+.metric {
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metricStrong {
+  color: var(--fg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ----------------------------------------------------------------------- */
+/* Drawer                                                                  */
+/* ----------------------------------------------------------------------- */
+
+.drawerScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 24, 40, 0.45);
+  z-index: 100;
+  animation: fadeIn var(--duration-base) var(--ease-standard);
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(640px, 95vw);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn var(--duration-base) var(--ease-standard);
+}
+
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.drawerTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.drawerSubtitle {
+  margin: var(--space-1) 0 0 0;
+  font-size: var(--text-sm);
+  color: var(--fg-muted);
+  line-height: var(--lh-base);
+}
+
+.closeBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  color: var(--fg-muted);
+  font-size: var(--text-base);
+  line-height: 1;
+}
+
+.closeBtn:hover {
+  background: var(--surface-raised);
+  color: var(--fg);
+}
+
+.drawerBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fg-muted);
+}
+
+.recipeChips,
+.datasetChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.recipeChip {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--info-bg);
+  color: var(--info-fg);
+  border: 1px solid var(--info-border);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-medium);
+}
+
+.datasetChip {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+}
+
+.editorHost {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.drawerFooter {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.primaryBtn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  font-family: inherit;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.primaryBtn:hover {
+  background: var(--accent-hover);
+}
+
+.secondaryBtn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.secondaryBtn:hover {
+  background: var(--surface-raised);
+}
+
+.copiedHint {
+  font-size: var(--text-xs);
+  color: var(--success-fg);
+  align-self: center;
+  margin-left: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Browse-templates header link in SnippetGallery */
+.snippetTemplatesLink {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--accent-hover);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.snippetTemplatesLink:hover {
+  text-decoration: underline;
+}

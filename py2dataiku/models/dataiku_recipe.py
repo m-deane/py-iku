@@ -363,10 +363,17 @@ class DataikuRecipe:
     # Metadata
     source_lines: list[int] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    # LLM mapping confidence in [0.0, 1.0] for the originating step. ``None``
+    # means the recipe came from the rule-based path (or pre-confidence
+    # LLM responses) — the UI renders an "R" rule-based badge in that case.
+    confidence: Optional[float] = None
+    # One-sentence rationale produced by the LLM for the mapping. ``None``
+    # for rule-based recipes.
+    reasoning: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
-        result = {
+        result: dict[str, Any] = {
             "name": self.name,
             "type": self.recipe_type.value,
             "inputs": self.inputs,
@@ -374,6 +381,12 @@ class DataikuRecipe:
             "source_lines": self.source_lines,
             "notes": self.notes,
         }
+        # Only emit confidence/reasoning when they are populated so the
+        # rule-based round-trip stays byte-identical to its previous shape.
+        if self.confidence is not None:
+            result["confidence"] = self.confidence
+        if self.reasoning is not None:
+            result["reasoning"] = self.reasoning
 
         if self.settings is not None:
             result.update(self.settings.to_display_dict())
@@ -405,6 +418,12 @@ class DataikuRecipe:
             "source_lines": data.get("source_lines", []),
             "notes": data.get("notes", []),
         }
+        # Optional LLM-mode metadata. Both keys are absent on rule-based
+        # round-trips so the dict shape is preserved.
+        if "confidence" in data and data["confidence"] is not None:
+            kwargs["confidence"] = data["confidence"]
+        if "reasoning" in data and data["reasoning"] is not None:
+            kwargs["reasoning"] = data["reasoning"]
 
         if recipe_type == RecipeType.PREPARE:
             kwargs["steps"] = [

@@ -55,6 +55,24 @@ export function SnippetGallery(props: SnippetGalleryProps): JSX.Element {
         <span style={{ color: "var(--fg-muted, #5b6470)", fontSize: 13 }}>
           {filtered.length} of {SNIPPETS.length} examples
         </span>
+        <a
+          href="/templates"
+          data-testid="snippets-browse-templates"
+          onClick={(e) => {
+            e.preventDefault();
+            const navFn = props.navigateImpl ?? navigate;
+            navFn("/templates");
+          }}
+          style={{
+            marginLeft: "auto",
+            fontSize: 13,
+            color: "var(--accent-hover, #0f766e)",
+            textDecoration: "none",
+            fontWeight: 500,
+          }}
+        >
+          Browse templates →
+        </a>
       </header>
 
       <div

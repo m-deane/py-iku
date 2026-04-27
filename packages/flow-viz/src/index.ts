@@ -12,7 +12,8 @@
 export { FlowCanvas } from "./FlowCanvas";
 export type { FlowCanvasProps, FlowCanvasSimulationProps } from "./FlowCanvas";
 
-export { RecipeNode } from "./nodes/RecipeNode";
+export { RecipeNode, bandFor } from "./nodes/RecipeNode";
+export type { ConfidenceBand } from "./nodes/RecipeNode";
 export { DatasetNode } from "./nodes/DatasetNode";
 export {
   nodeTypes,

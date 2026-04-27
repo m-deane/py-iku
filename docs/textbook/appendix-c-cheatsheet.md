@@ -130,6 +130,19 @@ The runnable reference: `scripts/llm_smoke_test.py`.
 
 ---
 
+## LLM path
+
+Confidence bands the Studio UI shades on each recipe-card (set per-step by the LLM, surfaced on `recipe.confidence` in the `/convert` response):
+
+| Confidence | Band | Card treatment |
+| --- | --- | --- |
+| `null` (rule-based) | rule-based | "R" badge, bottom-left |
+| `>= 0.85` | high | no shading |
+| `0.60–0.84` | medium | 2px `var(--warn-border)` + ⚠ |
+| `< 0.60` | low | 2px `var(--danger-border)` + ⚠ + pulse |
+
+Each LLM step also carries `source_lines: [start, end]` (1-indexed, inclusive) and a one-sentence `reasoning` that the popover renders, with a "Lines X-Y of source ↗" link wired to `monaco.editor.deltaDecorations`. See [Chapter 7](07-the-llm-path.md#confidence-shading-and-source-line-attribution-studio-ui) for the full UX.
+
 ## Token usage
 
 Every LLM call surfaces token counts on `AnalysisResult.usage`:
