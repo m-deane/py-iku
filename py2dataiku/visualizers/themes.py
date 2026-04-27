@@ -7,120 +7,150 @@ PREPARE, orange = JOIN, green = GROUPING, gold = ML, etc.). Datasets are
 rounded rectangles whose left edge carries a connection-type stripe (green =
 filesystem, blue = SQL, orange = blob storage, red = inline, etc.).
 
-The legacy ``recipe_colors`` dict (mapping ``"prepare" -> (bg, border, text)``)
-is preserved for backward compatibility — every existing token still resolves.
-The new ``recipe_palette`` dict is the source of truth for the upgraded
-DSS-fidelity rendering and uses solid fills (filled circle, white icon) rather
-than the soft-pastel gradient style.
+Single source of truth (Sprint-7)
+---------------------------------
+The recipe palette, connection stripes, layout spacing, edge styling, and
+node sizes are loaded at import time from ``docs/design/tokens.json``
+(the ``flow.*`` block). The same JSON file feeds the React/CSS pipeline via
+``apps/web/scripts/sync-tokens.ts`` — both sides cannot drift.
+
+Phantom-name aliases (`fuzzy_join` <-> `fuzzyjoin`, `top_n` <-> `topn`, etc.)
+are generated in this module from a fixed alias table so the JSON stays
+canonical. The legacy ``recipe_colors`` dict (Sprint-1 soft-pastel) is still
+preserved for backward compatibility — every existing token still resolves.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from functools import lru_cache
+from pathlib import Path
 
 
-# DSS-derived hex values — taken from public marketing screenshots & the
-# product's own CSS variable tokens. Using the same palette across SVG, PNG,
-# Mermaid, PlantUML, and HTML keeps cross-format outputs visually consistent.
-_RECIPE_PALETTE_LIGHT: dict[str, tuple[str, str, str]] = {
-    # (fill, stroke, label/icon color)
-    # Visual recipes
-    "prepare": ("#2c8fd9", "#1f6fa9", "#ffffff"),
-    "sync": ("#5d6d7e", "#3d4d5e", "#ffffff"),
-    "grouping": ("#75bb6a", "#5a9151", "#ffffff"),
-    "window": ("#9b59b6", "#7d3f97", "#ffffff"),
-    "join": ("#f29222", "#c4761a", "#ffffff"),
-    "fuzzyjoin": ("#f0a040", "#c47e2a", "#ffffff"),
-    "fuzzy_join": ("#f0a040", "#c47e2a", "#ffffff"),
-    "geojoin": ("#e67e22", "#b8631a", "#ffffff"),
-    "geo_join": ("#e67e22", "#b8631a", "#ffffff"),
-    "stack": ("#3498db", "#2778b3", "#ffffff"),
-    "split": ("#2c8fd9", "#1f6fa9", "#ffffff"),
-    "sort": ("#7f8c8d", "#5d696a", "#ffffff"),
-    "distinct": ("#95a5a6", "#6c7c7d", "#ffffff"),
-    "top_n": ("#7f8c8d", "#5d696a", "#ffffff"),
-    "topn": ("#7f8c8d", "#5d696a", "#ffffff"),
-    "pivot": ("#16a085", "#0f7a64", "#ffffff"),
-    "sampling": ("#7f8c8d", "#5d696a", "#ffffff"),
-    "sample": ("#7f8c8d", "#5d696a", "#ffffff"),
-    "filter": ("#2c8fd9", "#1f6fa9", "#ffffff"),
-    "download": ("#e67e22", "#b8631a", "#ffffff"),
-    "generate_features": ("#27ae60", "#1d8348", "#ffffff"),
-    "generate_statistics": ("#1abc9c", "#138a72", "#ffffff"),
-    "push_to_editable": ("#5d6d7e", "#3d4d5e", "#ffffff"),
-    "list_folder_contents": ("#5d6d7e", "#3d4d5e", "#ffffff"),
-    "list_access": ("#5d6d7e", "#3d4d5e", "#ffffff"),
-    "dynamic_repeat": ("#5d6d7e", "#3d4d5e", "#ffffff"),
-    "extract_failed_rows": ("#c0392b", "#962d22", "#ffffff"),
-    "upsert": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+# ---------------------------------------------------------------------------
+# Token JSON loading
+# ---------------------------------------------------------------------------
 
-    # Code recipes
-    "python": ("#34495e", "#22303c", "#ffffff"),
-    "r": ("#1f77b4", "#155481", "#ffffff"),
-    "sql": ("#2980b9", "#1f628e", "#ffffff"),
-    "sql_script": ("#2980b9", "#1f628e", "#ffffff"),
-    "hive": ("#7e5109", "#5a3a07", "#ffffff"),
-    "impala": ("#a04000", "#6e2c00", "#ffffff"),
-    "sparksql": ("#e67e22", "#b8631a", "#ffffff"),
-    "spark_sql_query": ("#e67e22", "#b8631a", "#ffffff"),
-    "pyspark": ("#e67e22", "#b8631a", "#ffffff"),
-    "spark_scala": ("#e67e22", "#b8631a", "#ffffff"),
-    "sparkr": ("#e67e22", "#b8631a", "#ffffff"),
-    "shell": ("#34495e", "#22303c", "#ffffff"),
+# Path resolved relative to the repository root (visualizers/ -> py2dataiku/ ->
+# repo root). Cached so import-time cost is paid once.
+_TOKENS_PATH = Path(__file__).resolve().parents[2] / "docs" / "design" / "tokens.json"
 
-    # ML / scoring
-    "prediction_scoring": ("#f39c12", "#c47e0a", "#ffffff"),
-    "clustering_scoring": ("#f39c12", "#c47e0a", "#ffffff"),
-    "evaluation": ("#f39c12", "#c47e0a", "#ffffff"),
-    "standalone_evaluation": ("#f39c12", "#c47e0a", "#ffffff"),
-    "ai_assistant_generate": ("#8e44ad", "#6c3483", "#ffffff"),
 
-    "default": ("#9e9e9e", "#6e6e6e", "#ffffff"),
+@lru_cache(maxsize=1)
+def _load_tokens() -> dict:
+    """Load and cache the canonical token JSON.
+
+    Raises ``FileNotFoundError`` if the file is missing — this is a hard
+    requirement for the package to function. CI catches a missing JSON via
+    the drift-check test in ``test_token_drift.py``.
+    """
+    with _TOKENS_PATH.open("r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+# Phantom-name alias table — DSS canonical names map to friendly aliases used
+# elsewhere in the codebase. Each canonical key in tokens.json is expanded to
+# the listed aliases at load time. Keep in sync with ProcessorType phantoms.
+_RECIPE_ALIASES: dict[str, tuple[str, ...]] = {
+    "fuzzy_join": ("fuzzyjoin",),
+    "geo_join": ("geojoin",),
+    "top_n": ("topn",),
+    "sampling": ("sample",),
+    "sql": ("sql_script",),
+    "sparksql": ("spark_sql_query",),
+    "evaluation": ("standalone_evaluation",),
 }
 
-# Connection-type stripe colors — the colored band on the left edge of each
-# dataset rectangle. Family-grouped: green = local fs, blue = SQL warehouses,
-# orange = cloud blob, red = inline, purple = NoSQL, yellow = HTTP/API.
-_CONNECTION_STRIPES: dict[str, str] = {
-    # Filesystem family — green
-    "Filesystem": "#75bb6a",
-    "filesystem": "#75bb6a",
 
-    # SQL warehouses — blue
-    "PostgreSQL": "#2c8fd9",
-    "MySQL": "#2c8fd9",
-    "BigQuery": "#2c8fd9",
-    "Snowflake": "#2c8fd9",
-    "Redshift": "#2c8fd9",
-    "Oracle": "#2c8fd9",
-    "MSSQL": "#2c8fd9",
-    "SQL": "#2c8fd9",
+def _build_recipe_palette() -> dict[str, tuple[str, str, str]]:
+    """Build the (fill, stroke, icon) recipe palette from tokens.json.
 
-    # Cloud blob — orange
-    "S3": "#f29222",
-    "GCS": "#f29222",
-    "Azure": "#f29222",
-    "Azure Blob": "#f29222",
-    "HDFS": "#f29222",
-    "ManagedFolder": "#f29222",
+    The JSON layout uses ``{ bg, fg, border }``; the legacy Python tuple is
+    ``(fill, stroke, icon_color)`` which corresponds to ``(bg, border, fg)``.
+    """
+    tokens = _load_tokens()
+    flow_recipe = tokens["flow"]["recipe"]
+    palette: dict[str, tuple[str, str, str]] = {}
+    for canonical, triplet in flow_recipe.items():
+        value = (triplet["bg"], triplet["border"], triplet["fg"])
+        palette[canonical] = value
+        for alias in _RECIPE_ALIASES.get(canonical, ()):
+            palette[alias] = value
+    return palette
 
-    # NoSQL — purple
-    "MongoDB": "#9b59b6",
-    "Cassandra": "#9b59b6",
-    "DynamoDB": "#9b59b6",
-    "Elasticsearch": "#9b59b6",
 
-    # HTTP / API — yellow
-    "HTTP": "#f1c40f",
-    "API": "#f1c40f",
-    "Twitter": "#f1c40f",
+def _build_connection_stripes() -> dict[str, str]:
+    """Build the per-connection-type stripe map from the family table.
 
-    # Inline — red/coral
-    "Inline": "#e74c3c",
-    "inline": "#e74c3c",
+    The JSON groups stripes by family (filesystem/sql/cloud/...); we expand to
+    DSS-canonical connection-type names + lowercased aliases at load time so
+    string lookups by ``"PostgreSQL"``, ``"S3"``, ``"Filesystem"`` keep
+    working.
+    """
+    tokens = _load_tokens()
+    families = tokens["flow"]["dataset"]["stripe"]
+    fs = families["filesystem"]
+    sql = families["sql"]
+    cloud = families["cloud"]
+    nosql = families["nosql"]
+    http = families["http"]
+    inline = families["inline"]
+    default = families["default"]
 
-    "default": "#90a4ae",
-}
+    return {
+        # Filesystem family — green
+        "Filesystem": fs,
+        "filesystem": fs,
+        # SQL warehouses — blue
+        "PostgreSQL": sql,
+        "MySQL": sql,
+        "BigQuery": sql,
+        "Snowflake": sql,
+        "Redshift": sql,
+        "Oracle": sql,
+        "MSSQL": sql,
+        "SQL": sql,
+        # Cloud blob — orange
+        "S3": cloud,
+        "GCS": cloud,
+        "Azure": cloud,
+        "Azure Blob": cloud,
+        "HDFS": cloud,
+        "ManagedFolder": cloud,
+        # NoSQL — purple
+        "MongoDB": nosql,
+        "Cassandra": nosql,
+        "DynamoDB": nosql,
+        "Elasticsearch": nosql,
+        # HTTP / API — yellow
+        "HTTP": http,
+        "API": http,
+        "Twitter": http,
+        # Inline — red/coral
+        "Inline": inline,
+        "inline": inline,
+        "default": default,
+    }
+
+
+# Module-level palette dicts — built once at import time from tokens.json.
+# These names (`_RECIPE_PALETTE_LIGHT`, `_CONNECTION_STRIPES`) are preserved
+# for any internal code that references them directly.
+_RECIPE_PALETTE_LIGHT: dict[str, tuple[str, str, str]] = _build_recipe_palette()
+_CONNECTION_STRIPES: dict[str, str] = _build_connection_stripes()
+
+
+def _flow_layout() -> dict:
+    return _load_tokens()["flow"]["layout"]
+
+
+def _flow_edge() -> dict:
+    return _load_tokens()["flow"]["edge"]
+
+
+def _flow_node() -> dict:
+    return _load_tokens()["flow"]["node"]
 
 
 @dataclass
@@ -133,8 +163,8 @@ class DataikuTheme:
       kept verbatim for backward compatibility, plus a new ``recipe_palette``
       dict that drives the high-fidelity DSS-style rendering.
     - **Connection stripes**: ``connection_stripes`` maps DSS connection-type
-      names (``PostgreSQL``, ``S3``, ``Filesystem``, ...) to a single hex value
-      drawn as a 6px-wide band on the left edge of dataset cards.
+      names (``PostgreSQL``, ``S3``, ``Filesystem``, ...) to a single hex
+      value drawn as a 6px-wide band on the left edge of dataset cards.
     - **Layout**: spacing, fonts, dimensions used by the layout engine.
     """
 
@@ -178,21 +208,27 @@ class DataikuTheme:
     })
 
     # Recipe palette — DSS-fidelity (solid fill, white icon). Source of truth
-    # for the upgraded SVG / matplotlib / Mermaid / PlantUML rendering.
+    # for the upgraded SVG / matplotlib / Mermaid / PlantUML rendering. Loaded
+    # from docs/design/tokens.json (flow.recipe.*).
     recipe_palette: dict[str, tuple[str, str, str]] = field(
         default_factory=lambda: dict(_RECIPE_PALETTE_LIGHT)
     )
 
     # Connection-type stripe colors. The left edge of each dataset card uses
-    # this 6px-wide vertical band, exactly matching DSS's flow view.
+    # this 6px-wide vertical band, exactly matching DSS's flow view. Loaded
+    # from docs/design/tokens.json (flow.dataset.stripe.*).
     connection_stripes: dict[str, str] = field(
         default_factory=lambda: dict(_CONNECTION_STRIPES)
     )
 
-    # Connection styling
-    connection_color: str = "#90A4AE"
-    connection_hover: str = "#1976D2"
-    connection_width: float = 1.5
+    # Connection styling — sourced from flow.edge in tokens.json (designer
+    # decision Sprint-7: edge stroke is the slate-400 #94a3b8 used by the
+    # web canvas, not the legacy #90A4AE).
+    connection_color: str = field(default_factory=lambda: _flow_edge()["stroke"])
+    connection_hover: str = field(default_factory=lambda: _flow_edge()["stroke_hover"])
+    connection_width: float = field(
+        default_factory=lambda: float(_flow_edge()["stroke_width"])
+    )
     arrow_size: int = 8
 
     # Typography
@@ -201,20 +237,31 @@ class DataikuTheme:
     recipe_font_size: int = 11
     icon_font_size: int = 20
 
-    # Dimensions
-    dataset_width: int = 160
-    dataset_height: int = 50
+    # Dimensions — sourced from flow.node in tokens.json (designer decision
+    # Sprint-7: 140x56 dataset, 78 recipe diameter — DSS-fidelity sizes).
+    dataset_width: int = field(
+        default_factory=lambda: int(_flow_node()["dataset_width"])
+    )
+    dataset_height: int = field(
+        default_factory=lambda: int(_flow_node()["dataset_height"])
+    )
     dataset_radius: int = 6
-    recipe_size: int = 70
+    recipe_size: int = field(
+        default_factory=lambda: int(_flow_node()["recipe_diameter"])
+    )
     recipe_radius: int = 10
     # Width of the connection-type stripe drawn on the left edge of datasets
     connection_stripe_width: int = 6
 
-    # Layout spacing — defaults follow the DSS flow view (column-major,
-    # 200px between layers, 100px between rows in the same column).
-    layer_spacing: int = 200
-    node_spacing: int = 100
-    padding: int = 40
+    # Layout spacing — sourced from flow.layout in tokens.json (designer
+    # decision Sprint-7: 220 / 110 / 60 DSS-fidelity values).
+    layer_spacing: int = field(
+        default_factory=lambda: int(_flow_layout()["layer_spacing"])
+    )
+    node_spacing: int = field(
+        default_factory=lambda: int(_flow_layout()["node_spacing"])
+    )
+    padding: int = field(default_factory=lambda: int(_flow_layout()["padding"]))
 
     # Background — DSS uses #fafbfc; we keep the existing #FAFAFA default
     # for backwards compatibility with downstream tests/snapshots and expose
@@ -251,7 +298,10 @@ class DataikuTheme:
     def get_recipe_palette(self, recipe_type: str) -> tuple[str, str, str]:
         """Get the new DSS-fidelity recipe palette (fill, stroke, icon)."""
         key = (recipe_type or "default").lower().replace(" ", "_")
-        return self.recipe_palette.get(key, self.recipe_palette.get("default", ("#9e9e9e", "#6e6e6e", "#ffffff")))
+        return self.recipe_palette.get(
+            key,
+            self.recipe_palette.get("default", ("#9e9e9e", "#6e6e6e", "#ffffff")),
+        )
 
     def get_connection_stripe(self, connection_type: str | None) -> str:
         """Get the left-edge stripe color for a dataset connection type.
@@ -261,14 +311,14 @@ class DataikuTheme:
         case-insensitive scan, then to the ``"default"`` value.
         """
         if not connection_type:
-            return self.connection_stripes.get("default", "#90a4ae")
+            return self.connection_stripes.get("default", "#94a3b8")
         if connection_type in self.connection_stripes:
             return self.connection_stripes[connection_type]
         lc = connection_type.lower()
         for k, v in self.connection_stripes.items():
             if k.lower() == lc:
                 return v
-        return self.connection_stripes.get("default", "#90a4ae")
+        return self.connection_stripes.get("default", "#94a3b8")
 
 
 # Predefined themes
@@ -276,10 +326,10 @@ DATAIKU_LIGHT = DataikuTheme(name="dataiku-light")
 
 
 # Dark-mode palette: same hues, slightly desaturated, dark background. Recipe
-# fills are kept saturated so the family color is still recognizable.
-_RECIPE_PALETTE_DARK = {
-    k: (v[0], v[1], v[2]) for k, v in _RECIPE_PALETTE_LIGHT.items()
-}
+# fills are kept saturated so the family color is still recognizable. (The
+# Sprint-6 palette uses identical fill/stroke/icon for light + dark; the dark
+# treatment differs only in the surrounding chrome.)
+_RECIPE_PALETTE_DARK = dict(_RECIPE_PALETTE_LIGHT)
 
 DATAIKU_DARK = DataikuTheme(
     name="dataiku-dark",

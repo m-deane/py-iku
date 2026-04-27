@@ -53,6 +53,6 @@ describe("token loaders", () => {
   it("loadTokens exposes raw tokens", () => {
     const t = loadTokens();
     expect(t.raw.color.recipe["PREPARE"]).toBeDefined();
-    expect(t.raw.space.layerSpacing).toBe(180);
+    expect(t.raw.space.layerSpacing).toBe(220);
   });
 });

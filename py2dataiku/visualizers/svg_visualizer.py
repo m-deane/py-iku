@@ -15,11 +15,12 @@ from xml.sax.saxutils import escape as _xml_escape
 from py2dataiku.visualizers.base import FlowVisualizer
 from py2dataiku.visualizers.icons import RecipeIcons
 from py2dataiku.visualizers.layout_engine import LayoutEngine, NodePosition
-from py2dataiku.visualizers.themes import DataikuTheme
+from py2dataiku.visualizers.themes import DATAIKU_LIGHT, DataikuTheme
 
-# Zone styling colors (kept inline for backward compat with existing tests)
-ZONE_FILLS = ["#E3F2FD", "#F3E5F5", "#E8F5E9", "#FFF3E0", "#FCE4EC", "#E0F7FA", "#FFF8E1", "#EFEBE9"]
-ZONE_BORDERS = ["#90CAF9", "#CE93D8", "#A5D6A7", "#FFCC80", "#F48FB1", "#80DEEA", "#FFD54F", "#BCAAA4"]
+# Zone styling colors — sourced from the canonical theme so SVG, matplotlib,
+# and React stay in lockstep (Sprint-7 single-source-of-truth refactor).
+ZONE_FILLS = list(DATAIKU_LIGHT.zone_colors)
+ZONE_BORDERS = list(DATAIKU_LIGHT.zone_border_colors)
 
 
 class SVGVisualizer(FlowVisualizer):

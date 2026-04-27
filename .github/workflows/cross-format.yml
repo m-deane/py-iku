@@ -1,0 +1,66 @@
+name: Cross-format Consistency
+
+# Runs the static-format cross-format consistency test + the palette-drift
+# SHIM on every PR and push to main. These tests are pure-Python and don't
+# need a browser, so this job is fast and a good gate for visual-token
+# regressions before the heavier Playwright suite runs.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  cross-format:
+    name: Cross-format + palette-drift (Python)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python deps
+        run: pip install -e ".[dev]"
+
+      - name: Cross-format consistency test
+        run: |
+          pytest tests/test_py2dataiku/test_visualizers_pkg/test_cross_format_consistency.py \
+            -v --tb=short
+
+      - name: Palette-drift prevention (SHIM until Std-A consolidation lands)
+        run: |
+          pytest tests/test_py2dataiku/test_visualizers_pkg/test_palette_drift.py \
+            -v --tb=short
+
+      - name: Sprint-6 byte-level snapshot tests
+        run: |
+          pytest tests/test_py2dataiku/test_visualizers_pkg/test_sprint6_snapshots.py \
+            -v --tb=short
+
+  flow-viz-unit:
+    name: flow-viz unit (jsdom)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Run sprint6-canvas unit test
+        run: |
+          pnpm --filter @py-iku-studio/flow-viz exec vitest run \
+            tests/sprint6-canvas.test.tsx

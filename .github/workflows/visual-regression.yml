@@ -1,0 +1,85 @@
+name: Visual Regression
+
+# Verify-only run of the apps/web Playwright visual project on every PR and
+# push to main. Re-baselining is intentionally NOT performed in CI; the
+# baselines are committed to the repo and regenerated locally with
+# `pnpm --filter apps-web test:visual:update` whenever a visual change is
+# intended.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  visual:
+    name: Visual regression (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.dir }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Node dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Install Python deps (API needed for the dev server)
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api[dev]"
+
+      - name: Install Playwright browsers
+        run: pnpm --filter apps-web exec playwright install --with-deps chromium
+
+      - name: Run visual project (verify; no --update-snapshots)
+        env:
+          CI: "true"
+          PYTHONPATH: ${{ github.workspace }}
+        # We bring up api+web via the same script the e2e job uses; the visual
+        # project then runs against the live dev server. NEVER pass
+        # --update-snapshots in CI — that would silently mask regressions.
+        run: bash scripts/e2e.sh --project=visual
+
+      - name: Upload Playwright report on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+      - name: Upload visual diff results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-diff-output
+          path: apps/web/test-results/
+          retention-days: 14

@@ -426,6 +426,27 @@ with open("docs/textbook/assets/visual-aids/fixture-flow-dark.svg", "w") as f:
 
 The default `to_svg()` path uses `DATAIKU_LIGHT`; pass a theme through `SVGVisualizer(theme=...)` to override. The matplotlib (PNG) path takes a `theme=` kwarg on `flow.visualize(format="png", theme=...)`.
 
+## DSS visual fidelity (sprint 6)
+
+The static visualizers were upgraded to mimic the real Dataiku DSS flow view, not just present the same information. Three things changed and they are visible in every output above:
+
+- **Recipe nodes are solid colored circles** (no longer rounded rectangles). Each recipe-type family has a fixed hue: blue for PREPARE / SPLIT / FILTER, orange for JOIN / SPARK, green for GROUPING, purple for WINDOW, gold for ML scoring, dark slate for PYTHON / SHELL, gray for SORT / DISTINCT / SAMPLING. The full mapping lives in `themes.recipe_palette` and is the single source of truth across SVG, PNG, PDF, HTML, Mermaid, and PlantUML.
+- **Datasets carry a connection-type stripe** on their left edge: green = filesystem, blue = SQL warehouse (Postgres / Snowflake / BigQuery / Redshift / MySQL), orange = blob storage (S3 / GCS / Azure / HDFS), purple = NoSQL (Mongo / Cassandra / DynamoDB), yellow = HTTP / API, red = inline. The mapping is `themes.connection_stripes` and is keyed by the values of `DatasetConnectionType`.
+- **Recipe icons are real glyphs**: the gear for PREPARE, the bowtie ⋈ for JOIN, the Σ for GROUPING, the ↑ for SORT, the funnel for FILTER, the lightning bolt for Spark variants, the snake for Python, the database cylinder for SQL — 25+ recipe types covered. The icons are inline SVG paths in `RecipeIcons.SVG_PATHS` (24×24 viewBox) and are rasterized at 96px for the matplotlib PNG / PDF renderers when `cairosvg` is available; otherwise the renderers fall back to a single-character Unicode glyph from `RecipeIcons.GLYPHS`.
+
+The Mermaid renderer emits a `classDef` per recipe-type family so users can theme the output further:
+
+```mermaid
+classDef joinRecipe fill:#f29222,stroke:#c4761a,color:#ffffff,stroke-width:2px;
+classDef groupingRecipe fill:#75bb6a,stroke:#5a9151,color:#ffffff,stroke-width:2px;
+class join_2 joinRecipe;
+class grouping_3 groupingRecipe;
+```
+
+The PlantUML renderer emits one `BackgroundColor<<recipe_type>>` skinparam per palette entry, so every recipe type has a stable stereotype.
+
+The default layout is **left-to-right** (200 px between columns, 100 px between rows) to match DSS. Pass `layer_spacing=` and `node_spacing=` to `LayoutEngine` if you need tighter or looser packing.
+
 ## Jupyter integration
 
 Three repr hooks on `DataikuFlow` cover the three notebook frontends in common use. None of them require an explicit `flow.visualize(...)` call — typing `flow` at the end of a cell is enough.

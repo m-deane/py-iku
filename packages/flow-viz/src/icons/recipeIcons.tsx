@@ -9,11 +9,20 @@
  * icon here. Where an existing glyph in `nodes/glyphs.tsx` already nailed
  * the DSS treatment we re-use it; the rest are new in this file so the
  * Studio canvas reads as DSS at a glance.
+ *
+ * Sprint-7: this file also exposes `recipePathFor()`, `recipeLabelFor()` and
+ * `recipeGlyphFor()` which read from the canonical
+ * `docs/design/recipe-icons.json` catalog — the same JSON that
+ * `py2dataiku/visualizers/icons.py` consumes. The JSX components above
+ * remain hand-rolled (DSS-style multi-shape glyphs) because the JSON path
+ * data is a flat single-color 24x24 description; canvas consumers wanting
+ * the JSON path strings should call `recipePathFor()` directly.
  */
 
 import type { JSX } from "react";
 import type { RecipeType } from "../types";
 import { getSvgGlyph as getLegacyGlyph } from "../nodes/glyphs";
+import iconCatalog from "../../../../docs/design/recipe-icons.json";
 
 export interface RecipeIconProps {
   color: string;
@@ -203,6 +212,64 @@ export function recipeIconFor(
 
 /** Recipe types we ship a dedicated DSS-style icon for at the new layer. */
 export const RECIPE_ICON_TYPES: readonly string[] = Object.keys(NEW_ICONS);
+
+/* -------------------------------------------------------------------------
+ * Sprint-7 — JSON-backed icon catalog (shared with Python via
+ * `docs/design/recipe-icons.json`).
+ * ----------------------------------------------------------------------- */
+
+interface IconEntry {
+  path: string;
+  glyph: string;
+  label: string;
+  unicode: string;
+  ascii: string;
+}
+
+/** Phantom-name aliases, kept in lock-step with `_ICON_ALIASES` in Python. */
+const ICON_ALIAS_TO_CANONICAL: Record<string, string> = {
+  fuzzyjoin: "fuzzy_join",
+  geojoin: "geo_join",
+  topn: "top_n",
+  sample: "sampling",
+  sql_script: "sql",
+  spark_sql_query: "sparksql",
+  standalone_evaluation: "evaluation",
+};
+
+const _CATALOG = iconCatalog as unknown as Record<string, IconEntry | string>;
+
+function _lookupEntry(recipeType: RecipeType | string): IconEntry | null {
+  const normalized = String(recipeType).toLowerCase().replace(/\s+/g, "_");
+  const canonical = ICON_ALIAS_TO_CANONICAL[normalized] ?? normalized;
+  const entry = _CATALOG[canonical];
+  if (entry && typeof entry === "object") return entry as IconEntry;
+  return null;
+}
+
+/** Read the canonical 24x24 SVG path string from the shared icon catalog. */
+export function recipePathFor(recipeType: RecipeType | string): string {
+  const entry = _lookupEntry(recipeType);
+  if (entry) return entry.path;
+  const fallback = _CATALOG["default"];
+  return typeof fallback === "object" ? (fallback as IconEntry).path : "";
+}
+
+/** Read the canonical text label from the shared icon catalog. */
+export function recipeLabelFor(recipeType: RecipeType | string): string {
+  const entry = _lookupEntry(recipeType);
+  if (entry) return entry.label;
+  const fallback = _CATALOG["default"];
+  return typeof fallback === "object" ? (fallback as IconEntry).label : "";
+}
+
+/** Read the canonical single-character glyph from the shared icon catalog. */
+export function recipeGlyphFor(recipeType: RecipeType | string): string {
+  const entry = _lookupEntry(recipeType);
+  if (entry) return entry.glyph;
+  const fallback = _CATALOG["default"];
+  return typeof fallback === "object" ? (fallback as IconEntry).glyph : "";
+}
 
 /**
  * The full set of RecipeType members the icon library can resolve via

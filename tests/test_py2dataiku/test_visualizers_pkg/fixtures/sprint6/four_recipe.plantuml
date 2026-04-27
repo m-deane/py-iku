@@ -34,18 +34,18 @@ skinparam card {
   BackgroundColor<<join>> #f29222
   BorderColor<<join>> #c4761a
   FontColor<<join>> #ffffff
-  BackgroundColor<<fuzzyjoin>> #f0a040
-  BorderColor<<fuzzyjoin>> #c47e2a
-  FontColor<<fuzzyjoin>> #ffffff
   BackgroundColor<<fuzzy_join>> #f0a040
   BorderColor<<fuzzy_join>> #c47e2a
   FontColor<<fuzzy_join>> #ffffff
-  BackgroundColor<<geojoin>> #e67e22
-  BorderColor<<geojoin>> #b8631a
-  FontColor<<geojoin>> #ffffff
+  BackgroundColor<<fuzzyjoin>> #f0a040
+  BorderColor<<fuzzyjoin>> #c47e2a
+  FontColor<<fuzzyjoin>> #ffffff
   BackgroundColor<<geo_join>> #e67e22
   BorderColor<<geo_join>> #b8631a
   FontColor<<geo_join>> #ffffff
+  BackgroundColor<<geojoin>> #e67e22
+  BorderColor<<geojoin>> #b8631a
+  FontColor<<geojoin>> #ffffff
   BackgroundColor<<stack>> #3498db
   BorderColor<<stack>> #2778b3
   FontColor<<stack>> #ffffff
@@ -161,7 +161,7 @@ skinparam card {
 
 ' Arrow style
 skinparam arrow {
-  Color #90A4AE
+  Color #94a3b8
   Thickness 1.5
 }
 

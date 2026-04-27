@@ -157,44 +157,12 @@
   --typography-fontfamily-mono: var(--font-mono);
 
   /* ------------------------------------------------------------------ */
-  /* Sprint-6 — DSS-style flow canvas tokens                            */
-  /*                                                                    */
-  /* Recipe family palettes (light) — values mirror real Dataiku DSS    */
-  /* hues. These resolve via `getRecipeColor()` token JSON for the      */
-  /* circle fill / border / glyph color; they are surfaced here as CSS  */
-  /* variables so consumers can theme the toolbar / hover states using  */
-  /* the same family palette without duplicating hex values.            */
+  /* Sprint-7 — DSS flow-canvas tokens migrated to docs/design/         */
+  /* tokens.json. The variables                                         */
+  /*   --recipe-<type>, --dataset-stripe-<family>, --edge-stroke        */
+  /* are now emitted by sync-tokens.ts into tokens.css from the         */
+  /* canonical `flow.*` block. Do not redefine them here.               */
   /* ------------------------------------------------------------------ */
-  --recipe-prepare: #2c8fd9;
-  --recipe-join: #f29222;
-  --recipe-fuzzy-join: #f5b061;
-  --recipe-grouping: #75bb6a;
-  --recipe-window: #9b59b6;
-  --recipe-sort: #7f8c8d;
-  --recipe-distinct: #7f8c8d;
-  --recipe-top-n: #7f8c8d;
-  --recipe-sampling: #7f8c8d;
-  --recipe-stack: #3498db;
-  --recipe-split: #2c8fd9;
-  --recipe-pivot: #16a085;
-  --recipe-sync: #5d6d7e;
-  --recipe-python: #2d3e50;
-  --recipe-sql: #1e4a72;
-  --recipe-pyspark: #e67e22;
-  --recipe-statistics: #00bcd4;
-
-  /* Dataset stripe colors — left-edge stripe encodes the connection   */
-  /* family per real DSS conventions.                                    */
-  --dataset-stripe-filesystem: #75bb6a;
-  --dataset-stripe-sql: #2c8fd9;
-  --dataset-stripe-cloud: #f29222;
-  --dataset-stripe-inline: #e74c3c;
-  --dataset-stripe-nosql: #9b59b6;
-  --dataset-stripe-http: #f1c40f;
-  --dataset-stripe-default: #94a3b8;
-
-  /* Edge stroke color (gray, 1.5px default). */
-  --edge-stroke: #94a3b8;
 }
 
 /* ====================================================================== */
