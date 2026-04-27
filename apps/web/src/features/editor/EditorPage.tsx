@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { RecentsRail } from "../../components/RecentsRail";
+import { TabStrip } from "../../components/TabStrip";
+import { useSettingsStore } from "../../state/settingsStore";
 
 /**
  * Standalone editor entry. The full editor experience currently lives inside
@@ -8,9 +10,11 @@ import { RecentsRail } from "../../components/RecentsRail";
  * full extraction to a dedicated PR.
  *
  * For now this page renders the Recents/Pinned rail next to a CTA that
- * routes the user into Convert with their picked source pre-loaded.
+ * routes the user into Convert with their picked source pre-loaded. Sprint 4
+ * adds the tab strip when the multi-tab flag is on.
  */
 export function EditorPage(): JSX.Element {
+  const multiTabEnabled = useSettingsStore((s) => s.multiTabEnabled);
   return (
     <div style={{ display: "flex", height: "100%", minHeight: "60vh" }}>
       <RecentsRail navigateTo="/convert" />
@@ -23,6 +27,7 @@ export function EditorPage(): JSX.Element {
           gap: "var(--space-4, 16px)",
         }}
       >
+        {multiTabEnabled ? <TabStrip /> : null}
         <h1 style={{ margin: 0, fontSize: "var(--text-2xl, 28px)" }}>Editor</h1>
         <p style={{ color: "var(--fg-muted, #5b6470)", margin: 0, maxWidth: 640 }}>
           Pick a flow from the rail to load it into the editor, or jump

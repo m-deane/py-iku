@@ -9,6 +9,11 @@ import {
 } from "../features/command-palette";
 import { useCommandPaletteStore } from "../store/commandPalette";
 import { useUiStore } from "../state/uiStore";
+import { useSettingsStore } from "../state/settingsStore";
+import { useTabHotkeys } from "../store/useTabHotkeys";
+import { ShareUrlButton, useShareUrlBoot } from "./ShareUrlButton";
+import { ChatDrawer, useChatStore } from "../features/chat";
+import { CostMeterWidget } from "../features/cost-meter/CostMeterWidget";
 import styles from "./AppLayout.module.css";
 
 export interface AppLayoutProps {
@@ -53,6 +58,8 @@ const NAV_CLUSTERS: NavCluster[] = [
       { to: "/catalog", label: "Catalog" },
       { to: "/snippets", label: "Snippets" },
       { to: "/templates", label: "Templates" },
+      { to: "/grel", label: "GREL Formulas" },
+      { to: "/lmp", label: "LMP Nodes" },
     ],
   },
   {
@@ -60,6 +67,7 @@ const NAV_CLUSTERS: NavCluster[] = [
     title: "Lifecycle",
     items: [
       { to: "/diff", label: "Diff" },
+      { to: "/diff/curves", label: "Curve Diff" },
       { to: "/validation", label: "Validation" },
       { to: "/export", label: "Export" },
       { to: "/deploy", label: "Deploy" },
@@ -70,16 +78,26 @@ const NAV_CLUSTERS: NavCluster[] = [
   {
     id: "account",
     title: "Account",
-    items: [{ to: "/settings", label: "Settings" }],
+    items: [
+      { to: "/settings", label: "Settings" },
+      { to: "/llm-history", label: "LLM history" },
+    ],
   },
 ];
 
 export function AppLayout({ children }: AppLayoutProps): JSX.Element {
   const openSettings = useUiStore((s) => s.openSettingsDrawer);
   const openPalette = useCommandPaletteStore((s) => s.open);
+  const multiTabEnabled = useSettingsStore((s) => s.multiTabEnabled);
   // Mount the global Cmd+K listener once at the shell level. Every route
   // sits below this so the shortcut works everywhere.
   useCommandPaletteHotkey();
+  // Sprint 4 — gate Cmd+T/W/1..8 behind the multi-tab flag so users on the
+  // legacy single-tab UI keep their browser-native behaviour intact.
+  useTabHotkeys(multiTabEnabled);
+  // Sprint 4 — restore tabs/theme/panels from `#state=...` if a colleague
+  // pasted a share URL.
+  useShareUrlBoot();
 
   return (
     <div className={styles.shell}>
@@ -122,6 +140,7 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
 
       <header className={styles.header}>
         <div className={styles.headerActions}>
+          <CostMeterWidget />
           <button
             type="button"
             data-testid="command-palette-open-trigger"
@@ -133,6 +152,17 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
             ⌕
           </button>
           <ThemeToggle />
+          <ShareUrlButton />
+          <button
+            type="button"
+            data-testid="chat-open-trigger"
+            onClick={() => useChatStore.getState().toggleOpen()}
+            aria-label="Open chat with flow (Cmd+I)"
+            title="Chat with flow · Cmd+I"
+            className={styles.iconBtn}
+          >
+            💬
+          </button>
           <button
             type="button"
             data-testid="settings-open-trigger"
@@ -152,6 +182,7 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
 
       <SettingsDrawer />
       <CommandPalette />
+      <ChatDrawer />
     </div>
   );
 }

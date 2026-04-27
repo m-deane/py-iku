@@ -17,6 +17,10 @@ import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
 import { useRecentsStore, deriveFlowName } from "../../store/recents";
+import { useTabsStore } from "../../store/tabs";
+import { useReplayStore } from "../../store/replay";
+import { TabStrip } from "../../components/TabStrip";
+import { ReplayTimeline } from "../../components/ReplayTimeline";
 import {
   useConvertStream,
   type ConvertPhase,
@@ -53,8 +57,37 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const apiKeyAlias = useSettingsStore((s) => s.apiKeyAlias);
   const provider = useSettingsStore((s) => s.llmProvider);
   const model = useSettingsStore((s) => s.llmModel);
+  const multiTabEnabled = useSettingsStore((s) => s.multiTabEnabled);
   const openSettings = useUiStore((s) => s.openSettingsDrawer);
   const addRecent = useRecentsStore((s) => s.addRecent);
+  // Sprint 4 — tabs + replay history. Tabs are read-only here when the flag
+  // is off (the strip never renders). When on, we mirror the active tab's
+  // code into `flowStore` so the rest of the page (which reads `code` from
+  // `flowStore`) keeps working without rewiring every selector.
+  const activeTabId = useTabsStore((s) => s.activeTabId);
+  const activeTab = useTabsStore((s) =>
+    s.tabs.find((t) => t.id === s.activeTabId),
+  );
+  const updateTab = useTabsStore((s) => s.updateTab);
+  const recordRun = useReplayStore((s) => s.recordRun);
+
+  // Mirror tab → flowStore on tab switch so the editor and panels redraw
+  // with the new tab's contents. We only run this when the flag is on.
+  useEffect(() => {
+    if (!multiTabEnabled || !activeTab) return;
+    setCurrentCode(activeTab.code);
+    setMode(activeTab.mode);
+    if (activeTab.lastFlow) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setFlow(activeTab.lastFlow as any);
+    } else {
+      setFlow(null);
+    }
+    // We deliberately depend on `activeTabId`, not `activeTab` — switching
+    // tabs is the trigger; subsequent edits within the same tab should NOT
+    // round-trip through this effect (that would loop with `setCurrentCode`).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabId, multiTabEnabled]);
 
   /**
    * Push a successful conversion onto the Recents rail.
@@ -133,6 +166,22 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
       setFlow(stream.flow as any);
       setStatus("done");
       recordRecent(code, stream.flow);
+      // Capture the successful run on the replay timeline + tab.
+      recordRun({
+        source: code,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        flow: stream.flow as any,
+        mode,
+        provider: mode === "llm" ? provider : undefined,
+        model: mode === "llm" ? model : undefined,
+        status: "success",
+        recipeCount: fakeResp.score.recipe_count ?? 0,
+        complexity: fakeResp.score.complexity ?? 0,
+      });
+      if (multiTabEnabled && activeTabId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        updateTab(activeTabId, { lastFlow: stream.flow as any, code });
+      }
       if (stream.warnings.length > 0) {
         toast.message(
           `Converted with ${stream.warnings.length} warning${
@@ -143,6 +192,18 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     } else if (stream.status === "error" && stream.error) {
       setError(stream.error);
       setStatus("error");
+      // Capture the failed run on the replay timeline.
+      recordRun({
+        source: code,
+        flow: null,
+        mode,
+        provider: mode === "llm" ? provider : undefined,
+        model: mode === "llm" ? model : undefined,
+        status: "error",
+        recipeCount: 0,
+        complexity: 0,
+        errorTitle: stream.error.title,
+      });
       toast.error(stream.error.title, {
         description: stream.error.detail ?? stream.error.title,
       });
@@ -183,6 +244,22 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         setFlow(result.flow as any);
         setStatus("done");
         recordRecent(code, result.flow);
+        recordRun({
+          source: code,
+          flow: result.flow as Record<string, unknown>,
+          mode,
+          provider: mode === "llm" ? provider : undefined,
+          model: mode === "llm" ? model : undefined,
+          status: "success",
+          recipeCount: result.score.recipe_count ?? 0,
+          complexity: result.score.complexity ?? 0,
+        });
+        if (multiTabEnabled && activeTabId) {
+          updateTab(activeTabId, {
+            lastFlow: result.flow as Record<string, unknown>,
+            code,
+          });
+        }
         if (result.warnings.length > 0) {
           toast.message(
             `Converted with ${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}`,
@@ -201,6 +278,17 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         const friendly = friendlyTitle(apiErr.status, apiErr.title);
         setError({ title: friendly, detail: apiErr.detail, status: apiErr.status });
         setStatus("error");
+        recordRun({
+          source: code,
+          flow: null,
+          mode,
+          provider: mode === "llm" ? provider : undefined,
+          model: mode === "llm" ? model : undefined,
+          status: "error",
+          recipeCount: 0,
+          complexity: 0,
+          errorTitle: friendly,
+        });
         toast.error(friendly, { description: apiErr.detail ?? apiErr.title });
       }
       return;
@@ -351,14 +439,23 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             onCancel={onCancel}
           />
         ) : null}
+        {multiTabEnabled ? <TabStrip /> : null}
         <MonacoEditor
           value={editorValue}
-          onChange={(v) => setCurrentCode(v)}
+          onChange={(v) => {
+            setCurrentCode(v);
+            // Mirror the edit into the active tab so a tab switch later
+            // restores the in-progress source verbatim.
+            if (multiTabEnabled && activeTabId) {
+              updateTab(activeTabId, { code: v });
+            }
+          }}
           fallbackTextarea={props.useFallbackEditor}
         />
         {showProgress ? (
           <ProgressLog events={progressList} />
         ) : null}
+        <ReplayTimeline />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -370,7 +467,15 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             flexWrap: "wrap",
           }}
         >
-          <ModeToggle mode={mode} onChange={setMode} />
+          <ModeToggle
+            mode={mode}
+            onChange={(m) => {
+              setMode(m);
+              if (multiTabEnabled && activeTabId) {
+                updateTab(activeTabId, { mode: m });
+              }
+            }}
+          />
           <button
             type="button"
             data-testid="convert-submit"

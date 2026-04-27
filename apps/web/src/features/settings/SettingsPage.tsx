@@ -1,5 +1,6 @@
 import { useSettingsStore, type LlmProvider } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
+import { BudgetSettingsCard } from "../cost-meter/BudgetSettingsCard";
 
 /**
  * Full Settings surface. The gear-drawer (`SettingsDrawer`) stays for in-flow
@@ -116,14 +117,7 @@ export function SettingsPage(): JSX.Element {
         </Row>
       </Card>
 
-      <Card title="Budget alerts" description="LLM spend caps. Wiring lands in a follow-up sprint.">
-        <Row label="Monthly cap (USD)">
-          <input type="number" defaultValue={0} disabled aria-label="Monthly cap" />
-        </Row>
-        <Row label="Alert email">
-          <input type="email" placeholder="alerts@example.com" disabled aria-label="Alert email" />
-        </Row>
-      </Card>
+      <BudgetSettingsCard />
 
       <Card title="Telemetry" description="Anonymous usage events. No code or flow content is ever sent.">
         <Row label="Opt out">
@@ -139,6 +133,20 @@ export function SettingsPage(): JSX.Element {
           <label style={{ display: "inline-flex", gap: "var(--space-2, 8px)" }}>
             <input type="checkbox" defaultChecked disabled aria-label="Streaming flag" />
             <span style={{ color: "var(--fg-muted, #5b6470)" }}>Enabled</span>
+          </label>
+        </Row>
+        <Row label="Multi-tab workspace">
+          <label style={{ display: "inline-flex", gap: "var(--space-2, 8px)" }}>
+            <input
+              type="checkbox"
+              checked={settings.multiTabEnabled}
+              onChange={(e) => settings.setMultiTabEnabled(e.target.checked)}
+              aria-label="Multi-tab workspace"
+              data-testid="settings-multi-tab-toggle"
+            />
+            <span style={{ color: "var(--fg-muted, #5b6470)" }}>
+              Enable Cmd+T tabs on Convert/Editor (up to 8 tabs).
+            </span>
           </label>
         </Row>
       </Card>

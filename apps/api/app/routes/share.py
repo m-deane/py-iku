@@ -18,11 +18,13 @@ import time
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from ..deps import Settings, get_flows_repo, get_settings
 from ..schemas.flows import SavedFlowResponse
 from ..security.share_links import InvalidShareToken
 from ..security.share_links import verify as verify_share_token
+from ..services.share_service import build_share_bundle, fixture_preview
 from ..store import FlowsRepo
 
 logger = logging.getLogger(__name__)
@@ -186,3 +188,52 @@ def get_share(
         updated_at=record.updated_at,
         tags=list(record.tags),
     )
+
+
+# ---------------------------------------------------------------------------
+# Fixture-data preview + bundle endpoints
+# ---------------------------------------------------------------------------
+
+
+class FixturePreviewRequest(BaseModel):
+    """Body for ``POST /share/fixtures/preview`` — accepts a flow inline."""
+
+    flow: dict[str, object]
+    n_rows: int = Field(default=5, ge=0, le=25)
+
+
+@router.post(
+    "/share/fixtures/preview",
+    summary="Preview fixture rows for a flow's input datasets",
+)
+def post_fixture_preview(body: FixturePreviewRequest) -> dict[str, object]:
+    """Return a preview pane payload — each input dataset + a small row sample.
+
+    Used by the Share modal's "Include fixture data" checkbox to populate
+    the preview pane on the right.  Backend-only generation keeps the
+    synthesizer code off the wire and ensures determinism.
+    """
+    return fixture_preview(body.flow, n_rows=body.n_rows)
+
+
+class FixtureBundleRequest(BaseModel):
+    """Body for ``POST /share/fixtures/bundle`` — full bundle for a flow."""
+
+    flow: dict[str, object]
+    n_rows: int = Field(default=100, ge=0, le=100)
+
+
+@router.post(
+    "/share/fixtures/bundle",
+    summary="Generate a full fixture-data bundle for a flow (up to 100 rows/input)",
+)
+def post_fixture_bundle(body: FixtureBundleRequest) -> dict[str, object]:
+    """Return the full ``{n_rows, datasets: {name: [rows]}}`` bundle.
+
+    The bundle is suitable for embedding in a self-contained share payload
+    or attaching as part of a downloadable archive.  The recipient can
+    replay the flow against the embedded rows without sourcing the data
+    themselves.
+    """
+    bundle = build_share_bundle(body.flow, n_rows=body.n_rows)
+    return dict(bundle)

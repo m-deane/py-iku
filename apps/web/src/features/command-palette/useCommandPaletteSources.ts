@@ -10,8 +10,19 @@ import {
 import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useRecentsStore } from "../../store/recents";
+import { useTabsStore, MAX_TABS } from "../../store/tabs";
+import { useCopyShareUrl } from "../../components/ShareUrlButton";
+import { useChatStore } from "../chat/chatStore";
 import { SNIPPETS } from "../snippets/snippets";
 import { TEMPLATES } from "../templates/templates-data";
+import {
+  buildInsertSnippet,
+  GREL_FORMULAS,
+} from "../grel-library/formulas-data";
+import {
+  buildNodeSnippet,
+  LMP_NODES,
+} from "../lmp-browser/lmp-data";
 import type { ArgChoice, PaletteItem } from "./types";
 
 const GLOSSARY_URL =
@@ -137,6 +148,9 @@ export function useCommandPaletteSources(
   const theme = useSettingsStore((s) => s.theme);
   const recents = useRecentsStore((s) => s.recents);
   const togglePin = useRecentsStore((s) => s.togglePin);
+  const newTab = useTabsStore((s) => s.newTab);
+  const tabsCount = useTabsStore((s) => s.tabs.length);
+  const copyShareUrl = useCopyShareUrl();
 
   const recipesQuery = useQuery<RecipeCatalogEntry[]>({
     queryKey: ["catalog", "recipes"],
@@ -274,6 +288,61 @@ export function useCommandPaletteSources(
         invoke: () => {
           onClose();
           navigate(`/templates?id=${encodeURIComponent(t.id)}`);
+        },
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // GREL formulas — pre-built crack/heat-rate/basis/freight library.
+    // Cmd+K, "crack" jumps straight to the formula preview modal.
+    // -----------------------------------------------------------------
+    for (const f of GREL_FORMULAS) {
+      out.push({
+        id: `grel:${f.id}`,
+        section: "GREL Formulas",
+        primary: f.name,
+        secondary: `${f.category} • ${f.relatedInstruments.join(", ")} • ${f.unit}`,
+        icon: "ƒ",
+        keywords: [
+          f.id,
+          f.category,
+          f.name,
+          ...f.relatedInstruments,
+          f.unit,
+          f.grel,
+        ],
+        description: f.description,
+        previewSource: buildInsertSnippet(f),
+        invoke: () => {
+          onClose();
+          navigate(`/grel?id=${encodeURIComponent(f.id)}`);
+        },
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // LMP nodes — six-ISO settlement-point catalog.
+    // Cmd+K, "PJM-W" surfaces the Western Hub row.
+    // -----------------------------------------------------------------
+    for (const n of LMP_NODES) {
+      out.push({
+        id: `lmp:${n.iso}-${n.node_id}`,
+        section: "LMP Nodes",
+        primary: `${n.iso} · ${n.node_name}`,
+        secondary: `${n.zone} • ${n.region}${n.voltage_kv ? ` • ${n.voltage_kv} kV` : ""}`,
+        icon: "⌁",
+        keywords: [
+          n.iso,
+          n.node_id,
+          n.node_name,
+          n.zone,
+          n.region,
+        ],
+        description: `${n.iso} settlement-point lookup for ${n.node_name}.`,
+        previewSource: buildNodeSnippet(n),
+        invoke: () => {
+          onClose();
+          navigate("/lmp");
         },
       });
     }
@@ -502,6 +571,82 @@ export function useCommandPaletteSources(
         },
       },
       {
+        id: "action:open-curve-diff",
+        section: "Actions",
+        primary: "Open Curve Diff",
+        secondary: "Compare two counterparty forward curves tenor-by-tenor",
+        icon: "▶",
+        keywords: ["curve", "diff", "forward", "counterparty", "tenor"],
+        description:
+          "Open the Counterparty Curve Diff view — side-by-side tenor table with abs/% deltas and threshold highlighting.",
+        invoke: () => {
+          onClose();
+          navigate("/diff/curves");
+        },
+      },
+      {
+        id: "action:open-grel-library",
+        section: "Actions",
+        primary: "Open GREL Formula Library",
+        secondary: "Pre-built crack-spread / heat-rate / basis formulas",
+        icon: "▶",
+        keywords: [
+          "grel",
+          "formula",
+          "crack",
+          "heat",
+          "basis",
+          "freight",
+          "library",
+        ],
+        description:
+          "Open the GREL formula library — crack spreads, heat rates, basis trades, freight netbacks.",
+        invoke: () => {
+          onClose();
+          navigate("/grel");
+        },
+      },
+      {
+        id: "action:open-lmp-browser",
+        section: "Actions",
+        primary: "Open LMP Node Browser",
+        secondary: "PJM, ERCOT, MISO, CAISO, NYISO, ISO-NE settlement points",
+        icon: "▶",
+        keywords: [
+          "lmp",
+          "iso",
+          "rto",
+          "node",
+          "pjm",
+          "ercot",
+          "miso",
+          "caiso",
+          "nyiso",
+          "isone",
+          "settlement",
+        ],
+        description:
+          "Open the ISO/RTO LMP node browser — six markets, ten nodes each.",
+        invoke: () => {
+          onClose();
+          navigate("/lmp");
+        },
+      },
+      {
+        id: "action:open-deploy",
+        section: "Actions",
+        primary: "Open Deploy",
+        secondary: "Settle-window-aware deploy gate",
+        icon: "▶",
+        keywords: ["deploy", "settle", "window", "venue", "calendar"],
+        description:
+          "Open the Deploy page — Deploy button is gated by major-venue settle windows.",
+        invoke: () => {
+          onClose();
+          navigate("/deploy");
+        },
+      },
+      {
         id: "action:open-audit",
         section: "Actions",
         primary: "Open Audit",
@@ -512,6 +657,38 @@ export function useCommandPaletteSources(
         invoke: () => {
           onClose();
           navigate("/audit");
+        },
+      },
+      {
+        id: "action:open-as-pr",
+        section: "Actions",
+        primary: "Open as PR",
+        secondary: hasFlow
+          ? "Push flow.json + SVG to GitHub and open a PR"
+          : "Convert a flow first",
+        icon: "▶",
+        keywords: ["github", "pr", "publish", "branch", "commit", "open"],
+        description:
+          "Open a GitHub PR with flow.json, flow.svg, and a README. Asks for a PAT — never logged.",
+        invoke: () => {
+          onClose();
+          navigate(hasFlow ? "/export?openPr=1" : "/convert");
+        },
+      },
+      {
+        id: "action:share-with-fixtures",
+        section: "Actions",
+        primary: "Share flow with fixture data",
+        secondary: hasFlow
+          ? "Embed up to 100 sample rows per input dataset"
+          : "Convert a flow first",
+        icon: "▶",
+        keywords: ["share", "fixture", "sample", "data", "embed"],
+        description:
+          "Open the Share modal with the 'Include fixture data' option pre-checked.",
+        invoke: () => {
+          onClose();
+          navigate(hasFlow ? "/convert?share=fixtures" : "/convert");
         },
       },
       {
@@ -526,6 +703,102 @@ export function useCommandPaletteSources(
         invoke: () => {
           onClose();
           navigate("/settings");
+        },
+      },
+      {
+        id: "action:open-chat",
+        section: "Actions",
+        primary: "Chat with flow",
+        secondary: "Ask the assistant about the active flow",
+        icon: "▶",
+        keywords: ["chat", "ask", "explain", "llm", "assistant", "flow"],
+        description:
+          "Toggle the right-side chat drawer (Cmd+I). Ask questions about the active flow's recipes.",
+        shortcut: "⌘ I",
+        invoke: () => {
+          onClose();
+          useChatStore.getState().toggleOpen();
+        },
+      },
+      {
+        id: "action:open-llm-history",
+        section: "Actions",
+        primary: "Open LLM history",
+        secondary: "Every LLM call recorded by Studio",
+        icon: "▶",
+        keywords: ["llm", "history", "spend", "cost", "audit", "prompt"],
+        description:
+          "Open the prompt-history page — provider/model/cost/status per call.",
+        invoke: () => {
+          onClose();
+          navigate("/llm-history");
+        },
+      },
+      {
+        id: "action:open-cost-meter",
+        section: "Actions",
+        primary: "Show cost meter",
+        secondary: "Today + month-to-date LLM spend",
+        icon: "▶",
+        keywords: ["cost", "meter", "spend", "budget", "money"],
+        description:
+          "Jump to the LLM history page; the cost meter widget is always visible in the gear bar.",
+        invoke: () => {
+          onClose();
+          navigate("/llm-history");
+        },
+      },
+      {
+        id: "action:new-tab",
+        section: "Actions",
+        primary: "New tab",
+        secondary:
+          tabsCount >= MAX_TABS
+            ? `Tab cap reached (${MAX_TABS})`
+            : `Create a new workspace tab (${tabsCount}/${MAX_TABS})`,
+        icon: "▶",
+        keywords: ["tab", "new", "workspace", "open"],
+        description:
+          "Create a new workspace tab. Each tab holds its own source code, last flow, and mode/provider settings.",
+        shortcut: "⌘ T",
+        invoke: () => {
+          onClose();
+          newTab();
+        },
+      },
+      {
+        id: "action:open-replay-timeline",
+        section: "Actions",
+        primary: "Open replay timeline",
+        secondary: "Scrub through recent conversion runs",
+        icon: "▶",
+        keywords: ["replay", "timeline", "history", "undo", "runs"],
+        description:
+          "Open the replay timeline at the bottom of the Convert page. Last 20 runs are captured automatically.",
+        invoke: () => {
+          onClose();
+          navigate("/convert");
+          // Defer scrolling so the route mounts first.
+          setTimeout(() => {
+            const el = document.querySelector('[data-testid="replay-timeline"], [data-testid="replay-timeline-empty"]');
+            if (el && "scrollIntoView" in el) {
+              (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          }, 50);
+        },
+      },
+      {
+        id: "action:copy-share-url",
+        section: "Actions",
+        primary: "Copy share URL",
+        secondary: "Encode workspace state into a paste-able URL",
+        icon: "▶",
+        keywords: ["share", "url", "link", "copy", "state"],
+        description:
+          "Copy a link with the full workspace state encoded in the URL hash. Falls back to the per-flow share token if the workspace exceeds 32KB.",
+        invoke: () => {
+          onClose();
+          void copyShareUrl();
         },
       },
       {
@@ -605,6 +878,9 @@ export function useCommandPaletteSources(
     onRunConvert,
     recents,
     togglePin,
+    newTab,
+    tabsCount,
+    copyShareUrl,
   ]);
 
   return {

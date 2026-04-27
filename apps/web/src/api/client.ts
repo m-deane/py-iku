@@ -246,6 +246,28 @@ export interface ListProcessorsOptions extends ClientOptions {
 }
 
 // ---------------------------------------------------------------------------
+// Market calendar — settle-window guard for the Deploy page
+// ---------------------------------------------------------------------------
+
+export interface MarketSession {
+  venue: string;
+  venue_name: string;
+  product: string;
+  timezone: string;
+  /** HH:MM venue-local close. */
+  close_time: string;
+  /** Half-window — Deploy is gated within +/- this many minutes of close. */
+  settle_window_minutes: number;
+  note: string;
+}
+
+export interface MarketCalendarResponse {
+  schedule_kind: "static-v1";
+  note: string;
+  sessions: MarketSession[];
+}
+
+// ---------------------------------------------------------------------------
 // Persistence + sharing + audit (M7)
 // ---------------------------------------------------------------------------
 
@@ -299,6 +321,84 @@ export interface ListAuditOptions extends ClientOptions {
   actor?: string;
   limit?: number;
   cursor?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Chat-with-flow + LLM history + budget (Sprint 4)
+// ---------------------------------------------------------------------------
+
+export interface ChatMessageWire {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+export interface ChatCitation {
+  recipe_id: string;
+  source_lines?: number[] | null;
+}
+
+export interface ChatRequest {
+  flow_json: Record<string, unknown>;
+  question: string;
+  history?: ChatMessageWire[];
+  pandas_source?: string;
+  flow_id?: string;
+  provider?: "anthropic" | "openai" | "mock";
+  model?: string;
+  stream?: boolean;
+}
+
+export interface ChatResponse {
+  answer: string;
+  citations: ChatCitation[];
+  model: string;
+  usage: { input_tokens?: number; output_tokens?: number };
+  cost_usd: number;
+}
+
+export interface LlmHistoryRecord {
+  ts: string;
+  mode: "rule" | "llm";
+  provider: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cost_usd: number;
+  status: "success" | "failure";
+  flow_id?: string | null;
+  error?: string | null;
+  feature: string;
+  request_id?: string | null;
+  extra?: Record<string, unknown>;
+}
+
+export interface LlmHistoryListResponse {
+  records: LlmHistoryRecord[];
+  next_cursor: string | null;
+}
+
+export interface ListLlmHistoryOptions extends ClientOptions {
+  provider?: string;
+  status?: "success" | "failure";
+  since?: string;
+  until?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface CostSummary {
+  today_usd: number;
+  month_usd: number;
+  budget: BudgetSettings;
+  over_threshold: boolean;
+  over_budget: boolean;
+  pct_of_monthly_cap: number;
+}
+
+export interface BudgetSettings {
+  monthly_cap_usd: number;
+  per_call_cap_usd: number;
+  alert_threshold_pct: number;
 }
 
 export type ExportFormat = "zip" | "json" | "yaml" | "svg" | "png" | "pdf";
@@ -474,8 +574,371 @@ export const client = {
     const path = qs ? `/audit?${qs}` : "/audit";
     return request<AuditListResponse>(path, { method: "GET" }, opts);
   },
+
+  // -------------------------------------------------------------------
+  // Chat-with-flow + LLM history (Sprint 4)
+  // -------------------------------------------------------------------
+  chat(req: ChatRequest, opts?: ClientOptions): Promise<ChatResponse> {
+    return request<ChatResponse>(
+      "/chat",
+      { method: "POST", body: JSON.stringify({ ...req, stream: false }) },
+      opts,
+    );
+  },
+  listLlmHistory(opts?: ListLlmHistoryOptions): Promise<LlmHistoryListResponse> {
+    const params = new URLSearchParams();
+    if (opts?.provider) params.set("provider", opts.provider);
+    if (opts?.status) params.set("status", opts.status);
+    if (opts?.since) params.set("since", opts.since);
+    if (opts?.until) params.set("until", opts.until);
+    if (typeof opts?.limit === "number") params.set("limit", String(opts.limit));
+    if (opts?.cursor) params.set("cursor", opts.cursor);
+    const qs = params.toString();
+    const path = qs ? `/llm-history?${qs}` : "/llm-history";
+    return request<LlmHistoryListResponse>(path, { method: "GET" }, opts);
+  },
+  getLlmCostSummary(opts?: ClientOptions): Promise<CostSummary> {
+    return request<CostSummary>("/llm-cost-summary", { method: "GET" }, opts);
+  },
+  getLlmBudget(opts?: ClientOptions): Promise<BudgetSettings> {
+    return request<BudgetSettings>("/llm-budget", { method: "GET" }, opts);
+  },
+  putLlmBudget(
+    body: BudgetSettings,
+    opts?: ClientOptions,
+  ): Promise<BudgetSettings> {
+    return request<BudgetSettings>(
+      "/llm-budget",
+      { method: "PUT", body: JSON.stringify(body) },
+      opts,
+    );
+  },
+  /** Sprint 4 — market calendar feeds the Deploy settle-window guard. */
+  getMarketCalendar(opts?: ClientOptions): Promise<MarketCalendarResponse> {
+    return request<MarketCalendarResponse>(
+      "/market-calendar",
+      { method: "GET" },
+      opts,
+    );
+  },
+  /**
+   * Sprint-4 governance: column-level lineage on an inline flow.
+   *
+   * Returns aliases (rename history), recipe edges that operate on / derive
+   * the column, and the leaf input/output datasets.
+   */
+  lineage(
+    flow: Record<string, unknown>,
+    column: string,
+    opts?: ClientOptions,
+  ): Promise<LineageResponse> {
+    return request<LineageResponse>(
+      "/flows/lineage",
+      { method: "POST", body: JSON.stringify({ flow, column }) },
+      opts,
+    );
+  },
+  /** Sprint-4 governance: lint a flow. */
+  lint(
+    flow: Record<string, unknown>,
+    opts?: ClientOptions,
+  ): Promise<LintResponse> {
+    return request<LintResponse>(
+      "/flows/lint",
+      { method: "POST", body: JSON.stringify({ flow }) },
+      opts,
+    );
+  },
+  /** Sprint-4 governance: apply a fixable lint rule. */
+  lintFix(
+    flow: Record<string, unknown>,
+    rule_id: string,
+    payload: Record<string, unknown>,
+    opts?: ClientOptions,
+  ): Promise<{ flow: Record<string, unknown> }> {
+    return request<{ flow: Record<string, unknown> }>(
+      "/flows/lint/fix",
+      { method: "POST", body: JSON.stringify({ flow, rule_id, payload }) },
+      opts,
+    );
+  },
+  /** Sprint-4 governance: schema-drift between two flow snapshots. */
+  schemaDrift(
+    prior: Record<string, unknown>,
+    next_: Record<string, unknown>,
+    opts?: ClientOptions,
+  ): Promise<SchemaDriftResponse> {
+    return request<SchemaDriftResponse>(
+      "/flows/schema-drift",
+      { method: "POST", body: JSON.stringify({ prior, next: next_ }) },
+      opts,
+    );
+  },
+  /**
+   * Sprint-4 governance: scaffold a pytest integration test from a flow.
+   * Returns a downloadable .py blob and filename.
+   */
+  async scaffoldTest(
+    body: ScaffoldTestRequest,
+    opts?: ClientOptions,
+  ): Promise<ExportResult> {
+    const baseUrl = (opts?.baseUrl ?? getBaseUrl(opts ?? {})).replace(/\/$/, "");
+    const url = `${baseUrl}/flows/scaffold-test`;
+    const fetchImpl = opts?.fetchImpl ?? fetch;
+    const requestId = uuid();
+    const headers = new Headers({
+      "X-Request-ID": requestId,
+      "Content-Type": "application/json",
+      Accept: "*/*",
+    });
+    if (opts?.authToken) headers.set("Authorization", `Bearer ${opts.authToken}`);
+
+    let response: Response;
+    try {
+      response = await fetchImpl(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      throw new ApiError(
+        { type: "about:blank", title: "Network error", status: 0, detail: message },
+        requestId,
+      );
+    }
+    if (!response.ok) {
+      let problem: ApiProblem = {
+        type: "about:blank",
+        title: response.statusText || "Request failed",
+        status: response.status,
+      };
+      try {
+        const data = (await response.json()) as Partial<ApiProblem>;
+        problem = {
+          type: data.type ?? problem.type,
+          title: data.title ?? problem.title,
+          status: data.status ?? response.status,
+          detail: data.detail,
+          ...data,
+        };
+      } catch {
+        /* keep default */
+      }
+      throw new ApiError(problem, requestId);
+    }
+    const blob = await response.blob();
+    const contentType = response.headers.get("content-type") ?? "text/x-python";
+    const filename = parseFilename(
+      response.headers.get("content-disposition"),
+      `test_flow_integration.py`,
+    );
+    return { blob, filename, contentType };
+  },
   /** Generic escape hatch for not-yet-typed endpoints (M5+ will expand). */
   request,
 };
 
 export type Client = typeof client;
+
+// ---------------------------------------------------------------------------
+// Sprint-4 governance types
+// ---------------------------------------------------------------------------
+
+export interface LineageEdge {
+  recipe_id: string;
+  input_dataset: string;
+  output_dataset: string;
+  kind: string;
+  details?: Record<string, unknown>;
+}
+
+export interface LineageResponse {
+  column: string;
+  aliases: string[];
+  input_datasets: string[];
+  output_datasets: string[];
+  edges: LineageEdge[];
+  recipes: string[];
+  available_columns: string[];
+}
+
+export interface LintEntry {
+  rule_id: string;
+  severity: "blocker" | "warning" | "info";
+  recipe_id: string | null;
+  message: string;
+  fix?: Record<string, unknown> | null;
+}
+
+export interface LintResponse {
+  lints: LintEntry[];
+  rule_catalog: { rule_id: string; severity: string; title: string }[];
+}
+
+export interface SchemaDriftRenamed {
+  from: string;
+  to: string;
+  type: string;
+}
+export interface SchemaDriftTypeChanged {
+  name: string;
+  from_type: string;
+  to_type: string;
+}
+export interface SchemaDriftPerDataset {
+  dataset: string;
+  added: { name: string; type: string }[];
+  removed: { name: string; type: string }[];
+  renamed: SchemaDriftRenamed[];
+  type_changed: SchemaDriftTypeChanged[];
+}
+
+export interface SchemaDriftResponse {
+  summary: {
+    datasets_added: number;
+    datasets_removed: number;
+    columns_added: number;
+    columns_removed: number;
+    columns_renamed: number;
+    columns_type_changed: number;
+    has_drift: boolean;
+  };
+  headline: string;
+  datasets_added: string[];
+  datasets_removed: string[];
+  per_dataset: SchemaDriftPerDataset[];
+}
+
+export interface ScaffoldTestRequest {
+  flow: Record<string, unknown>;
+  source: string;
+  flow_name?: string;
+  track_columns?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Wave 4D — Collaboration & lifecycle types
+// ---------------------------------------------------------------------------
+
+export interface Comment {
+  id: string;
+  flow_id: string;
+  recipe_id: string;
+  author: string;
+  body: string;
+  timestamp: string;
+  edited_at?: string | null;
+}
+
+export interface CommentListResponse {
+  comments: Comment[];
+}
+
+export interface CreateCommentRequest {
+  body: string;
+  author?: string;
+}
+
+export interface FixturePreviewDataset {
+  name: string;
+  columns: string[];
+  sample_rows: Array<Record<string, unknown>>;
+}
+
+export interface FixturePreviewResponse {
+  n_rows: number;
+  datasets: FixturePreviewDataset[];
+}
+
+export interface FixtureBundleResponse {
+  n_rows: number;
+  datasets: Record<string, Array<Record<string, unknown>>>;
+}
+
+export interface GithubPublishRequest {
+  pat: string;
+  repo: string;
+  base?: string;
+  branch: string;
+  flow_name: string;
+  pr_title: string;
+  pr_body?: string;
+  commit_message?: string;
+  flow_json: Record<string, unknown>;
+  flow_svg: string;
+}
+
+export interface GithubPublishResponse {
+  pr_url: string;
+  pr_number: number;
+  branch: string;
+  commit_sha: string;
+}
+
+export const collabClient = {
+  listComments(flowId: string, opts?: ClientOptions): Promise<CommentListResponse> {
+    return request<CommentListResponse>(
+      `/flows/${encodeURIComponent(flowId)}/comments`,
+      { method: "GET" },
+      opts,
+    );
+  },
+  postComment(
+    flowId: string,
+    recipeId: string,
+    body: CreateCommentRequest,
+    opts?: ClientOptions,
+  ): Promise<Comment> {
+    return request<Comment>(
+      `/flows/${encodeURIComponent(flowId)}/recipes/${encodeURIComponent(recipeId)}/comments`,
+      { method: "POST", body: JSON.stringify(body) },
+      opts,
+    );
+  },
+  deleteComment(
+    flowId: string,
+    commentId: string,
+    opts?: ClientOptions,
+  ): Promise<void> {
+    return request<void>(
+      `/flows/${encodeURIComponent(flowId)}/comments/${encodeURIComponent(commentId)}`,
+      { method: "DELETE" },
+      opts,
+    );
+  },
+  previewFixtures(
+    flow: Record<string, unknown>,
+    nRows = 5,
+    opts?: ClientOptions,
+  ): Promise<FixturePreviewResponse> {
+    return request<FixturePreviewResponse>(
+      "/share/fixtures/preview",
+      { method: "POST", body: JSON.stringify({ flow, n_rows: nRows }) },
+      opts,
+    );
+  },
+  bundleFixtures(
+    flow: Record<string, unknown>,
+    nRows = 100,
+    opts?: ClientOptions,
+  ): Promise<FixtureBundleResponse> {
+    return request<FixtureBundleResponse>(
+      "/share/fixtures/bundle",
+      { method: "POST", body: JSON.stringify({ flow, n_rows: nRows }) },
+      opts,
+    );
+  },
+  githubPublish(
+    body: GithubPublishRequest,
+    opts?: ClientOptions,
+  ): Promise<GithubPublishResponse> {
+    return request<GithubPublishResponse>(
+      "/github/publish",
+      { method: "POST", body: JSON.stringify(body) },
+      opts,
+    );
+  },
+};
+
+export type CollabClient = typeof collabClient;

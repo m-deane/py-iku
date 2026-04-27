@@ -11,6 +11,8 @@ from fastapi import Header, Request
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .services.cost_meter import CostMeter
+from .services.llm_audit import LlmAuditRepo
 from .store import AuditRepo, FlowsRepo
 
 
@@ -105,12 +107,28 @@ def get_audit_repo() -> AuditRepo:
     return AuditRepo(base_dir=settings.flows_dir)
 
 
+@lru_cache(maxsize=1)
+def get_llm_audit_repo() -> LlmAuditRepo:
+    """Return the singleton ``LlmAuditRepo`` rooted under ``settings.flows_dir``."""
+    settings = get_settings()
+    return LlmAuditRepo(base_dir=settings.flows_dir)
+
+
+@lru_cache(maxsize=1)
+def get_cost_meter() -> CostMeter:
+    """Return the singleton ``CostMeter`` for the current settings dir."""
+    settings = get_settings()
+    return CostMeter(base_dir=settings.flows_dir, audit=get_llm_audit_repo())
+
+
 def reset_repo_singletons() -> None:
     """Clear the cached repo singletons.  Used by the test suite to re-bind to
     a freshly created ``flows_dir`` per test.
     """
     get_flows_repo.cache_clear()
     get_audit_repo.cache_clear()
+    get_llm_audit_repo.cache_clear()
+    get_cost_meter.cache_clear()
 
 
 def get_request_id(x_request_id: Annotated[str | None, Header()] = None) -> str:

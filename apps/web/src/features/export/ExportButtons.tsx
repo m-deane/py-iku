@@ -14,6 +14,10 @@ export interface ExportButtonsProps {
   clientImpl?: typeof defaultClient;
   /** Test seam — override the post-download side-effect (e.g. toast/anchor). */
   onExported?: (format: ExportFormat, result: ExportResult) => void;
+  /** Original Python source — required to enable "Export as integration test". */
+  sourceCode?: string;
+  /** Optional column names to include in the scaffolder's lineage assertion. */
+  trackColumns?: string[];
 }
 
 function triggerDownload(blob: Blob, filename: string): void {
@@ -60,6 +64,33 @@ export function ExportButtons(props: ExportButtonsProps): JSX.Element {
     }
   };
 
+  const onScaffoldTest = async (): Promise<void> => {
+    if (!props.flow || !props.sourceCode) return;
+    try {
+      const result = await apiClient.scaffoldTest({
+        flow: props.flow,
+        source: props.sourceCode,
+        flow_name:
+          (props.flow as { flow_name?: string })?.flow_name ?? "flow",
+        track_columns: props.trackColumns ?? [],
+      });
+      triggerDownload(result.blob, result.filename);
+      try {
+        toast.success(`Saved ${result.filename}`);
+      } catch {
+        /* swallow */
+      }
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      try {
+        toast.error("Could not scaffold test", { description: detail });
+      } catch {
+        /* swallow */
+      }
+    }
+  };
+  const scaffoldDisabled = !props.flow || !props.sourceCode;
+
   return (
     <div
       role="group"
@@ -94,6 +125,31 @@ export function ExportButtons(props: ExportButtonsProps): JSX.Element {
           {fmt}
         </button>
       ))}
+      <button
+        type="button"
+        data-testid="export-integration-test"
+        onClick={() => void onScaffoldTest()}
+        disabled={scaffoldDisabled}
+        aria-disabled={scaffoldDisabled}
+        title={
+          scaffoldDisabled
+            ? "Convert a flow with the original source to enable"
+            : "Generate a pytest integration test for this flow"
+        }
+        style={{
+          padding: "0.35rem 0.7rem",
+          borderRadius: 6,
+          border: "1px solid var(--accent, #0d9488)",
+          background: scaffoldDisabled ? "transparent" : "var(--accent, #0d9488)",
+          color: scaffoldDisabled ? "inherit" : "var(--accent-fg, #fff)",
+          cursor: scaffoldDisabled ? "not-allowed" : "pointer",
+          opacity: scaffoldDisabled ? 0.5 : 1,
+          fontSize: 12,
+          letterSpacing: "0.04em",
+        }}
+      >
+        Export as integration test
+      </button>
     </div>
   );
 }

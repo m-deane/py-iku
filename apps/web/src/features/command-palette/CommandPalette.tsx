@@ -48,6 +48,8 @@ const SECTION_ICONS: Record<PaletteSection, string> = {
   "Audit events": "⊙",
   Actions: "▶",
   Templates: "▦",
+  "GREL Formulas": "ƒ",
+  "LMP Nodes": "⌁",
   Help: "?",
 };
 

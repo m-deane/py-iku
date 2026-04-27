@@ -44,6 +44,26 @@ const InspectorPage = lazy(() =>
 const TemplatesPage = lazy(() =>
   import("../features/templates/TemplatesPage").then((m) => ({ default: m.TemplatesPage })),
 );
+const LlmHistoryPage = lazy(() =>
+  import("../features/llm-history/LlmHistoryPage").then((m) => ({
+    default: m.LlmHistoryPage,
+  })),
+);
+const GrelLibraryPage = lazy(() =>
+  import("../features/grel-library/GrelLibraryPage").then((m) => ({
+    default: m.GrelLibraryPage,
+  })),
+);
+const LmpBrowserPage = lazy(() =>
+  import("../features/lmp-browser/LmpBrowserPage").then((m) => ({
+    default: m.LmpBrowserPage,
+  })),
+);
+const CurveDiffPage = lazy(() =>
+  import("../features/curve-diff/CurveDiffPage").then((m) => ({
+    default: m.CurveDiffPage,
+  })),
+);
 // FlowViewer is a route-level wrapper rendered inline (no separate page module
 // today). We still split it so /flow/:id loads on demand.
 const FlowViewer = lazy(() =>
@@ -186,9 +206,12 @@ export function AppRouter(): JSX.Element {
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/snippets" element={<SnippetGallery />} />
           <Route path="/templates" element={<TemplatesPage />} />
+          <Route path="/grel" element={<GrelLibraryPage />} />
+          <Route path="/lmp" element={<LmpBrowserPage />} />
 
           {/* Lifecycle cluster ------------------------------------------- */}
           <Route path="/diff" element={<DiffPage />} />
+          <Route path="/diff/curves" element={<CurveDiffPage />} />
           <Route path="/validation" element={<ValidationPage />} />
           <Route path="/export" element={<ExportPage />} />
           <Route path="/deploy" element={<DeployPage />} />
@@ -206,6 +229,7 @@ export function AppRouter(): JSX.Element {
 
           {/* Account cluster --------------------------------------------- */}
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/llm-history" element={<LlmHistoryPage />} />
           <Route
             path="/settings/connections"
             element={
