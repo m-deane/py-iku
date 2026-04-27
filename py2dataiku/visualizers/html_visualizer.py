@@ -20,8 +20,17 @@ class HTMLVisualizer(FlowVisualizer):
         super().__init__(theme)
 
     def render(self, flow) -> str:
-        """Render flow as interactive HTML."""
-        # Get layout
+        """Render flow as interactive HTML.
+
+        The page embeds the polished SVG (from :class:`SVGVisualizer`) as the
+        primary static visual and overlays a canvas-based interactive layer
+        for tooltips and search.
+        """
+        # Polished static SVG — the same output used everywhere else.
+        from py2dataiku.visualizers.svg_visualizer import SVGVisualizer
+        svg_markup = SVGVisualizer(theme=self.theme).render(flow)
+
+        # Get layout for the interactive overlay.
         layout = LayoutEngine(
             layer_spacing=self.theme.layer_spacing,
             node_spacing=self.theme.node_spacing,
@@ -34,7 +43,6 @@ class HTMLVisualizer(FlowVisualizer):
         edges = layout.get_edges()
         width, height = layout.get_canvas_size()
 
-        # Convert to JSON for JavaScript
         nodes_json = self._positions_to_json(positions)
         edges_json = self._edges_to_json(edges)
         theme_json = self._theme_to_json()
@@ -48,6 +56,7 @@ class HTMLVisualizer(FlowVisualizer):
             nodes_json=nodes_json,
             edges_json=edges_json,
             theme_json=theme_json,
+            svg_markup=svg_markup,
         )
 
     def _positions_to_json(self, positions) -> str:
@@ -128,6 +137,7 @@ class HTMLVisualizer(FlowVisualizer):
         nodes_json: str,
         edges_json: str,
         theme_json: str,
+        svg_markup: str = "",
     ) -> str:
         """Generate complete HTML document."""
         return f'''<!DOCTYPE html>
@@ -195,8 +205,12 @@ class HTMLVisualizer(FlowVisualizer):
 </head>
 <body>
     <h1>{flow_name}</h1>
-    <div class="container">
-        <canvas id="flowCanvas" width="{width}" height="{height}"></canvas>
+    <div class="container" style="position:relative">
+        <div id="flowSvgWrap" style="position:relative; display:inline-block;">
+            {svg_markup}
+        </div>
+        <canvas id="flowCanvas" width="{width}" height="{height}"
+                style="position:absolute; left:0; top:0; pointer-events:auto; opacity:0;"></canvas>
     </div>
     <div id="tooltip"></div>
     <div class="legend" id="legend"></div>

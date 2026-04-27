@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   ReactFlowProvider,
+  useReactFlow,
   type Edge as RFEdge,
   type Node as RFNode,
   type NodeChange,
@@ -45,29 +53,19 @@ export interface FlowCanvasProps {
   showBackground?: boolean;
   /** When true, render the zone overlay layer behind the nodes. */
   showZones?: boolean;
+  /** When true, render the DSS-style toolbar (Fit, Auto-layout, Mini-map). */
+  showToolbar?: boolean;
   /** Optional override for the zone-id assignment. */
   zoneAssignment?: Map<string, ZoneId>;
   /** When true, dim non-focused nodes when one is selected. */
   focusOnSelect?: boolean;
   /** When set, animate execution status through the topological order. */
   simulation?: FlowCanvasSimulationProps;
-  /**
-   * Fired when a node is selected or the selection is cleared. Pass null
-   * when the user clicks empty canvas. Used by the M5 NodeInspector panel.
-   */
+  /** Fired when a node is selected or the selection is cleared. */
   onSelectionChange?: (id: string | null) => void;
   /** Externally controlled selection — overrides the canvas-internal state. */
   selectedNodeId?: string | null;
-  /**
-   * External lineage-driven dimming. When non-empty, every node *not* in this
-   * set is rendered at `var(--dim-opacity)` and every edge whose id is in
-   * `highlightedEdgeIds` is stroked with `var(--accent)`.
-   *
-   * Wired by the ColumnLineageOverlay → ConvertPage path. Kept independent
-   * from `focusOnSelect` because the lineage panel publishes its own dimming
-   * domain (recipe ids touched by the column) which is generally different
-   * from selection-driven focus.
-   */
+  /** External lineage-driven dimming. */
   dimmedNodeIds?: string[];
   /** Edge ids to stroke with `var(--accent)` (lineage highlight). */
   highlightedEdgeIds?: string[];
@@ -109,24 +107,93 @@ function simStatusToNodeStatus(s: SimNodeStatus): "executing" | "done" | "pendin
   return s;
 }
 
+interface ToolbarProps {
+  showMinimap: boolean;
+  onToggleMinimap: () => void;
+  onAutoLayout: () => void;
+}
+
+/** DSS-style toolbar — Fit / Auto-layout / Mini-map toggle. */
+function Toolbar(props: ToolbarProps): JSX.Element {
+  const { showMinimap, onToggleMinimap, onAutoLayout } = props;
+  const rf = useReactFlow();
+  const onFit = useCallback(() => {
+    rf.fitView({ padding: 0.08, duration: 250 });
+  }, [rf]);
+  return (
+    <div className={styles.toolbar} role="toolbar" aria-label="Flow canvas toolbar">
+      <button
+        type="button"
+        className={styles.toolbarButton}
+        onClick={onFit}
+        data-testid="flow-toolbar-fit"
+        aria-label="Fit flow to screen"
+        title="Fit to screen"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            d="M2 5 V2 H5 M11 2 H14 V5 M14 11 V14 H11 M5 14 H2 V11"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span>Fit</span>
+      </button>
+      <button
+        type="button"
+        className={styles.toolbarButton}
+        onClick={onAutoLayout}
+        data-testid="flow-toolbar-layout"
+        aria-label="Re-run auto layout"
+        title="Auto-layout"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="1.5" y="3" width="3.5" height="3" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <rect x="6.5" y="7" width="3.5" height="3" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <rect x="11" y="3" width="3.5" height="3" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="3" y1="6" x2="3" y2="9" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="3" y1="9" x2="6.5" y2="9" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="13" y1="6" x2="13" y2="9" stroke="currentColor" strokeWidth="1.3" />
+          <line x1="13" y1="9" x2="10" y2="9" stroke="currentColor" strokeWidth="1.3" />
+        </svg>
+        <span>Layout</span>
+      </button>
+      <button
+        type="button"
+        className={styles.toolbarButton}
+        onClick={onToggleMinimap}
+        data-testid="flow-toolbar-minimap"
+        aria-label="Toggle mini-map"
+        aria-pressed={showMinimap}
+        title="Toggle mini-map"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="1.5" y="2.5" width="13" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
+          <rect x="9" y="8" width="4.5" height="4.5" fill="currentColor" opacity="0.4" />
+        </svg>
+        <span>Map</span>
+      </button>
+    </div>
+  );
+}
+
 /**
  * Top-level flow canvas. Runs ELK layout once when `flow` changes, then hands
  * the positioned graph to React Flow. Theme is applied as a `data-theme`
  * attribute on the wrapper so that token CSS variables resolve correctly.
- *
- * M3b additions:
- *   - `showZones` toggles the auto-zone overlay layer (input / prep / ml / output).
- *   - `focusOnSelect` dims non-focused nodes on selection.
- *   - `simulation` plays an executing → done animation in topological order.
  */
 export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
   const {
     flow,
     theme = "light",
-    showMinimap = true,
+    showMinimap: showMinimapProp = true,
     showControls = true,
     showBackground = true,
     showZones = false,
+    showToolbar = true,
     zoneAssignment,
     focusOnSelect = false,
     simulation,
@@ -143,8 +210,14 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
   const [nodes, setNodes] = useState<RFNode[]>(initialNodes);
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
   const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string | null>(null);
+  const [showMinimap, setShowMinimap] = useState<boolean>(showMinimapProp);
   const selectedNodeId =
     externalSelectedNodeId !== undefined ? externalSelectedNodeId : internalSelectedNodeId;
+
+  // Keep internal mini-map state in sync when the prop changes.
+  useEffect(() => {
+    setShowMinimap(showMinimapProp);
+  }, [showMinimapProp]);
 
   // Run layout when flow changes.
   useEffect(() => {
@@ -159,7 +232,14 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     };
   }, [initialNodes, initialEdges]);
 
-  // Compute focus dim set whenever selection or graph changes.
+  // Manual auto-layout trigger from the toolbar.
+  const triggerAutoLayout = useCallback(() => {
+    layoutFlow(nodes, edges).then((laid) => {
+      setNodes(laid.nodes);
+      setEdges(laid.edges);
+    });
+  }, [nodes, edges]);
+
   const focus = useMemo(() => {
     if (!focusOnSelect) {
       return { focusedIds: new Set<string>(), isFocusActive: false };
@@ -167,7 +247,6 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     return computeFocus(selectedNodeId, flow.edges);
   }, [focusOnSelect, selectedNodeId, flow.edges]);
 
-  // Wire execution simulation when requested.
   const topo = useMemo<readonly string[]>(
     () => topologicalSort(flow.nodes, flow.edges),
     [flow.nodes, flow.edges],
@@ -179,9 +258,6 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
   });
   const simEnabled = simulation !== undefined;
 
-  // Compose dim + sim status into rendered nodes. Lineage-driven dimming
-  // (`dimmedNodeIds`) is OR-ed into the existing focus dim signal so a column
-  // pick from the inspector and a focus-on-select selection both contribute.
   const lineageDimSet = useMemo(
     () => new Set(dimmedNodeIds ?? []),
     [dimmedNodeIds],
@@ -209,9 +285,6 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     });
   }, [nodes, focus, simEnabled, sim.nodeStatuses, lineageDimActive, lineageDimSet]);
 
-  // Compose lineage-highlighted edges. Highlighted edges get `data-highlighted`
-  // + an inline accent stroke so renderers downstream of <ReactFlow/> can
-  // honour either signal.
   const highlightedEdgeSet = useMemo(
     () => new Set(highlightedEdgeIds ?? []),
     [highlightedEdgeIds],
@@ -281,6 +354,7 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
+          fitViewOptions={{ padding: 0.08 }}
           onNodesChange={handleNodeChanges}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
@@ -290,6 +364,13 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
           {showControls && <Controls />}
           {showMinimap && <MiniMap pannable zoomable />}
         </ReactFlow>
+        {showToolbar && (
+          <Toolbar
+            showMinimap={showMinimap}
+            onToggleMinimap={() => setShowMinimap((v) => !v)}
+            onAutoLayout={triggerAutoLayout}
+          />
+        )}
       </ReactFlowProvider>
     </div>
   );

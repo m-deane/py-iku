@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-     viewBox="0 0 1290 280"
-     width="1290" height="280"
+     viewBox="0 0 1326 280"
+     width="1326" height="280"
      style="background-color: #1E1E1E">
   <defs>
     <!-- Drop shadow filter -->
@@ -26,6 +26,236 @@
       <path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"
             fill="none" stroke="currentColor" stroke-width="1.5"/>
       <ellipse cx="12" cy="6" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    </symbol>
+
+    <symbol id="recipe-icon-prepare" viewBox="0 0 24 24">
+      <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9.4 2.6-2-.3a7.5 7.5 0 0 0-.7-1.7l1.2-1.6a.7.7 0 0 0-.1-.9l-1.4-1.4a.7.7 0 0 0-.9-.1L15.9 5.7a7.5 7.5 0 0 0-1.7-.7l-.3-2A.7.7 0 0 0 13.2 2.4h-2A.7.7 0 0 0 10.5 3l-.3 2a7.5 7.5 0 0 0-1.7.7L6.9 4.5a.7.7 0 0 0-.9.1L4.6 6a.7.7 0 0 0-.1.9l1.2 1.6a7.5 7.5 0 0 0-.7 1.7l-2 .3a.7.7 0 0 0-.6.7v2c0 .4.3.7.7.8l2 .3c.2.6.4 1.1.7 1.7l-1.2 1.6a.7.7 0 0 0 .1.9l1.4 1.4a.7.7 0 0 0 .9.1l1.6-1.2c.5.3 1.1.5 1.7.7l.3 2c0 .4.4.7.8.7h2c.4 0 .7-.3.8-.7l.3-2c.6-.2 1.2-.4 1.7-.7l1.6 1.2a.7.7 0 0 0 .9-.1l1.4-1.4a.7.7 0 0 0 .1-.9l-1.2-1.6c.3-.5.5-1.1.7-1.7l2-.3a.7.7 0 0 0 .6-.8v-2a.7.7 0 0 0-.6-.7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-join" viewBox="0 0 24 24">
+      <path d="M9 7a5 5 0 1 0 0 10A5 5 0 0 0 9 7zm6 0a5 5 0 1 0 0 10A5 5 0 0 0 15 7zM12 8.5a5 5 0 0 1 0 7 5 5 0 0 1 0-7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-fuzzyjoin" viewBox="0 0 24 24">
+      <path d="M9 7a5 5 0 1 0 0 10A5 5 0 0 0 9 7zm6 0a5 5 0 1 0 0 10A5 5 0 0 0 15 7zM3 21q1.5-1 3 0t3 0 3 0 3 0 3 0" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-fuzzy_join" viewBox="0 0 24 24">
+      <path d="M9 7a5 5 0 1 0 0 10A5 5 0 0 0 9 7zm6 0a5 5 0 1 0 0 10A5 5 0 0 0 15 7zM3 21q1.5-1 3 0t3 0 3 0 3 0 3 0" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-geojoin" viewBox="0 0 24 24">
+      <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zM12 11.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-geo_join" viewBox="0 0 24 24">
+      <path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zM12 11.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-grouping" viewBox="0 0 24 24">
+      <path d="M5 4h14v3l-7 5 7 5v3H5l5-8z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-window" viewBox="0 0 24 24">
+      <path d="M4 4h16v16H4zM4 9h16M9 9v11" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sort" viewBox="0 0 24 24">
+      <path d="M7 4l-4 5h3v6h2V9h3zM17 20l4-5h-3V9h-2v6h-3z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-distinct" viewBox="0 0 24 24">
+      <path d="M12 2l2.6 6.3 6.8.5-5.2 4.5 1.6 6.7L12 16.6 6.2 20l1.6-6.7L2.6 8.8l6.8-.5z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-top_n" viewBox="0 0 24 24">
+      <path d="M4 20h4v-7H4zm6 0h4V6h-4zm6 0h4v-10h-4z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-topn" viewBox="0 0 24 24">
+      <path d="M4 20h4v-7H4zm6 0h4V6h-4zm6 0h4v-10h-4z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sample" viewBox="0 0 24 24">
+      <path d="M19 5L5 19M7 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sampling" viewBox="0 0 24 24">
+      <path d="M19 5L5 19M7 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-stack" viewBox="0 0 24 24">
+      <path d="M12 3l9 4-9 4-9-4zM3 12l9 4 9-4M3 17l9 4 9-4" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-split" viewBox="0 0 24 24">
+      <path d="M4 12h6m0 0l-3-3m3 3l-3 3M14 12h6M14 6h6m-6 12h6M14 6l-2 6 2 6" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-pivot" viewBox="0 0 24 24">
+      <path d="M12 4v6m0 0L7.5 6m4.5 4l4.5-4M12 14v6m0 0l-4.5-4m4.5 4l4.5-4" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sync" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 0 1 14-5l2-1v6h-6l2-2A6 6 0 0 0 6 12zm16 0a8 8 0 0 1-14 5l-2 1v-6h6l-2 2a6 6 0 0 0 10-2z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-python" viewBox="0 0 24 24">
+      <path d="M12 2c-3 0-5 1.5-5 4v3h5v1H5c-2.5 0-3 2-3 4s.5 4 3 4h2v-3c0-2 1-3 3-3h4c2 0 3-1 3-3V6c0-2.5-2-4-5-4zM9 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zM12 22c3 0 5-1.5 5-4v-3h-5v-1h7c2.5 0 3-2 3-4s-.5-4-3-4h-2v3c0 2-1 3-3 3h-4c-2 0-3 1-3 3v3c0 2.5 2 4 5 4zM15 19a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-r" viewBox="0 0 24 24">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM8.5 6.5h4.5c2.2 0 4 1.5 4 3.5s-1.8 3.5-4 3.5l4 4H14l-3.7-4H10v4H8.5zM10 8v4h2.7c1.3 0 2.3-.9 2.3-2s-1-2-2.3-2z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sql" viewBox="0 0 24 24">
+      <path d="M12 3c4.4 0 8 1.3 8 3v12c0 1.7-3.6 3-8 3s-8-1.3-8-3V6c0-1.7 3.6-3 8-3zM4 6c0 1.7 3.6 3 8 3s8-1.3 8-3M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sql_script" viewBox="0 0 24 24">
+      <path d="M12 3c4.4 0 8 1.3 8 3v12c0 1.7-3.6 3-8 3s-8-1.3-8-3V6c0-1.7 3.6-3 8-3zM4 6c0 1.7 3.6 3 8 3s8-1.3 8-3M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-hive" viewBox="0 0 24 24">
+      <path d="M12 2l8 5v10l-8 5-8-5V7zM12 7l-4 2.5v5L12 17l4-2.5v-5z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-impala" viewBox="0 0 24 24">
+      <path d="M12 2l9 10-9 10L3 12z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-pyspark" viewBox="0 0 24 24">
+      <path d="M14 2L4 14h7l-2 8 11-14h-7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sparksql" viewBox="0 0 24 24">
+      <path d="M14 2L4 14h7l-2 8 11-14h-7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-spark_sql_query" viewBox="0 0 24 24">
+      <path d="M14 2L4 14h7l-2 8 11-14h-7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-spark_scala" viewBox="0 0 24 24">
+      <path d="M14 2L4 14h7l-2 8 11-14h-7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-sparkr" viewBox="0 0 24 24">
+      <path d="M14 2L4 14h7l-2 8 11-14h-7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-shell" viewBox="0 0 24 24">
+      <path d="M3 4h18v16H3zM6 9l3 3-3 3M11 16h6" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-generate_statistics" viewBox="0 0 24 24">
+      <path d="M4 20h16M6 18V8m4 10v-7m4 7V4m4 14v-9" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-generate_features" viewBox="0 0 24 24">
+      <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6zM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-prediction_scoring" viewBox="0 0 24 24">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12zm0 4a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-clustering_scoring" viewBox="0 0 24 24">
+      <path d="M7 5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM17 5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM12 14a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-evaluation" viewBox="0 0 24 24">
+      <path d="M5 12l4 4 10-10" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-standalone_evaluation" viewBox="0 0 24 24">
+      <path d="M5 12l4 4 10-10" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-download" viewBox="0 0 24 24">
+      <path d="M12 3v10m0 0l-4-4m4 4l4-4M5 18h14" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-push_to_editable" viewBox="0 0 24 24">
+      <path d="M3 17l11-11 4 4-11 11H3zM14 4l4 4" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-dynamic_repeat" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 0 1 14-5l2-1v6h-6l2-2A6 6 0 0 0 6 12zm16 0a8 8 0 0 1-14 5l-2 1v-6h6l-2 2a6 6 0 0 0 10-2z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-extract_failed_rows" viewBox="0 0 24 24">
+      <path d="M12 3l11 18H1zM12 9v6m0 2v.01" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-upsert" viewBox="0 0 24 24">
+      <path d="M3 8h12l-3-3m3 3l-3 3M21 16H9l3-3m-3 3l3 3" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-list_folder_contents" viewBox="0 0 24 24">
+      <path d="M3 7v12h18V9H13l-2-2H3zm0-2h6l2 2h12V5H3z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-list_access" viewBox="0 0 24 24">
+      <path d="M3 7v12h18V9H13l-2-2H3zm0-2h6l2 2h12V5H3z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-ai_assistant_generate" viewBox="0 0 24 24">
+      <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-filter" viewBox="0 0 24 24">
+      <path d="M3 5h18l-7 8v6l-4-2v-4z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="recipe-icon-default" viewBox="0 0 24 24">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" fill="currentColor" stroke="currentColor"
+            stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
     </symbol>
 
     <linearGradient id="grad-prepare" x1="0" y1="0" x2="0" y2="1">
@@ -104,40 +334,40 @@
     </linearGradient>
   </defs>
 
-  <path d="M 200.0 65.0 C 230.0 65.0, 230.0 140.0, 260.0 140.0"
+  <path d="M 200.0 65.0 C 226.4 65.0, 239.6 140.0, 266.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
-  <path d="M 330.0 140.0 C 360.0 140.0, 360.0 140.0, 390.0 140.0"
+  <path d="M 336.0 140.0 C 362.4 140.0, 375.6 140.0, 402.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
-  <path d="M 550.0 140.0 C 580.0 140.0, 580.0 140.0, 610.0 140.0"
+  <path d="M 562.0 140.0 C 588.4 140.0, 601.6 140.0, 628.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
-  <path d="M 200.0 215.0 C 364.0 215.0, 446.0 140.0, 610.0 140.0"
+  <path d="M 200.0 215.0 C 371.20000000000005 215.0, 456.79999999999995 140.0, 628.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
-  <path d="M 680.0 140.0 C 710.0 140.0, 710.0 140.0, 740.0 140.0"
+  <path d="M 698.0 140.0 C 724.4 140.0, 737.6 140.0, 764.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
-  <path d="M 900.0 140.0 C 930.0 140.0, 930.0 140.0, 960.0 140.0"
+  <path d="M 924.0 140.0 C 950.4 140.0, 963.6 140.0, 990.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
-  <path d="M 1030.0 140.0 C 1060.0 140.0, 1060.0 140.0, 1090.0 140.0"
+  <path d="M 1060.0 140.0 C 1086.4 140.0, 1099.6 140.0, 1126.0 140.0"
         fill="none"
         stroke="#546E7A"
-        stroke-width="2"
+        stroke-width="1.5"
         marker-end="url(#arrow)"/>
   <g class="dataset input" transform="translate(40.0, 40.0)">
     <rect width="160" height="50"
@@ -147,7 +377,10 @@
     <rect x="2" y="2" width="156" height="46"
           rx="5" ry="5"
           fill="none" stroke="#4A90D9" stroke-width="0.5" stroke-opacity="0.2"/>
-    <use href="#dataset-icon" x="8" y="15.0" width="20" height="20"
+    <!-- Connection-type stripe on the left edge -->
+    <path d="M6 0 L 0 0 Q 0 0 0 6 L 0 44 Q 0 50 6 50 L 6 50 Z"
+          fill="#75bb6a"/>
+    <use href="#dataset-icon" x="10" y="15.0" width="20" height="20"
          style="color: #4A90D9"/>
     <text x="32" y="23.0"
           font-family="Arial, Helvetica, sans-serif"
@@ -167,7 +400,10 @@
     <rect x="2" y="2" width="156" height="46"
           rx="5" ry="5"
           fill="none" stroke="#4A90D9" stroke-width="0.5" stroke-opacity="0.2"/>
-    <use href="#dataset-icon" x="8" y="15.0" width="20" height="20"
+    <!-- Connection-type stripe on the left edge -->
+    <path d="M6 0 L 0 0 Q 0 0 0 6 L 0 44 Q 0 50 6 50 L 6 50 Z"
+          fill="#75bb6a"/>
+    <use href="#dataset-icon" x="10" y="15.0" width="20" height="20"
          style="color: #4A90D9"/>
     <text x="32" y="23.0"
           font-family="Arial, Helvetica, sans-serif"
@@ -179,31 +415,27 @@
           font-size="10"
           fill="#90CAF9" opacity="0.7">[INPUT]</text>
   </g>
-  <g class="recipe prepare" transform="translate(260.0, 105.0)">
-    <rect width="70" height="70"
-          rx="10" ry="10"
-          fill="url(#grad-prepare)" stroke="#FF9800" stroke-width="2"
-          filter="url(#shadow)"/>
-    <text x="35.0" y="27.0"
-          text-anchor="middle"
-          font-family="Arial, Helvetica, sans-serif"
-          font-size="20"
-          fill="#FFB74D"
-          filter="url(#text-shadow)">⚙</text>
-    <text x="35.0" y="45.0"
+  <g class="recipe prepare" transform="translate(266.0, 105.0)">
+    <rect x="0" y="0" width="1" height="1" fill="url(#grad-prepare)" opacity="0" pointer-events="none"/>
+    <circle cx="35.0" cy="35.0" r="33.0"
+            fill="#2c8fd9" stroke="#1f6fa9" stroke-width="2"
+            filter="url(#shadow)"/>
+    <use href="#recipe-icon-prepare" x="17.5" y="17.5"
+         width="35" height="35" style="color: #ffffff"/>
+    <text x="35.0" y="86"
           text-anchor="middle"
           font-family="Arial, Helvetica, sans-serif"
           font-size="11"
           font-weight="600"
           fill="#FFB74D"
           filter="url(#text-shadow)">Prepare</text>
-    <text x="35.0" y="57.0"
+    <text x="35.0" y="98"
           text-anchor="middle"
           font-family="Arial, Helvetica, sans-serif"
           font-size="9"
           fill="#FFB74D" opacity="0.7">1 steps</text>
   </g>
-  <g class="dataset intermediate" transform="translate(390.0, 115.0)">
+  <g class="dataset intermediate" transform="translate(402.0, 115.0)">
     <rect width="160" height="50"
           rx="6" ry="6"
           fill="#2D2D2D" stroke="#78909C" stroke-width="1.5"
@@ -211,7 +443,10 @@
     <rect x="2" y="2" width="156" height="46"
           rx="5" ry="5"
           fill="none" stroke="#78909C" stroke-width="0.5" stroke-opacity="0.2"/>
-    <use href="#dataset-icon" x="8" y="15.0" width="20" height="20"
+    <!-- Connection-type stripe on the left edge -->
+    <path d="M6 0 L 0 0 Q 0 0 0 6 L 0 44 Q 0 50 6 50 L 6 50 Z"
+          fill="#75bb6a"/>
+    <use href="#dataset-icon" x="10" y="15.0" width="20" height="20"
          style="color: #78909C"/>
     <text x="32" y="23.0"
           font-family="Arial, Helvetica, sans-serif"
@@ -223,31 +458,27 @@
           font-size="10"
           fill="#B0BEC5" opacity="0.7"></text>
   </g>
-  <g class="recipe join" transform="translate(610.0, 105.0)">
-    <rect width="70" height="70"
-          rx="10" ry="10"
-          fill="url(#grad-join)" stroke="#2196F3" stroke-width="2"
-          filter="url(#shadow)"/>
-    <text x="35.0" y="27.0"
-          text-anchor="middle"
-          font-family="Arial, Helvetica, sans-serif"
-          font-size="20"
-          fill="#64B5F6"
-          filter="url(#text-shadow)">⋈</text>
-    <text x="35.0" y="45.0"
+  <g class="recipe join" transform="translate(628.0, 105.0)">
+    <rect x="0" y="0" width="1" height="1" fill="url(#grad-join)" opacity="0" pointer-events="none"/>
+    <circle cx="35.0" cy="35.0" r="33.0"
+            fill="#f29222" stroke="#c4761a" stroke-width="2"
+            filter="url(#shadow)"/>
+    <use href="#recipe-icon-join" x="17.5" y="17.5"
+         width="35" height="35" style="color: #ffffff"/>
+    <text x="35.0" y="86"
           text-anchor="middle"
           font-family="Arial, Helvetica, sans-serif"
           font-size="11"
           font-weight="600"
           fill="#64B5F6"
           filter="url(#text-shadow)">Join</text>
-    <text x="35.0" y="57.0"
+    <text x="35.0" y="98"
           text-anchor="middle"
           font-family="Arial, Helvetica, sans-serif"
           font-size="9"
           fill="#64B5F6" opacity="0.7">LEFT</text>
   </g>
-  <g class="dataset intermediate" transform="translate(740.0, 115.0)">
+  <g class="dataset intermediate" transform="translate(764.0, 115.0)">
     <rect width="160" height="50"
           rx="6" ry="6"
           fill="#2D2D2D" stroke="#78909C" stroke-width="1.5"
@@ -255,7 +486,10 @@
     <rect x="2" y="2" width="156" height="46"
           rx="5" ry="5"
           fill="none" stroke="#78909C" stroke-width="0.5" stroke-opacity="0.2"/>
-    <use href="#dataset-icon" x="8" y="15.0" width="20" height="20"
+    <!-- Connection-type stripe on the left edge -->
+    <path d="M6 0 L 0 0 Q 0 0 0 6 L 0 44 Q 0 50 6 50 L 6 50 Z"
+          fill="#75bb6a"/>
+    <use href="#dataset-icon" x="10" y="15.0" width="20" height="20"
          style="color: #78909C"/>
     <text x="32" y="23.0"
           font-family="Arial, Helvetica, sans-serif"
@@ -267,31 +501,27 @@
           font-size="10"
           fill="#B0BEC5" opacity="0.7"></text>
   </g>
-  <g class="recipe grouping" transform="translate(960.0, 105.0)">
-    <rect width="70" height="70"
-          rx="10" ry="10"
-          fill="url(#grad-grouping)" stroke="#4CAF50" stroke-width="2"
-          filter="url(#shadow)"/>
-    <text x="35.0" y="27.0"
-          text-anchor="middle"
-          font-family="Arial, Helvetica, sans-serif"
-          font-size="20"
-          fill="#81C784"
-          filter="url(#text-shadow)">Σ</text>
-    <text x="35.0" y="45.0"
+  <g class="recipe grouping" transform="translate(990.0, 105.0)">
+    <rect x="0" y="0" width="1" height="1" fill="url(#grad-grouping)" opacity="0" pointer-events="none"/>
+    <circle cx="35.0" cy="35.0" r="33.0"
+            fill="#75bb6a" stroke="#5a9151" stroke-width="2"
+            filter="url(#shadow)"/>
+    <use href="#recipe-icon-grouping" x="17.5" y="17.5"
+         width="35" height="35" style="color: #ffffff"/>
+    <text x="35.0" y="86"
           text-anchor="middle"
           font-family="Arial, Helvetica, sans-serif"
           font-size="11"
           font-weight="600"
           fill="#81C784"
           filter="url(#text-shadow)">Grouping</text>
-    <text x="35.0" y="57.0"
+    <text x="35.0" y="98"
           text-anchor="middle"
           font-family="Arial, Helvetica, sans-serif"
           font-size="9"
           fill="#81C784" opacity="0.7">1 aggs</text>
   </g>
-  <g class="dataset intermediate" transform="translate(1090.0, 115.0)">
+  <g class="dataset intermediate" transform="translate(1126.0, 115.0)">
     <rect width="160" height="50"
           rx="6" ry="6"
           fill="#2D2D2D" stroke="#78909C" stroke-width="1.5"
@@ -299,7 +529,10 @@
     <rect x="2" y="2" width="156" height="46"
           rx="5" ry="5"
           fill="none" stroke="#78909C" stroke-width="0.5" stroke-opacity="0.2"/>
-    <use href="#dataset-icon" x="8" y="15.0" width="20" height="20"
+    <!-- Connection-type stripe on the left edge -->
+    <path d="M6 0 L 0 0 Q 0 0 0 6 L 0 44 Q 0 50 6 50 L 6 50 Z"
+          fill="#75bb6a"/>
+    <use href="#dataset-icon" x="10" y="15.0" width="20" height="20"
          style="color: #78909C"/>
     <text x="32" y="23.0"
           font-family="Arial, Helvetica, sans-serif"

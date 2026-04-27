@@ -62,8 +62,8 @@ class LayoutEngine:
 
     def __init__(
         self,
-        layer_spacing: int = 180,
-        node_spacing: int = 100,
+        layer_spacing: int = 200,  # DSS flow view: 200px between columns
+        node_spacing: int = 100,   # DSS flow view: 100px between rows
         dataset_width: int = 160,
         dataset_height: int = 50,
         recipe_size: int = 70,

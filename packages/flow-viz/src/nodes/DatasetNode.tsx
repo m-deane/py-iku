@@ -2,11 +2,20 @@ import { memo, type CSSProperties } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import clsx from "clsx";
 import type { DatasetNodeData, ThemeName } from "../types";
-import { getDatasetColor, getDatasetShape, type DatasetShape } from "../theme/tokens";
+import { getDatasetShape, type DatasetShape } from "../theme/tokens";
+import { datasetStripeColor, familyFor } from "../icons/datasetStripe";
 import styles from "./DatasetNode.module.css";
 
 interface DatasetNodeProps extends NodeProps<DatasetNodeData> {
   theme?: ThemeName;
+}
+
+/** Optional extension fields the host can stuff into DatasetNodeData via a
+ * cast — kept off the canonical type to avoid breaking the codegen
+ * contract. The canvas reads `columnCount` to render the bottom-right
+ * badge when present. */
+interface DatasetNodeDataExt extends DatasetNodeData {
+  columnCount?: number | null;
 }
 
 function readTheme(): ThemeName {
@@ -18,18 +27,18 @@ function ShapeSvg(props: { shape: DatasetShape; color: string }): JSX.Element {
   const { shape, color } = props;
   if (shape === "cylinder") {
     return (
-      <svg viewBox="0 0 24 28" width="24" height="28" aria-hidden="true">
-        <ellipse cx="12" cy="5" rx="10" ry="3" fill="none" stroke={color} strokeWidth="1.5" />
-        <path d="M2 5 V23 A10 3 0 0 0 22 23 V5" fill="none" stroke={color} strokeWidth="1.5" />
-        <ellipse cx="12" cy="23" rx="10" ry="3" fill="none" stroke={color} strokeWidth="1.5" />
+      <svg viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
+        <ellipse cx="12" cy="5" rx="9" ry="2.6" fill="none" stroke={color} strokeWidth="1.5" />
+        <path d="M3 5 V23 A9 2.6 0 0 0 21 23 V5" fill="none" stroke={color} strokeWidth="1.5" />
+        <ellipse cx="12" cy="23" rx="9" ry="2.6" fill="none" stroke={color} strokeWidth="1.5" opacity="0.6" />
       </svg>
     );
   }
   if (shape === "folder") {
     return (
-      <svg viewBox="0 0 24 28" width="24" height="28" aria-hidden="true">
+      <svg viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
         <path
-          d="M2 8 V23 H22 V10 H12 L9 7 H2 Z"
+          d="M2 8 V22 H22 V10 H12 L9 7 H2 Z"
           fill="none"
           stroke={color}
           strokeWidth="1.5"
@@ -38,9 +47,8 @@ function ShapeSvg(props: { shape: DatasetShape; color: string }): JSX.Element {
       </svg>
     );
   }
-  // document
   return (
-    <svg viewBox="0 0 24 28" width="24" height="28" aria-hidden="true">
+    <svg viewBox="0 0 24 28" width="22" height="26" aria-hidden="true">
       <path
         d="M5 3 H15 L19 7 V25 H5 Z"
         fill="none"
@@ -59,15 +67,18 @@ function ShapeSvg(props: { shape: DatasetShape; color: string }): JSX.Element {
 function DatasetNodeImpl(props: DatasetNodeProps): JSX.Element {
   const { data, selected, theme: themeProp } = props;
   const theme: ThemeName = themeProp ?? readTheme();
-  const colors = getDatasetColor(data.datasetType, theme);
   const shape = getDatasetShape(data.connectionType);
+  const stripe = datasetStripeColor(data.connectionType);
+  const family = familyFor(data.connectionType);
   const dimmed = data.dimmed === true;
+  const columnCount = (data as DatasetNodeDataExt).columnCount;
 
   const styleVars: CSSProperties = {
-    ["--ds-bg" as string]: colors.bg,
-    ["--ds-border" as string]: colors.border,
-    ["--ds-text" as string]: colors.text,
+    ["--ds-stripe" as string]: stripe,
+    ["--ds-stripe-width" as string]: "4px",
   };
+
+  const tag = String(data.connectionType).replace(/_/g, " ").toLowerCase();
 
   return (
     <div
@@ -75,17 +86,29 @@ function DatasetNodeImpl(props: DatasetNodeProps): JSX.Element {
       style={styleVars}
       data-dataset-type={data.datasetType}
       data-connection-type={data.connectionType}
+      data-connection-family={family}
       data-theme={theme}
       data-dimmed={dimmed ? "true" : undefined}
+      data-testid={`dataset-node-${data.name}`}
+      title={`${data.name} — ${tag}`}
     >
       <Handle type="target" position={Position.Left} />
       <span className={styles.shape}>
-        <ShapeSvg shape={shape} color={colors.border} />
+        <ShapeSvg shape={shape} color="currentColor" />
       </span>
       <span className={styles.body}>
         <span className={styles.name}>{data.name}</span>
-        <span className={styles.tag}>{data.connectionType.replace(/_/g, " ").toLowerCase()}</span>
+        <span className={styles.tag}>{tag}</span>
       </span>
+      {typeof columnCount === "number" && columnCount >= 0 && (
+        <span
+          className={styles.colCount}
+          aria-label={`${columnCount} columns`}
+          data-testid={`dataset-cols-${data.name}`}
+        >
+          {columnCount} cols
+        </span>
+      )}
       <Handle type="source" position={Position.Right} />
     </div>
   );

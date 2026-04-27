@@ -1,0 +1,28 @@
+graph LR
+  customers["customers"]
+  orders["orders"]
+  customers_clean["customers_clean"]
+  enriched["enriched"]
+  summary["summary"]
+  top_customers["top_customers"]
+  prepare_1{"prepare_1\nprepare"}
+  join_2{"join_2\njoin"}
+  grouping_3{"grouping_3\ngrouping"}
+  sort_4{"sort_4\nsort"}
+  customers --> prepare_1
+  prepare_1 --> customers_clean
+  customers_clean --> join_2
+  orders --> join_2
+  join_2 --> enriched
+  enriched --> grouping_3
+  grouping_3 --> summary
+  summary --> sort_4
+  sort_4 --> top_customers
+  classDef groupingRecipe fill:#75bb6a,stroke:#5a9151,color:#ffffff,stroke-width:2px;
+  classDef joinRecipe fill:#f29222,stroke:#c4761a,color:#ffffff,stroke-width:2px;
+  classDef prepareRecipe fill:#2c8fd9,stroke:#1f6fa9,color:#ffffff,stroke-width:2px;
+  classDef sortRecipe fill:#7f8c8d,stroke:#5d696a,color:#ffffff,stroke-width:2px;
+  class prepare_1 prepareRecipe;
+  class join_2 joinRecipe;
+  class grouping_3 groupingRecipe;
+  class sort_4 sortRecipe;

@@ -39,10 +39,22 @@ export {
   getDatasetShape,
   SPACING,
   NODE_SIZES,
+  DSS_LAYOUT_SPACING,
 } from "./theme/tokens";
 export type { Tokens, DatasetShape } from "./theme/tokens";
 
 export { getRecipeGlyph } from "./theme/icons";
+
+// Sprint-6: typed icon library (DSS-style recipe icons + dataset stripes).
+export {
+  recipeIconFor,
+  RECIPE_ICON_TYPES,
+  listIconCoverage,
+  datasetStripeColor,
+  familyFor,
+  KNOWN_CONNECTION_TYPES,
+} from "./icons";
+export type { RecipeIconProps, ConnectionFamily } from "./icons";
 
 // M3b: zones
 export {

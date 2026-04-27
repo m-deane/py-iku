@@ -12,9 +12,8 @@ import { Handle, Position, type NodeProps } from "reactflow";
 import clsx from "clsx";
 import type { NodeStatus, RecipeNodeData, RecipeType, ThemeName } from "../types";
 import { getRecipeColor } from "../theme/tokens";
-import { getRecipeGlyph } from "../theme/icons";
 import { categoryFor, subLabelFor, type RecipeCategory } from "./categories";
-import { getSvgGlyph } from "./glyphs";
+import { recipeIconFor } from "../icons/recipeIcons";
 import styles from "./RecipeNode.module.css";
 
 interface RecipeNodeProps extends NodeProps<RecipeNodeData> {
@@ -32,27 +31,18 @@ interface RecipeNodeProps extends NodeProps<RecipeNodeData> {
   /**
    * Sprint-5 explain-this-recipe adapter. The host app (apps/web) wires this
    * to the AI explain popover so the package itself stays free of API/
-   * provider concerns. When present, a small `(i)` icon renders on the card;
-   * clicking it (or hovering for ~700ms) flips ``open`` and the host renders
-   * its popover via ``renderPopover``.
+   * provider concerns.
    */
   explainAdapter?: ExplainAdapter;
 }
 
 export interface ExplainAdapter {
-  /** Called the first time the popover should open (hover or click). */
   onExplainRequested: (recipeName: string, recipeType: RecipeType) => void;
-  /**
-   * Render-prop the host uses to mount its popover JSX inside the card. The
-   * function is called with `{ open, close }` so the host can react to RecipeNode-
-   * driven open/close transitions (Esc, outside-click).
-   */
   renderPopover: (args: { open: boolean; close: () => void }) => React.ReactNode;
 }
 
 const EXPLAIN_HOVER_DELAY_MS = 700;
 
-/** Confidence shading bands. */
 type ConfidenceBand = "high" | "medium" | "low" | "rule-based";
 
 function bandFor(confidence: number | null | undefined): ConfidenceBand {
@@ -69,17 +59,13 @@ function readTheme(): ThemeName {
 }
 
 /**
- * Base recipe node. Renders the rounded tile with category-color stripe,
- * SVG or Unicode glyph, label, optional sub-label badge (code recipes get a
- * monospace language tag), IO badges, status badge, and category-specific
- * decorations. Colors are read from `tokens.json` per RecipeType + theme;
- * no hard-coded hex.
+ * DSS-style recipe node.
  *
- * Sprint-3 additions:
- *   - LLM confidence shading via the medium/low CSS classes (no inline hex).
- *   - "R" rule-based badge in the bottom-left when `data.confidence == null`.
- *   - Keyboard-accessible popover (Enter/Space opens, Esc closes, Tab
- *     traps to the source-line link inside).
+ * Renders a 52px circle (colored by recipe-family token) with an inline
+ * SVG glyph centered inside, and a small subdued label below.  Hover
+ * tooltip surfaces type + name + I/O counts.  All previous behaviours —
+ * confidence shading, rule-based badge, focus dim, lineage dim, status
+ * badge, explain adapter — are preserved on top of the new visuals.
  */
 function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
   const {
@@ -94,7 +80,6 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
   const colors = getRecipeColor(data.type, theme);
   const status: NodeStatus = data.status ?? "none";
   const category = categoryProp ?? categoryFor(data.type);
-  const SvgGlyph = getSvgGlyph(data.type);
   const subLabel = subLabelFor(data.type);
   const dimmed = data.dimmed === true;
 
@@ -105,8 +90,7 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const sourceLinkRef = useRef<HTMLButtonElement | null>(null);
 
-  // Close on Esc anywhere; close on outside click. Both behaviours are
-  // standard popover patterns and unblock Tab navigation past the card.
+  // Close on Esc anywhere; close on outside click.
   useEffect(() => {
     if (!popoverOpen) return;
     const onDocKey = (e: globalThis.KeyboardEvent): void => {
@@ -135,7 +119,6 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
     };
   }, [popoverOpen]);
 
-  // Auto-focus the source-line link on open so Tab traps inside the popover.
   useEffect(() => {
     if (popoverOpen && sourceLinkRef.current) {
       sourceLinkRef.current.focus();
@@ -158,11 +141,7 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
     }
   }, [data.sourceLines, onSourceLinesClick]);
 
-  // ---------------------------------------------------------------------
-  // Explain-this-recipe trigger (Sprint 5).  Hover for 700ms OR click the
-  // (i) icon to flip ``explainOpen``. The host app renders the popover via
-  // the ``explainAdapter.renderPopover`` render-prop.
-  // ---------------------------------------------------------------------
+  // Explain-this-recipe trigger. ----------------------------------------
   const [explainOpen, setExplainOpen] = useState(false);
   const explainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeExplain = useCallback(() => setExplainOpen(false), []);
@@ -207,7 +186,6 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
     [explainAdapter, explainOpen, triggerExplain],
   );
 
-  // Close explain popover on outside click. Re-uses the existing card ref.
   useEffect(() => {
     if (!explainOpen) return;
     const onDocPointer = (e: MouseEvent): void => {
@@ -241,6 +219,9 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
       ? Math.round(data.confidence * 100)
       : null;
 
+  const typeLabel = String(data.type).replace(/_/g, " ").toLowerCase();
+  const ioMeta = `${data.inputs} in / ${data.outputs} out`;
+
   return (
     <div
       ref={cardRef}
@@ -268,7 +249,7 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
       data-testid={`recipe-node-${data.name}`}
       tabIndex={0}
       role="button"
-      aria-label={`Recipe ${data.name}, type ${data.type}, ${band} confidence`}
+      aria-label={`Recipe ${data.name}, type ${typeLabel}, ${data.inputs} inputs, ${data.outputs} outputs`}
       aria-expanded={popoverOpen}
       aria-haspopup="dialog"
       aria-controls={popoverOpen ? popoverId : undefined}
@@ -277,58 +258,62 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
       onMouseLeave={explainAdapter ? onCardHoverLeave : undefined}
     >
       <Handle type="target" position={Position.Left} />
-      <span className={styles.icon} aria-hidden="true">
-        {SvgGlyph ? <SvgGlyph color={colors.text} size={20} /> : getRecipeGlyph(data.type)}
-      </span>
+      <div className={styles.circle}>
+        <span className={styles.icon} aria-hidden="true">
+          {recipeIconFor(data.type, { color: colors.text, size: 22 })}
+        </span>
+        {subLabel && (
+          <span className={styles.subLabel} aria-hidden="true">
+            {subLabel}
+          </span>
+        )}
+        {showWarn && (
+          <span
+            className={clsx(
+              styles.confidenceWarn,
+              band === "low" && styles.confidenceLowGlyph,
+            )}
+            aria-label={`${band} confidence`}
+            data-testid={`confidence-warn-${data.name}`}
+          >
+            ⚠
+          </span>
+        )}
+        {showRuleBadge && (
+          <span
+            className={styles.ruleBadge}
+            aria-label="Rule-based recipe"
+            data-testid={`rule-badge-${data.name}`}
+          >
+            R
+          </span>
+        )}
+        {status !== "none" && !showWarn && (
+          <span
+            className={clsx(
+              styles.statusBadge,
+              status === "deployed" && styles.deployed,
+              status === "deploying" && styles.deploying,
+              status === "error" && styles.errorBadge,
+              status === "done" && styles.doneBadge,
+              status === "executing" && styles.executingBadge,
+            )}
+            aria-label={`status ${status}`}
+          />
+        )}
+        {status === "executing" && (
+          <span className={styles.shimmer} aria-hidden="true" />
+        )}
+      </div>
       <span className={styles.label}>{data.name}</span>
-      {subLabel && (
-        <span className={styles.subLabel} aria-hidden="true">
-          {subLabel}
-        </span>
-      )}
-      <span className={styles.ioRow}>
-        <span className={styles.ioBadge} aria-label={`${data.inputs} inputs`}>
-          ◀{data.inputs}
-        </span>
-        <span className={styles.ioBadge} aria-label={`${data.outputs} outputs`}>
-          {data.outputs}▶
-        </span>
-      </span>
-      {showWarn && (
-        <span
-          className={clsx(
-            styles.confidenceWarn,
-            band === "low" && styles.confidenceLowGlyph,
-          )}
-          aria-label={`${band} confidence`}
-          data-testid={`confidence-warn-${data.name}`}
-        >
-          ⚠
-        </span>
-      )}
-      {showRuleBadge && (
-        <span
-          className={styles.ruleBadge}
-          aria-label="Rule-based recipe"
-          data-testid={`rule-badge-${data.name}`}
-        >
-          R
-        </span>
-      )}
-      {status !== "none" && !showWarn && (
-        <span
-          className={clsx(
-            styles.statusBadge,
-            status === "deployed" && styles.deployed,
-            status === "deploying" && styles.deploying,
-            status === "error" && styles.errorBadge,
-            status === "done" && styles.doneBadge,
-            status === "executing" && styles.executingBadge,
-          )}
-          aria-label={`status ${status}`}
-        />
-      )}
-      {status === "executing" && <span className={styles.shimmer} aria-hidden="true" />}
+
+      {/* Hover tooltip — type / name / IO counts. */}
+      <div className={styles.tooltip} role="tooltip" aria-hidden="true">
+        <div className={styles.tooltipType}>{typeLabel}</div>
+        <div className={styles.tooltipName}>{data.name}</div>
+        <div className={styles.tooltipMeta}>{ioMeta}</div>
+      </div>
+
       {explainAdapter && (
         <button
           type="button"
@@ -337,8 +322,8 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
           onClick={onExplainIconClick}
           style={{
             position: "absolute",
-            top: 4,
-            right: 4,
+            top: 0,
+            right: 12,
             width: 18,
             height: 18,
             borderRadius: "var(--radius-sm, 4px)",
@@ -383,7 +368,6 @@ function RecipeNodeImpl(props: RecipeNodeProps): JSX.Element {
             fontSize: "var(--text-xs, 12px)",
             zIndex: 100,
           }}
-          // Trap focus by handling Tab to keep within the popover.
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();

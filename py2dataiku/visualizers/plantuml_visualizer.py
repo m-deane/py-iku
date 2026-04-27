@@ -56,8 +56,14 @@ class PlantUMLVisualizer(FlowVisualizer):
         return "\n".join(lines)
 
     def _generate_style(self) -> list[str]:
-        """Generate PlantUML styling directives."""
-        return [
+        """Generate PlantUML styling directives.
+
+        Emits per-recipe-type ``BackgroundColor<<recipe_type>>`` /
+        ``BorderColor<<recipe_type>>`` skinparam declarations using the
+        DSS-fidelity recipe palette (`theme.get_recipe_palette`). Every key
+        in ``recipe_palette`` produces a stereotype.
+        """
+        out: list[str] = [
             "!theme plain",
             f"skinparam backgroundColor {self.theme.background_color}",
             "skinparam defaultFontName Arial",
@@ -76,18 +82,16 @@ class PlantUMLVisualizer(FlowVisualizer):
             f"  FontColor<<intermediate>> {self.theme.intermediate_text}",
             "}",
             "",
-            "' Recipe styles",
+            "' Recipe styles (per-type, DSS-palette)",
             "skinparam card {",
-            f"  BackgroundColor<<prepare>> {self.theme.get_recipe_colors('prepare')[0]}",
-            f"  BorderColor<<prepare>> {self.theme.get_recipe_colors('prepare')[1]}",
-            f"  BackgroundColor<<join>> {self.theme.get_recipe_colors('join')[0]}",
-            f"  BorderColor<<join>> {self.theme.get_recipe_colors('join')[1]}",
-            f"  BackgroundColor<<grouping>> {self.theme.get_recipe_colors('grouping')[0]}",
-            f"  BorderColor<<grouping>> {self.theme.get_recipe_colors('grouping')[1]}",
-            f"  BackgroundColor<<split>> {self.theme.get_recipe_colors('split')[0]}",
-            f"  BorderColor<<split>> {self.theme.get_recipe_colors('split')[1]}",
-            f"  BackgroundColor<<python>> {self.theme.get_recipe_colors('python')[0]}",
-            f"  BorderColor<<python>> {self.theme.get_recipe_colors('python')[1]}",
+        ]
+        # Emit per-recipe-type colors using the high-fidelity palette.
+        for recipe_type in self.theme.recipe_palette:
+            fill, stroke, font = self.theme.get_recipe_palette(recipe_type)
+            out.append(f"  BackgroundColor<<{recipe_type}>> {fill}")
+            out.append(f"  BorderColor<<{recipe_type}>> {stroke}")
+            out.append(f"  FontColor<<{recipe_type}>> {font}")
+        out.extend([
             "}",
             "",
             "' Arrow style",
@@ -95,7 +99,8 @@ class PlantUMLVisualizer(FlowVisualizer):
             f"  Color {self.theme.connection_color}",
             f"  Thickness {self.theme.connection_width}",
             "}",
-        ]
+        ])
+        return out
 
     def _declare_dataset(self, node_id: str, pos: NodePosition) -> str:
         """Declare a dataset node."""

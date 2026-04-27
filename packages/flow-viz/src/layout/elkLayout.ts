@@ -14,27 +14,31 @@
 
 import ELK, { type LayoutOptions } from "elkjs/lib/elk.bundled.js";
 import type { Edge as RFEdge, Node as RFNode } from "reactflow";
-import { NODE_SIZES, SPACING } from "../theme/tokens";
+import { NODE_SIZES, DSS_LAYOUT_SPACING } from "../theme/tokens";
 import type { DatasetNodeData, RecipeNodeData } from "../types";
 
 export interface ElkLayoutOptions {
-  /** ELK layout direction. Default: "DOWN" (top-down). */
+  /** ELK layout direction. Default: "RIGHT" (left-to-right Sugiyama). */
   direction?: "DOWN" | "RIGHT" | "UP" | "LEFT";
-  /** Override node-node spacing. */
+  /** Override node-node spacing. Default 110 to mirror DSS row spacing. */
   nodeSpacing?: number;
-  /** Override layer spacing. */
+  /** Override layer spacing. Default 220 to mirror DSS column spacing. */
   layerSpacing?: number;
 }
 
 function buildOptions(overrides: ElkLayoutOptions): LayoutOptions {
+  const pad = DSS_LAYOUT_SPACING.padding;
   return {
     "elk.algorithm": "layered",
     "elk.direction": overrides.direction ?? "RIGHT",
-    "elk.spacing.nodeNode": String(overrides.nodeSpacing ?? SPACING.node),
+    "elk.spacing.nodeNode": String(overrides.nodeSpacing ?? DSS_LAYOUT_SPACING.node),
     "elk.layered.spacing.nodeNodeBetweenLayers": String(
-      overrides.layerSpacing ?? SPACING.layer,
+      overrides.layerSpacing ?? DSS_LAYOUT_SPACING.layer,
     ),
-    "elk.padding": `[top=${SPACING.padding},left=${SPACING.padding},bottom=${SPACING.padding},right=${SPACING.padding}]`,
+    // Sugiyama crossing-min (LAYER_SWEEP) is the ELK default for `layered`.
+    "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
+    "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+    "elk.padding": `[top=${pad},left=${pad},bottom=${pad},right=${pad}]`,
   };
 }
 

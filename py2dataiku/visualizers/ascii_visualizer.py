@@ -107,11 +107,17 @@ class ASCIIVisualizer(FlowVisualizer):
         """Generate legend."""
         icons = [
             f"{self.DATASET_ICON} Dataset",
-            f"{RecipeIcons.get_unicode('prepare')} Prepare",
-            f"{RecipeIcons.get_unicode('join')} Join",
-            f"{RecipeIcons.get_unicode('grouping')} Grouping",
-            f"{RecipeIcons.get_unicode('split')} Split",
-            f"{RecipeIcons.get_unicode('sort')} Sort",
+            f"{RecipeIcons.get_glyph('prepare')} Prepare",
+            f"{RecipeIcons.get_glyph('join')} Join",
+            f"{RecipeIcons.get_glyph('grouping')} Grouping",
+            f"{RecipeIcons.get_glyph('window')} Window",
+            f"{RecipeIcons.get_glyph('split')} Split",
+            f"{RecipeIcons.get_glyph('sort')} Sort",
+            f"{RecipeIcons.get_glyph('distinct')} Distinct",
+            f"{RecipeIcons.get_glyph('python')} Python",
+            f"{RecipeIcons.get_glyph('sql')} SQL",
+            f"{RecipeIcons.get_glyph('pyspark')} Spark",
+            f"{RecipeIcons.get_glyph('prediction_scoring')} ML",
         ]
         return "Legend: " + "  ".join(icons)
 
@@ -216,8 +222,8 @@ class ASCIIVisualizer(FlowVisualizer):
                     layer_parts.append(f"[{pos.label}]")
                 else:
                     recipe_type = pos.extra.get("recipe_type", "default")
-                    icon = RecipeIcons.get_unicode(recipe_type)
-                    layer_parts.append(f"({icon})")
+                    glyph = RecipeIcons.get_glyph(recipe_type)
+                    layer_parts.append(f"({glyph})")
             parts.append(" + ".join(layer_parts) if len(layer_parts) > 1 else layer_parts[0])
 
         return " --> ".join(parts)

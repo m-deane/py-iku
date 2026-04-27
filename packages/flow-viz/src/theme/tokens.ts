@@ -150,8 +150,20 @@ export const SPACING = {
   zone: TOKENS.space.zonePadding,
 } as const;
 
-/** Default node sizes pulled from tokens. */
+/** Default node sizes for the DSS-style canvas.
+ *
+ * recipe: 78x102 (52px circle + ~28px below-label) — matches Sprint-6
+ *   visual conventions while leaving 2px breathing room for the focus ring.
+ * dataset: 140x56 rounded-rect with a 4px left stripe.
+ */
 export const NODE_SIZES = {
-  recipe: { width: 70, height: 70 },
-  dataset: { width: 160, height: 50 },
+  recipe: { width: 78, height: 102 },
+  dataset: { width: 140, height: 56 },
+} as const;
+
+/** DSS-style layout spacing (LR / 220 layer / 110 row). */
+export const DSS_LAYOUT_SPACING = {
+  layer: 220,
+  node: 110,
+  padding: 60,
 } as const;

@@ -1,0 +1,193 @@
+@startuml
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+' Dataset styles
+skinparam rectangle {
+  BackgroundColor<<input>> #E3F2FD
+  BorderColor<<input>> #4A90D9
+  FontColor<<input>> #1565C0
+  BackgroundColor<<output>> #E8F5E9
+  BorderColor<<output>> #43A047
+  FontColor<<output>> #2E7D32
+  BackgroundColor<<intermediate>> #ECEFF1
+  BorderColor<<intermediate>> #78909C
+  FontColor<<intermediate>> #455A64
+}
+
+' Recipe styles (per-type, DSS-palette)
+skinparam card {
+  BackgroundColor<<prepare>> #2c8fd9
+  BorderColor<<prepare>> #1f6fa9
+  FontColor<<prepare>> #ffffff
+  BackgroundColor<<sync>> #5d6d7e
+  BorderColor<<sync>> #3d4d5e
+  FontColor<<sync>> #ffffff
+  BackgroundColor<<grouping>> #75bb6a
+  BorderColor<<grouping>> #5a9151
+  FontColor<<grouping>> #ffffff
+  BackgroundColor<<window>> #9b59b6
+  BorderColor<<window>> #7d3f97
+  FontColor<<window>> #ffffff
+  BackgroundColor<<join>> #f29222
+  BorderColor<<join>> #c4761a
+  FontColor<<join>> #ffffff
+  BackgroundColor<<fuzzyjoin>> #f0a040
+  BorderColor<<fuzzyjoin>> #c47e2a
+  FontColor<<fuzzyjoin>> #ffffff
+  BackgroundColor<<fuzzy_join>> #f0a040
+  BorderColor<<fuzzy_join>> #c47e2a
+  FontColor<<fuzzy_join>> #ffffff
+  BackgroundColor<<geojoin>> #e67e22
+  BorderColor<<geojoin>> #b8631a
+  FontColor<<geojoin>> #ffffff
+  BackgroundColor<<geo_join>> #e67e22
+  BorderColor<<geo_join>> #b8631a
+  FontColor<<geo_join>> #ffffff
+  BackgroundColor<<stack>> #3498db
+  BorderColor<<stack>> #2778b3
+  FontColor<<stack>> #ffffff
+  BackgroundColor<<split>> #2c8fd9
+  BorderColor<<split>> #1f6fa9
+  FontColor<<split>> #ffffff
+  BackgroundColor<<sort>> #7f8c8d
+  BorderColor<<sort>> #5d696a
+  FontColor<<sort>> #ffffff
+  BackgroundColor<<distinct>> #95a5a6
+  BorderColor<<distinct>> #6c7c7d
+  FontColor<<distinct>> #ffffff
+  BackgroundColor<<top_n>> #7f8c8d
+  BorderColor<<top_n>> #5d696a
+  FontColor<<top_n>> #ffffff
+  BackgroundColor<<topn>> #7f8c8d
+  BorderColor<<topn>> #5d696a
+  FontColor<<topn>> #ffffff
+  BackgroundColor<<pivot>> #16a085
+  BorderColor<<pivot>> #0f7a64
+  FontColor<<pivot>> #ffffff
+  BackgroundColor<<sampling>> #7f8c8d
+  BorderColor<<sampling>> #5d696a
+  FontColor<<sampling>> #ffffff
+  BackgroundColor<<sample>> #7f8c8d
+  BorderColor<<sample>> #5d696a
+  FontColor<<sample>> #ffffff
+  BackgroundColor<<filter>> #2c8fd9
+  BorderColor<<filter>> #1f6fa9
+  FontColor<<filter>> #ffffff
+  BackgroundColor<<download>> #e67e22
+  BorderColor<<download>> #b8631a
+  FontColor<<download>> #ffffff
+  BackgroundColor<<generate_features>> #27ae60
+  BorderColor<<generate_features>> #1d8348
+  FontColor<<generate_features>> #ffffff
+  BackgroundColor<<generate_statistics>> #1abc9c
+  BorderColor<<generate_statistics>> #138a72
+  FontColor<<generate_statistics>> #ffffff
+  BackgroundColor<<push_to_editable>> #5d6d7e
+  BorderColor<<push_to_editable>> #3d4d5e
+  FontColor<<push_to_editable>> #ffffff
+  BackgroundColor<<list_folder_contents>> #5d6d7e
+  BorderColor<<list_folder_contents>> #3d4d5e
+  FontColor<<list_folder_contents>> #ffffff
+  BackgroundColor<<list_access>> #5d6d7e
+  BorderColor<<list_access>> #3d4d5e
+  FontColor<<list_access>> #ffffff
+  BackgroundColor<<dynamic_repeat>> #5d6d7e
+  BorderColor<<dynamic_repeat>> #3d4d5e
+  FontColor<<dynamic_repeat>> #ffffff
+  BackgroundColor<<extract_failed_rows>> #c0392b
+  BorderColor<<extract_failed_rows>> #962d22
+  FontColor<<extract_failed_rows>> #ffffff
+  BackgroundColor<<upsert>> #5d6d7e
+  BorderColor<<upsert>> #3d4d5e
+  FontColor<<upsert>> #ffffff
+  BackgroundColor<<python>> #34495e
+  BorderColor<<python>> #22303c
+  FontColor<<python>> #ffffff
+  BackgroundColor<<r>> #1f77b4
+  BorderColor<<r>> #155481
+  FontColor<<r>> #ffffff
+  BackgroundColor<<sql>> #2980b9
+  BorderColor<<sql>> #1f628e
+  FontColor<<sql>> #ffffff
+  BackgroundColor<<sql_script>> #2980b9
+  BorderColor<<sql_script>> #1f628e
+  FontColor<<sql_script>> #ffffff
+  BackgroundColor<<hive>> #7e5109
+  BorderColor<<hive>> #5a3a07
+  FontColor<<hive>> #ffffff
+  BackgroundColor<<impala>> #a04000
+  BorderColor<<impala>> #6e2c00
+  FontColor<<impala>> #ffffff
+  BackgroundColor<<sparksql>> #e67e22
+  BorderColor<<sparksql>> #b8631a
+  FontColor<<sparksql>> #ffffff
+  BackgroundColor<<spark_sql_query>> #e67e22
+  BorderColor<<spark_sql_query>> #b8631a
+  FontColor<<spark_sql_query>> #ffffff
+  BackgroundColor<<pyspark>> #e67e22
+  BorderColor<<pyspark>> #b8631a
+  FontColor<<pyspark>> #ffffff
+  BackgroundColor<<spark_scala>> #e67e22
+  BorderColor<<spark_scala>> #b8631a
+  FontColor<<spark_scala>> #ffffff
+  BackgroundColor<<sparkr>> #e67e22
+  BorderColor<<sparkr>> #b8631a
+  FontColor<<sparkr>> #ffffff
+  BackgroundColor<<shell>> #34495e
+  BorderColor<<shell>> #22303c
+  FontColor<<shell>> #ffffff
+  BackgroundColor<<prediction_scoring>> #f39c12
+  BorderColor<<prediction_scoring>> #c47e0a
+  FontColor<<prediction_scoring>> #ffffff
+  BackgroundColor<<clustering_scoring>> #f39c12
+  BorderColor<<clustering_scoring>> #c47e0a
+  FontColor<<clustering_scoring>> #ffffff
+  BackgroundColor<<evaluation>> #f39c12
+  BorderColor<<evaluation>> #c47e0a
+  FontColor<<evaluation>> #ffffff
+  BackgroundColor<<standalone_evaluation>> #f39c12
+  BorderColor<<standalone_evaluation>> #c47e0a
+  FontColor<<standalone_evaluation>> #ffffff
+  BackgroundColor<<ai_assistant_generate>> #8e44ad
+  BorderColor<<ai_assistant_generate>> #6c3483
+  FontColor<<ai_assistant_generate>> #ffffff
+  BackgroundColor<<default>> #9e9e9e
+  BorderColor<<default>> #6e6e6e
+  FontColor<<default>> #ffffff
+}
+
+' Arrow style
+skinparam arrow {
+  Color #90A4AE
+  Thickness 1.5
+}
+
+' Datasets
+rectangle "customers" <<input>> as customers
+rectangle "orders" <<input>> as orders
+rectangle "customers_clean" <<intermediate>> as customers_clean
+rectangle "enriched" <<intermediate>> as enriched
+rectangle "summary" <<intermediate>> as summary
+rectangle "top_customers" <<output>> as top_customers
+
+' Recipes
+card "⚙ Prepare" <<prepare>> as recipe_0
+card "⋈ Join" <<join>> as recipe_1
+card "Σ Grouping" <<grouping>> as recipe_2
+card "⇅ Sort" <<sort>> as recipe_3
+
+' Connections
+customers --> recipe_0
+recipe_0 --> customers_clean
+customers_clean --> recipe_1
+orders --> recipe_1
+recipe_1 --> enriched
+enriched --> recipe_2
+recipe_2 --> summary
+summary --> recipe_3
+recipe_3 --> top_customers
+
+@enduml

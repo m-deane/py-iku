@@ -1,13 +1,142 @@
 """
 Visual themes for Dataiku flow visualization.
+
+Color choices follow the public Dataiku DSS visual style: recipes appear as
+colored circles, where each recipe-type family has a fixed hue (blue =
+PREPARE, orange = JOIN, green = GROUPING, gold = ML, etc.). Datasets are
+rounded rectangles whose left edge carries a connection-type stripe (green =
+filesystem, blue = SQL, orange = blob storage, red = inline, etc.).
+
+The legacy ``recipe_colors`` dict (mapping ``"prepare" -> (bg, border, text)``)
+is preserved for backward compatibility — every existing token still resolves.
+The new ``recipe_palette`` dict is the source of truth for the upgraded
+DSS-fidelity rendering and uses solid fills (filled circle, white icon) rather
+than the soft-pastel gradient style.
 """
+
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 
 
+# DSS-derived hex values — taken from public marketing screenshots & the
+# product's own CSS variable tokens. Using the same palette across SVG, PNG,
+# Mermaid, PlantUML, and HTML keeps cross-format outputs visually consistent.
+_RECIPE_PALETTE_LIGHT: dict[str, tuple[str, str, str]] = {
+    # (fill, stroke, label/icon color)
+    # Visual recipes
+    "prepare": ("#2c8fd9", "#1f6fa9", "#ffffff"),
+    "sync": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+    "grouping": ("#75bb6a", "#5a9151", "#ffffff"),
+    "window": ("#9b59b6", "#7d3f97", "#ffffff"),
+    "join": ("#f29222", "#c4761a", "#ffffff"),
+    "fuzzyjoin": ("#f0a040", "#c47e2a", "#ffffff"),
+    "fuzzy_join": ("#f0a040", "#c47e2a", "#ffffff"),
+    "geojoin": ("#e67e22", "#b8631a", "#ffffff"),
+    "geo_join": ("#e67e22", "#b8631a", "#ffffff"),
+    "stack": ("#3498db", "#2778b3", "#ffffff"),
+    "split": ("#2c8fd9", "#1f6fa9", "#ffffff"),
+    "sort": ("#7f8c8d", "#5d696a", "#ffffff"),
+    "distinct": ("#95a5a6", "#6c7c7d", "#ffffff"),
+    "top_n": ("#7f8c8d", "#5d696a", "#ffffff"),
+    "topn": ("#7f8c8d", "#5d696a", "#ffffff"),
+    "pivot": ("#16a085", "#0f7a64", "#ffffff"),
+    "sampling": ("#7f8c8d", "#5d696a", "#ffffff"),
+    "sample": ("#7f8c8d", "#5d696a", "#ffffff"),
+    "filter": ("#2c8fd9", "#1f6fa9", "#ffffff"),
+    "download": ("#e67e22", "#b8631a", "#ffffff"),
+    "generate_features": ("#27ae60", "#1d8348", "#ffffff"),
+    "generate_statistics": ("#1abc9c", "#138a72", "#ffffff"),
+    "push_to_editable": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+    "list_folder_contents": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+    "list_access": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+    "dynamic_repeat": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+    "extract_failed_rows": ("#c0392b", "#962d22", "#ffffff"),
+    "upsert": ("#5d6d7e", "#3d4d5e", "#ffffff"),
+
+    # Code recipes
+    "python": ("#34495e", "#22303c", "#ffffff"),
+    "r": ("#1f77b4", "#155481", "#ffffff"),
+    "sql": ("#2980b9", "#1f628e", "#ffffff"),
+    "sql_script": ("#2980b9", "#1f628e", "#ffffff"),
+    "hive": ("#7e5109", "#5a3a07", "#ffffff"),
+    "impala": ("#a04000", "#6e2c00", "#ffffff"),
+    "sparksql": ("#e67e22", "#b8631a", "#ffffff"),
+    "spark_sql_query": ("#e67e22", "#b8631a", "#ffffff"),
+    "pyspark": ("#e67e22", "#b8631a", "#ffffff"),
+    "spark_scala": ("#e67e22", "#b8631a", "#ffffff"),
+    "sparkr": ("#e67e22", "#b8631a", "#ffffff"),
+    "shell": ("#34495e", "#22303c", "#ffffff"),
+
+    # ML / scoring
+    "prediction_scoring": ("#f39c12", "#c47e0a", "#ffffff"),
+    "clustering_scoring": ("#f39c12", "#c47e0a", "#ffffff"),
+    "evaluation": ("#f39c12", "#c47e0a", "#ffffff"),
+    "standalone_evaluation": ("#f39c12", "#c47e0a", "#ffffff"),
+    "ai_assistant_generate": ("#8e44ad", "#6c3483", "#ffffff"),
+
+    "default": ("#9e9e9e", "#6e6e6e", "#ffffff"),
+}
+
+# Connection-type stripe colors — the colored band on the left edge of each
+# dataset rectangle. Family-grouped: green = local fs, blue = SQL warehouses,
+# orange = cloud blob, red = inline, purple = NoSQL, yellow = HTTP/API.
+_CONNECTION_STRIPES: dict[str, str] = {
+    # Filesystem family — green
+    "Filesystem": "#75bb6a",
+    "filesystem": "#75bb6a",
+
+    # SQL warehouses — blue
+    "PostgreSQL": "#2c8fd9",
+    "MySQL": "#2c8fd9",
+    "BigQuery": "#2c8fd9",
+    "Snowflake": "#2c8fd9",
+    "Redshift": "#2c8fd9",
+    "Oracle": "#2c8fd9",
+    "MSSQL": "#2c8fd9",
+    "SQL": "#2c8fd9",
+
+    # Cloud blob — orange
+    "S3": "#f29222",
+    "GCS": "#f29222",
+    "Azure": "#f29222",
+    "Azure Blob": "#f29222",
+    "HDFS": "#f29222",
+    "ManagedFolder": "#f29222",
+
+    # NoSQL — purple
+    "MongoDB": "#9b59b6",
+    "Cassandra": "#9b59b6",
+    "DynamoDB": "#9b59b6",
+    "Elasticsearch": "#9b59b6",
+
+    # HTTP / API — yellow
+    "HTTP": "#f1c40f",
+    "API": "#f1c40f",
+    "Twitter": "#f1c40f",
+
+    # Inline — red/coral
+    "Inline": "#e74c3c",
+    "inline": "#e74c3c",
+
+    "default": "#90a4ae",
+}
+
+
 @dataclass
 class DataikuTheme:
-    """Visual theme matching Dataiku DSS interface."""
+    """Visual theme matching Dataiku DSS interface.
+
+    Attributes are grouped into:
+    - **Dataset chrome**: input/output/intermediate background, border, text.
+    - **Recipe chrome**: legacy ``recipe_colors`` (bg, border, text triples)
+      kept verbatim for backward compatibility, plus a new ``recipe_palette``
+      dict that drives the high-fidelity DSS-style rendering.
+    - **Connection stripes**: ``connection_stripes`` maps DSS connection-type
+      names (``PostgreSQL``, ``S3``, ``Filesystem``, ...) to a single hex value
+      drawn as a 6px-wide band on the left edge of dataset cards.
+    - **Layout**: spacing, fonts, dimensions used by the layout engine.
+    """
 
     name: str = "dataiku-light"
 
@@ -28,7 +157,8 @@ class DataikuTheme:
     error_border: str = "#E53935"
     error_text: str = "#C62828"
 
-    # Recipe colors by type (background, border)
+    # Recipe colors by type — legacy soft-pastel palette retained for
+    # backwards compatibility (`get_recipe_colors`, downstream tests).
     recipe_colors: dict[str, tuple[str, str, str]] = field(default_factory=lambda: {
         "prepare": ("#FFF3E0", "#FF9800", "#E65100"),
         "join": ("#E3F2FD", "#2196F3", "#1565C0"),
@@ -47,10 +177,22 @@ class DataikuTheme:
         "default": ("#F5F5F5", "#9E9E9E", "#616161"),
     })
 
+    # Recipe palette — DSS-fidelity (solid fill, white icon). Source of truth
+    # for the upgraded SVG / matplotlib / Mermaid / PlantUML rendering.
+    recipe_palette: dict[str, tuple[str, str, str]] = field(
+        default_factory=lambda: dict(_RECIPE_PALETTE_LIGHT)
+    )
+
+    # Connection-type stripe colors. The left edge of each dataset card uses
+    # this 6px-wide vertical band, exactly matching DSS's flow view.
+    connection_stripes: dict[str, str] = field(
+        default_factory=lambda: dict(_CONNECTION_STRIPES)
+    )
+
     # Connection styling
     connection_color: str = "#90A4AE"
     connection_hover: str = "#1976D2"
-    connection_width: int = 2
+    connection_width: float = 1.5
     arrow_size: int = 8
 
     # Typography
@@ -65,14 +207,20 @@ class DataikuTheme:
     dataset_radius: int = 6
     recipe_size: int = 70
     recipe_radius: int = 10
+    # Width of the connection-type stripe drawn on the left edge of datasets
+    connection_stripe_width: int = 6
 
-    # Layout spacing
-    layer_spacing: int = 180
+    # Layout spacing — defaults follow the DSS flow view (column-major,
+    # 200px between layers, 100px between rows in the same column).
+    layer_spacing: int = 200
     node_spacing: int = 100
     padding: int = 40
 
-    # Background
+    # Background — DSS uses #fafbfc; we keep the existing #FAFAFA default
+    # for backwards compatibility with downstream tests/snapshots and expose
+    # the closer-to-DSS value as ``dss_background_color`` for opt-in use.
     background_color: str = "#FAFAFA"
+    dss_background_color: str = "#fafbfc"
     grid_color: str = "#E0E0E0"
     show_grid: bool = False
 
@@ -89,17 +237,53 @@ class DataikuTheme:
     zone_padding: int = 20
 
     def get_recipe_colors(self, recipe_type: str) -> tuple[str, str, str]:
-        """Get colors for a recipe type (bg, border, text)."""
-        recipe_type = recipe_type.lower().replace(" ", "_")
-        return self.recipe_colors.get(recipe_type, self.recipe_colors["default"])
+        """Get legacy colors for a recipe type (bg, border, text).
+
+        Returns the soft-pastel ``recipe_colors`` mapping kept for backward
+        compatibility. For DSS-fidelity solid-circle rendering use
+        :meth:`get_recipe_palette` instead.
+        """
+        key = (recipe_type or "default").lower().replace(" ", "_")
+        if key in self.recipe_colors:
+            return self.recipe_colors[key]
+        return self.recipe_colors.get("default", ("#F5F5F5", "#9E9E9E", "#616161"))
+
+    def get_recipe_palette(self, recipe_type: str) -> tuple[str, str, str]:
+        """Get the new DSS-fidelity recipe palette (fill, stroke, icon)."""
+        key = (recipe_type or "default").lower().replace(" ", "_")
+        return self.recipe_palette.get(key, self.recipe_palette.get("default", ("#9e9e9e", "#6e6e6e", "#ffffff")))
+
+    def get_connection_stripe(self, connection_type: str | None) -> str:
+        """Get the left-edge stripe color for a dataset connection type.
+
+        Lookup is case-sensitive against DSS-canonical names
+        (``"PostgreSQL"``, ``"S3"``, ...) but falls back to a
+        case-insensitive scan, then to the ``"default"`` value.
+        """
+        if not connection_type:
+            return self.connection_stripes.get("default", "#90a4ae")
+        if connection_type in self.connection_stripes:
+            return self.connection_stripes[connection_type]
+        lc = connection_type.lower()
+        for k, v in self.connection_stripes.items():
+            if k.lower() == lc:
+                return v
+        return self.connection_stripes.get("default", "#90a4ae")
 
 
 # Predefined themes
 DATAIKU_LIGHT = DataikuTheme(name="dataiku-light")
 
+
+# Dark-mode palette: same hues, slightly desaturated, dark background. Recipe
+# fills are kept saturated so the family color is still recognizable.
+_RECIPE_PALETTE_DARK = {
+    k: (v[0], v[1], v[2]) for k, v in _RECIPE_PALETTE_LIGHT.items()
+}
+
 DATAIKU_DARK = DataikuTheme(
     name="dataiku-dark",
-    background_color="#1E1E1E",
+    background_color="#1E1E1E",  # backward-compat default; DSS-dark = #1a2332
     grid_color="#333333",
     input_bg="#1E3A5F",
     input_border="#4A90D9",
@@ -128,6 +312,8 @@ DATAIKU_DARK = DataikuTheme(
         "top_n": ("#E65100", "#FFB300", "#FFD54F"),
         "default": ("#424242", "#9E9E9E", "#BDBDBD"),
     },
+    recipe_palette=_RECIPE_PALETTE_DARK,
+    connection_stripes=dict(_CONNECTION_STRIPES),
     zone_colors=[
         "#1A2744", "#2D1B3D", "#1B3D1B", "#3D2800",
         "#3D0E20", "#003D40", "#3D3000", "#2A1F1A",

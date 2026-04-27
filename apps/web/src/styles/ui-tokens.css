@@ -155,6 +155,46 @@
   /* Override the bare numbers / Arial that tokens.css emits as invalid CSS. */
   --typography-fontfamily-base: var(--font-sans);
   --typography-fontfamily-mono: var(--font-mono);
+
+  /* ------------------------------------------------------------------ */
+  /* Sprint-6 — DSS-style flow canvas tokens                            */
+  /*                                                                    */
+  /* Recipe family palettes (light) — values mirror real Dataiku DSS    */
+  /* hues. These resolve via `getRecipeColor()` token JSON for the      */
+  /* circle fill / border / glyph color; they are surfaced here as CSS  */
+  /* variables so consumers can theme the toolbar / hover states using  */
+  /* the same family palette without duplicating hex values.            */
+  /* ------------------------------------------------------------------ */
+  --recipe-prepare: #2c8fd9;
+  --recipe-join: #f29222;
+  --recipe-fuzzy-join: #f5b061;
+  --recipe-grouping: #75bb6a;
+  --recipe-window: #9b59b6;
+  --recipe-sort: #7f8c8d;
+  --recipe-distinct: #7f8c8d;
+  --recipe-top-n: #7f8c8d;
+  --recipe-sampling: #7f8c8d;
+  --recipe-stack: #3498db;
+  --recipe-split: #2c8fd9;
+  --recipe-pivot: #16a085;
+  --recipe-sync: #5d6d7e;
+  --recipe-python: #2d3e50;
+  --recipe-sql: #1e4a72;
+  --recipe-pyspark: #e67e22;
+  --recipe-statistics: #00bcd4;
+
+  /* Dataset stripe colors — left-edge stripe encodes the connection   */
+  /* family per real DSS conventions.                                    */
+  --dataset-stripe-filesystem: #75bb6a;
+  --dataset-stripe-sql: #2c8fd9;
+  --dataset-stripe-cloud: #f29222;
+  --dataset-stripe-inline: #e74c3c;
+  --dataset-stripe-nosql: #9b59b6;
+  --dataset-stripe-http: #f1c40f;
+  --dataset-stripe-default: #94a3b8;
+
+  /* Edge stroke color (gray, 1.5px default). */
+  --edge-stroke: #94a3b8;
 }
 
 /* ====================================================================== */
@@ -208,6 +248,36 @@
   --color-fg-muted: var(--fg-muted);
   --color-bg: var(--surface);
   --color-accent: var(--accent);
+
+  /* Sprint-6 dark variants — softened versions of the DSS hues for     */
+  /* legibility on the dark canvas.                                     */
+  --recipe-prepare: #4ea7e8;
+  --recipe-join: #f5a94d;
+  --recipe-fuzzy-join: #f8c075;
+  --recipe-grouping: #8fcd85;
+  --recipe-window: #b07ac9;
+  --recipe-sort: #95a5a6;
+  --recipe-distinct: #95a5a6;
+  --recipe-top-n: #95a5a6;
+  --recipe-sampling: #95a5a6;
+  --recipe-stack: #56b3eb;
+  --recipe-split: #4ea7e8;
+  --recipe-pivot: #2cc1a3;
+  --recipe-sync: #7e8e9e;
+  --recipe-python: #5a7896;
+  --recipe-sql: #3e7baf;
+  --recipe-pyspark: #f0964e;
+  --recipe-statistics: #4dd0e1;
+
+  --dataset-stripe-filesystem: #8fcd85;
+  --dataset-stripe-sql: #4ea7e8;
+  --dataset-stripe-cloud: #f5a94d;
+  --dataset-stripe-inline: #ee6b5b;
+  --dataset-stripe-nosql: #b07ac9;
+  --dataset-stripe-http: #f4d452;
+  --dataset-stripe-default: #6b7480;
+
+  --edge-stroke: #6b7480;
 }
 
 /* ====================================================================== */
