@@ -142,6 +142,69 @@ def _sanitize_flow_dict(flow_dict: dict[str, Any]) -> list[str]:
             "Promoted terminal datasets to output: " + ", ".join(promoted)
         )
 
+    # ---- 4. orphan-output sink merge ----
+    # When a script ends with `df.to_csv("foo.csv")`, the LLM analyzer
+    # frequently emits a separate output dataset (`foo_csv`) marked
+    # is_output=True but doesn't tie it to any recipe — the recipe whose
+    # output is `df` is the actual producer. The result is two datasets
+    # for the same logical sink. We detect orphan output datasets whose
+    # `source_variable` matches a producing recipe's output (after
+    # stripping common file extensions) and either (a) promote the
+    # producing dataset to terminal-output and drop the orphan, or
+    # (b) attach the orphan to the producing recipe's outputs list.
+    # Approach (b) preserves the user's explicit sink path; we use it
+    # when the orphan's name differs materially from the upstream name.
+    def _basename(s: str) -> str:
+        """Strip directory + common file extensions for sink-name matching."""
+        s = s.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        for ext in (".csv", ".parquet", ".json", ".tsv", ".feather", ".pickle", ".pkl"):
+            if s.lower().endswith(ext):
+                s = s[: -len(ext)]
+                break
+        return s.replace(" ", "_")
+
+    output_role: dict[str, dict[str, Any]] = {
+        ds.get("name", ""): ds for ds in datasets if ds.get("type") == "output"
+    }
+    orphan_merges: list[str] = []
+    for ds in list(datasets):
+        nm = ds.get("name", "")
+        if not nm or nm not in output_role:
+            continue
+        if nm in produced:
+            continue  # not orphan — some recipe already produces it
+        # Match the orphan's source_variable against existing recipe outputs.
+        sink_path = ds.get("source_variable") or ""
+        sink_basename = _basename(sink_path) if sink_path else _basename(nm)
+        candidates = [r for r in recipes if any(
+            o == sink_basename or _basename(o) == sink_basename
+            for o in (r.get("outputs") or [])
+        )]
+        if not candidates:
+            # Try a softer match: the upstream output that's a prefix of
+            # the orphan name (e.g., `top_50` upstream → `top_50_netting_sets_csv`).
+            candidates = [r for r in recipes if any(
+                sink_basename.startswith(o) or o.startswith(sink_basename)
+                for o in (r.get("outputs") or [])
+            )]
+        if not candidates:
+            continue  # genuinely orphaned; leave as-is
+        # Attach the orphan to the producing recipe's outputs list rather
+        # than merging it into another dataset's name. This preserves the
+        # user's explicit sink path as a distinct dataset stripe.
+        producer = candidates[0]
+        existing_outputs = list(producer.get("outputs") or [])
+        if nm not in existing_outputs:
+            existing_outputs.append(nm)
+            producer["outputs"] = existing_outputs
+        produced.add(nm)
+        orphan_merges.append(f"'{nm}' attached to recipe '{producer.get('name')}'")
+    if orphan_merges:
+        warnings.append(
+            "Attached orphan output datasets to producing recipes: "
+            + "; ".join(orphan_merges)
+        )
+
     flow_dict["datasets"] = datasets
     flow_dict["recipes"] = recipes
     flow_dict["total_datasets"] = len(datasets)
