@@ -1786,7 +1786,7 @@ class CodeAnalyzer:
             func = node.value.func
             if isinstance(func, ast.Attribute):
                 method = func.attr
-                if method in ("to_csv", "to_excel", "to_parquet"):
+                if method in ("to_csv", "to_excel", "to_parquet", "to_json", "to_feather", "to_pickle"):
                     df_name = self._get_name(func.value)
                     filepath = "output"
                     if node.value.args:

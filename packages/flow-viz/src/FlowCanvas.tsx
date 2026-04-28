@@ -113,12 +113,46 @@ interface ToolbarProps {
   onAutoLayout: () => void;
 }
 
+/**
+ * Internal helper — runs `fitView` whenever node positions change after the
+ * async ELK layout completes. Without this, the initial `fitView={true}`
+ * prop on `<ReactFlow>` runs *before* positions land (the layout is async),
+ * leaving the camera anchored at (0, 0) so all nodes appear off-screen.
+ *
+ * The signature key is the concatenation of every node id + position;
+ * recomputing it on every render is cheap (≤ 50 nodes typical) and forces
+ * `fitView` to re-fire when ELK delivers new coordinates.
+ */
+function FitViewOnLayout(props: { positionKey: string }): null {
+  const rf = useReactFlow();
+  useEffect(() => {
+    if (!props.positionKey) return;
+    // React Flow needs two frames to commit the laid-out node sizes
+    // through its internal store: one for the position-state update we
+    // just dispatched, and a second for measure-after-paint. Without
+    // this double-rAF, fitView reads stale dimensions and either
+    // over-zooms (scale=2 against a one-line subset of the graph) or
+    // under-zooms entirely. Tested across 1-, 4-, 8- and 14-node flows.
+    let frame2 = 0;
+    const frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        rf.fitView({ padding: 0.12, duration: 200 });
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frame1);
+      if (frame2) cancelAnimationFrame(frame2);
+    };
+  }, [props.positionKey, rf]);
+  return null;
+}
+
 /** DSS-style toolbar — Fit / Auto-layout / Mini-map toggle. */
 function Toolbar(props: ToolbarProps): JSX.Element {
   const { showMinimap, onToggleMinimap, onAutoLayout } = props;
   const rf = useReactFlow();
   const onFit = useCallback(() => {
-    rf.fitView({ padding: 0.08, duration: 250 });
+    rf.fitView({ padding: 0.12, duration: 250 });
   }, [rf]);
   return (
     <div className={styles.toolbar} role="toolbar" aria-label="Flow canvas toolbar">
@@ -289,6 +323,15 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
     () => new Set(highlightedEdgeIds ?? []),
     [highlightedEdgeIds],
   );
+  // Stable signature of the laid-out node positions; flips whenever ELK
+  // produces new coordinates, which the `<FitViewOnLayout>` helper inside
+  // ReactFlowProvider then uses to retrigger fitView.
+  const positionKey = useMemo<string>(() => {
+    return nodes
+      .map((n) => `${n.id}:${Math.round(n.position?.x ?? 0)}:${Math.round(n.position?.y ?? 0)}`)
+      .join(",");
+  }, [nodes]);
+
   const renderedEdges = useMemo<RFEdge[]>(() => {
     if (highlightedEdgeSet.size === 0) return edges;
     return edges.map((e) => {
@@ -354,7 +397,9 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
-          fitViewOptions={{ padding: 0.08 }}
+          fitViewOptions={{ padding: 0.12 }}
+          minZoom={0.1}
+          maxZoom={2}
           onNodesChange={handleNodeChanges}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
@@ -362,7 +407,29 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
         >
           {showBackground && <Background gap={16} />}
           {showControls && <Controls />}
-          {showMinimap && <MiniMap pannable zoomable />}
+          {showMinimap && (
+            <MiniMap
+              pannable
+              zoomable
+              position="bottom-right"
+              style={{
+                width: 140,
+                height: 90,
+                opacity: 0.92,
+                borderRadius: 6,
+                border: "1px solid var(--border, #eaecf0)",
+                background:
+                  theme === "dark"
+                    ? "rgba(20, 24, 32, 0.9)"
+                    : "rgba(255, 255, 255, 0.9)",
+              }}
+              maskColor={
+                theme === "dark"
+                  ? "rgba(20, 24, 32, 0.45)"
+                  : "rgba(0, 0, 0, 0.06)"
+              }
+            />
+          )}
         </ReactFlow>
         {showToolbar && (
           <Toolbar
@@ -371,6 +438,7 @@ export function FlowCanvas(props: FlowCanvasProps): JSX.Element {
             onAutoLayout={triggerAutoLayout}
           />
         )}
+        <FitViewOnLayout positionKey={positionKey} />
       </ReactFlowProvider>
     </div>
   );

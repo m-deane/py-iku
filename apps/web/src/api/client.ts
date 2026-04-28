@@ -236,6 +236,23 @@ export interface ListProcessorsOptions extends ClientOptions {
   category?: string;
 }
 
+/**
+ * Server-side LLM provider/credential status. The key is **never** echoed —
+ * the boolean `has_key` and `source` are the only signals the client gets.
+ */
+export interface LlmStatusResponse {
+  provider: "anthropic" | "openai";
+  model?: string | null;
+  has_key: boolean;
+  source: "file" | "env" | "none";
+  supported_providers?: string[];
+}
+
+export interface SaveLlmKeyRequest {
+  provider: "anthropic" | "openai";
+  key: string;
+}
+
 export const client = {
   health(opts?: ClientOptions): Promise<HealthResponse> {
     return request<HealthResponse>("/health", { method: "GET" }, opts);
@@ -277,6 +294,35 @@ export const client = {
     return request<ScoreResponse>(
       "/score",
       { method: "POST", body: JSON.stringify(flow) },
+      opts,
+    );
+  },
+  // ----- LLM credential management ----------------------------------------
+  getLlmStatus(opts?: ClientOptions): Promise<LlmStatusResponse> {
+    return request<LlmStatusResponse>(
+      "/api/settings/llm",
+      { method: "GET" },
+      opts,
+    );
+  },
+  saveLlmKey(
+    payload: SaveLlmKeyRequest,
+    opts?: ClientOptions,
+  ): Promise<LlmStatusResponse> {
+    return request<LlmStatusResponse>(
+      "/api/settings/llm/key",
+      { method: "POST", body: JSON.stringify(payload) },
+      opts,
+    );
+  },
+  deleteLlmKey(
+    provider: "anthropic" | "openai" = "anthropic",
+    opts?: ClientOptions,
+  ): Promise<{ removed: boolean }> {
+    const qs = new URLSearchParams({ provider }).toString();
+    return request<{ removed: boolean }>(
+      `/api/settings/llm/key?${qs}`,
+      { method: "DELETE" },
       opts,
     );
   },

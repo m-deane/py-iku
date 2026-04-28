@@ -20,6 +20,10 @@ async def test_llm_missing_key_returns_500(client, monkeypatch) -> None:  # type
     body = response.json()
     assert body.get("status") == 500
     assert "ConfigurationError" in body.get("type", "")
+    detail = body.get("detail", "")
+    # Error must point users at the Settings UX OR the env var. Both paths
+    # are acceptable to satisfy this assertion.
+    assert "Settings" in detail or "ANTHROPIC_API_KEY" in detail
 
 
 @pytest.mark.asyncio

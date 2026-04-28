@@ -1,5 +1,6 @@
-import { useSettingsStore, type LlmProvider } from "../../state/settingsStore";
+import { useSettingsStore } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
+import { LlmProviderSection } from "./LlmProviderSection";
 
 /**
  * Full Settings surface. The gear-drawer (`SettingsDrawer`) stays for in-flow
@@ -57,34 +58,9 @@ export function SettingsPage(): JSX.Element {
         a quick-access drawer; this page is the canonical deeper surface.
       </p>
 
-      <Card title="Provider keys" description="API keys are stored server-side. The browser only sees an alias.">
-        <Row label="Provider">
-          <select
-            value={settings.llmProvider}
-            onChange={(e) => settings.setProvider(e.target.value as LlmProvider)}
-            aria-label="LLM provider"
-          >
-            <option value="anthropic">Anthropic</option>
-            <option value="openai">OpenAI</option>
-          </select>
-        </Row>
-        <Row label="Model">
-          <input
-            type="text"
-            value={settings.llmModel}
-            onChange={(e) => settings.setModel(e.target.value)}
-            aria-label="LLM model"
-          />
-        </Row>
-        <Row label="Key alias">
-          <input
-            type="text"
-            value={settings.apiKeyAlias}
-            onChange={(e) => settings.setApiKeyAlias(e.target.value)}
-            placeholder="e.g. anthropic-default"
-            aria-label="API key alias"
-          />
-        </Row>
+      <LlmProviderSection />
+
+      <Card title="API connection" description="Where the Studio app calls the FastAPI backend.">
         <Row label="API base URL">
           <input
             type="url"

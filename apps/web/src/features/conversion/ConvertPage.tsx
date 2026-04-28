@@ -1,15 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MonacoEditor } from "../editor/MonacoEditor";
 import { SnippetPicker } from "../editor/SnippetPicker";
 import { JsonView } from "../../components/JsonView";
 import { Banner } from "../../components/Banner";
 import { NodeInspector } from "../inspector/NodeInspector";
+import { FlowCanvas } from "@flow-viz/index";
+import type { MinimalFlow, ThemeName } from "@flow-viz/types";
+import { dataikuFlowToMinimal } from "./FlowViewer";
 import {
   client,
   ApiError,
   type ConvertResponse,
   type ConversionMode,
+  type LlmStatusResponse,
 } from "../../api/client";
 import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
@@ -100,7 +104,33 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const useStreamHook = props.streamConvertImpl ?? useConvertStream;
   const stream = useStreamHook();
 
-  const llmDisabled = mode === "llm" && apiKeyAlias.trim() === "";
+  // Server-side LLM key state. Single probe on mount; we re-probe whenever
+  // the user switches to LLM mode so a key saved in another tab/window
+  // surfaces here without a hard refresh.
+  const [llmStatus, setLlmStatus] = useState<LlmStatusResponse | null>(null);
+  useEffect(() => {
+    if (mode !== "llm") return;
+    let alive = true;
+    client
+      .getLlmStatus()
+      .then((s) => {
+        if (alive) setLlmStatus(s);
+      })
+      .catch(() => {
+        if (alive) setLlmStatus({ provider: "anthropic", has_key: false, source: "none" });
+      });
+    return (): void => {
+      alive = false;
+    };
+  }, [mode]);
+
+  // LLM mode is disabled when EITHER (a) the local alias is unset (legacy
+  // single-source-of-truth used by tests) OR (b) the server reports no key.
+  // The latter is the source-of-truth for real users; the former preserves
+  // a useful warning state on first paint while the probe is in-flight.
+  const serverKeyMissing = mode === "llm" && llmStatus !== null && !llmStatus.has_key;
+  const llmDisabled =
+    mode === "llm" && (apiKeyAlias.trim() === "" || serverKeyMissing);
   const inFlight =
     status === "running" ||
     status === "streaming" ||
@@ -426,6 +456,49 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           ) : null}
         </div>
 
+        {mode === "llm" && llmStatus !== null && !llmStatus.has_key ? (
+          <div
+            role="status"
+            data-testid="convert-llm-no-key-banner"
+            style={{
+              padding: "0.6rem 0.85rem",
+              borderRadius: "var(--radius-md, 6px)",
+              border: "1px solid var(--warning-border, #fde68a)",
+              background: "var(--warning-bg, #fffbeb)",
+              color: "var(--warning-fg, #92400e)",
+              fontSize: "var(--text-sm, 14px)",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <span aria-hidden>⚠️</span>
+            <span style={{ flex: 1 }}>
+              No API key configured. Set it in{" "}
+              <a
+                href="/settings"
+                data-testid="convert-llm-no-key-deeplink"
+                onClick={(e) => {
+                  // Internal SPA navigation when the host app supplies a
+                  // history listener; falling back to anchor href otherwise.
+                  e.preventDefault();
+                  window.history.pushState({}, "", "/settings");
+                  window.dispatchEvent(new PopStateEvent("popstate"));
+                }}
+                style={{
+                  color: "inherit",
+                  textDecoration: "underline",
+                  fontWeight: 600,
+                }}
+              >
+                Settings → LLM Provider
+              </a>
+              .
+            </span>
+          </div>
+        ) : null}
+
         <StatusPanel
           status={status}
           mode={mode}
@@ -435,7 +508,8 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
 
         {response ? (
           <div data-testid="response-panel">
-            <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem" }}>
+            <ResponseCanvas flow={response.flow} />
+            <h2 style={{ margin: "0.5rem 0 0.5rem 0", fontSize: "1rem" }}>
               Flow JSON{" "}
               <span style={{ fontSize: 12, color: "var(--fg-muted, #5b6470)" }}>
                 — recipes, datasets, and the DAG payload below
@@ -448,6 +522,61 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           </div>
         ) : null}
       </div>
+    </section>
+  );
+}
+
+/**
+ * Inline DSS-style flow canvas for the Convert response panel.
+ *
+ * Adapts the backend DataikuFlow shape (recipes[] + datasets[]) into the
+ * MinimalFlow contract (nodes[] + edges[]) FlowCanvas expects, then renders
+ * a 420-px-tall pane so the user can scan the DAG without leaving Convert.
+ *
+ * The pane sets its theme from the user-configured app theme. It mounts
+ * the same toolbar (Fit / Layout / Mini-map) as /flow/:id; selection state
+ * is plumbed through `flowStore` so the Inspector card below the canvas
+ * picks up clicks on recipe/dataset nodes.
+ */
+function ResponseCanvas(props: { flow: Record<string, unknown> }): JSX.Element | null {
+  const theme = useSettingsStore((s) => s.theme as ThemeName | undefined) ?? "light";
+  const setSelectedNodeId = useFlowStore((s) => s.setSelectedNodeId);
+  const selectedNodeId = useFlowStore((s) => s.selectedNodeId);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const minimal = useMemo<MinimalFlow | null>(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return dataikuFlowToMinimal(props.flow as any);
+    } catch {
+      return null;
+    }
+  }, [props.flow]);
+
+  if (!minimal || minimal.nodes.length === 0) return null;
+
+  return (
+    <section
+      data-testid="convert-canvas"
+      aria-label="Converted flow canvas"
+      style={{
+        height: 420,
+        marginBottom: "0.75rem",
+        border: "1px solid var(--border, var(--color-grid, #eaecf0))",
+        borderRadius: "var(--radius-md, 8px)",
+        overflow: "hidden",
+        background: "var(--surface, #fafafa)",
+      }}
+    >
+      <FlowCanvas
+        flow={minimal}
+        theme={theme}
+        showMinimap
+        showControls
+        showBackground
+        showToolbar
+        selectedNodeId={selectedNodeId}
+        onSelectionChange={(id) => setSelectedNodeId(id)}
+      />
     </section>
   );
 }
