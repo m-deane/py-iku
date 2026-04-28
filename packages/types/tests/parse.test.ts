@@ -101,6 +101,7 @@ const convertResponse = {
   score: {
     recipe_count: 1,
     processor_count: 1,
+    dataset_count: 2,
     max_depth: 2,
     fan_out_max: 1,
     complexity: 3.5,

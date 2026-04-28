@@ -22,6 +22,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Latest version + commit message for the release-notes modal
+         * @description Return service version + latest commit message.
+         */
+        get: operations["version_api_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/convert": {
         parameters: {
             query?: never;
@@ -38,6 +58,11 @@ export interface paths {
          *     - **mode=rule** (default): AST-based, offline, fast.
          *     - **mode=llm**: LLM-assisted, requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
          *       set in the server environment. Max 30-second wall-clock timeout.
+         *
+         *     Pre-call budget enforcement: when ``mode=llm`` and the projected call cost
+         *     would breach the per-call or monthly budget cap, the route returns 402 with
+         *     the projected cost in the body. Pass ``?force=true`` to acknowledge the
+         *     warning and proceed; the actual cost is still recorded post-call.
          *
          *     Errors in the py2dataiku hierarchy are mapped to RFC 7807 problem+json.
          */
@@ -116,31 +141,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/diff": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Compute the per-node diff between two flows
-         * @description Compare two flows by recipe name (the node id) and return added/removed/changed.
-         *
-         *     - **added**: recipe present in B but not in A.
-         *     - **removed**: recipe present in A but not in B.
-         *     - **changed**: recipe present in both with a different ``type`` or
-         *       different settings/steps.
-         */
-        post: operations["post_diff_diff_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/score": {
         parameters: {
             query?: never;
@@ -158,26 +158,6 @@ export interface paths {
          *     the FlowGraph metrics computed by ``score_flow`` are accurate.
          */
         post: operations["post_score_score_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/export/{format}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Export a DataikuFlow as a binary payload
-         * @description Render the flow as ``format`` and stream it back as an attachment.
-         */
-        post: operations["post_export_export__format__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -219,91 +199,10 @@ export interface paths {
         patch: operations["patch_flow_flows__flow_id__patch"];
         trace?: never;
     };
-    "/flows/{flow_id}/share": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mint a signed share token for a flow */
-        post: operations["post_share_flows__flow_id__share_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/share/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Public read-only view of a shared flow */
-        get: operations["get_share_share__token__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List audit-log events */
-        get: operations["get_audit_audit_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * AuditEventModel
-         * @description A single audit log entry returned by ``GET /audit``.
-         */
-        AuditEventModel: {
-            /** Actor */
-            actor: string;
-            /** Action */
-            action: string;
-            /** Resource Type */
-            resource_type: string;
-            /** Resource Id */
-            resource_id: string;
-            /** Details */
-            details?: {
-                [key: string]: unknown;
-            };
-            /** Ts */
-            ts: string;
-        };
-        /**
-         * AuditListResponse
-         * @description Paginated audit response.
-         */
-        AuditListResponse: {
-            /** Events */
-            events: components["schemas"]["AuditEventModel"][];
-            /** Next Cursor */
-            next_cursor?: string | null;
-        };
         /**
          * ColumnSchemaModel
          * @description Mirrors ColumnSchema.to_dict().
@@ -338,6 +237,12 @@ export interface components {
              * @description Total prepare steps across all PREPARE recipes
              */
             processor_count: number;
+            /**
+             * Dataset Count
+             * @description Total number of datasets in the flow (input + intermediate + output)
+             * @default 0
+             */
+            dataset_count: number;
             /**
              * Max Depth
              * @description Longest path from root to leaf (node hops)
@@ -420,7 +325,7 @@ export interface components {
          * @description Response body from POST /convert.
          */
         ConvertResponse: {
-            flow: components["schemas"]["DataikuFlowModel"];
+            flow: components["schemas"]["DataikuFlowModel-Output"];
             score: components["schemas"]["ComplexityScore"];
             /** Warnings */
             warnings?: string[];
@@ -461,7 +366,7 @@ export interface components {
          *     Validates that all recipe inputs/outputs reference datasets that exist
          *     in the datasets list.
          */
-        DataikuFlowModel: {
+        "DataikuFlowModel-Input": {
             /**
              * Flow Name
              * @default converted_flow
@@ -484,7 +389,45 @@ export interface components {
             /** Datasets */
             datasets?: components["schemas"]["DataikuDatasetModel"][];
             /** Recipes */
-            recipes?: components["schemas"]["DataikuRecipeModel"][];
+            recipes?: components["schemas"]["DataikuRecipeModel-Input"][];
+            /** Optimization Notes */
+            optimization_notes?: string[];
+            /** Recommendations */
+            recommendations?: components["schemas"]["FlowRecommendationModel"][];
+            /** Zones */
+            zones?: components["schemas"]["FlowZoneModel"][];
+        };
+        /**
+         * DataikuFlowModel
+         * @description Mirrors DataikuFlow.to_dict() shape exactly.
+         *
+         *     Validates that all recipe inputs/outputs reference datasets that exist
+         *     in the datasets list.
+         */
+        "DataikuFlowModel-Output": {
+            /**
+             * Flow Name
+             * @default converted_flow
+             */
+            flow_name: string;
+            /** Generated From */
+            generated_from?: string | null;
+            /** Generation Timestamp */
+            generation_timestamp?: string | null;
+            /**
+             * Total Recipes
+             * @default 0
+             */
+            total_recipes: number;
+            /**
+             * Total Datasets
+             * @default 0
+             */
+            total_datasets: number;
+            /** Datasets */
+            datasets?: components["schemas"]["DataikuDatasetModel"][];
+            /** Recipes */
+            recipes?: components["schemas"]["DataikuRecipeModel-Output"][];
             /** Optimization Notes */
             optimization_notes?: string[];
             /** Recommendations */
@@ -505,7 +448,7 @@ export interface components {
          *     it will be None for flows produced by py-iku's to_dict(), but callers that
          *     construct recipes directly may populate it.
          */
-        DataikuRecipeModel: {
+        "DataikuRecipeModel-Input": {
             /** Name */
             name: string;
             type: components["schemas"]["RecipeTypeEnum"];
@@ -517,6 +460,59 @@ export interface components {
             source_lines?: number[];
             /** Notes */
             notes?: string[];
+            /**
+             * Confidence
+             * @description LLM self-reported mapping confidence in [0.0, 1.0]. None means rule-based or unspecified. UI shading bands: >=0.85 high (no shade), 0.60-0.84 medium (warn), <0.60 low (danger).
+             */
+            confidence?: number | null;
+            /**
+             * Reasoning
+             * @description One-sentence rationale for the recipe mapping. None for rule-based recipes.
+             */
+            reasoning?: string | null;
+            /**
+             * Settings
+             * @description Composed recipe settings (discriminated union over 12 subclasses). Not populated by py-iku to_dict(); present here to expose the full settings schema contract in /openapi.json.
+             */
+            settings?: (components["schemas"]["PrepareSettingsModel"] | components["schemas"]["GroupingSettingsModel"] | components["schemas"]["JoinSettingsModel"] | components["schemas"]["WindowSettingsModel"] | components["schemas"]["SamplingSettingsModel"] | components["schemas"]["SplitSettingsModel"] | components["schemas"]["SortSettingsModel"] | components["schemas"]["TopNSettingsModel"] | components["schemas"]["DistinctSettingsModel"] | components["schemas"]["StackSettingsModel"] | components["schemas"]["PythonSettingsModel"] | components["schemas"]["PivotSettingsModel"]) | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * DataikuRecipeModel
+         * @description Mirrors DataikuRecipe.to_dict() shape.
+         *
+         *     py-iku's to_dict() inlines recipe-type-specific settings via to_display_dict()
+         *     rather than nesting them under a 'settings' key. Those fields pass through via
+         *     `extra="allow"`.
+         *
+         *     The `settings` field is declared here as Optional so all 12 RecipeSettings
+         *     subclass schemas are registered in the OpenAPI component registry. In practice
+         *     it will be None for flows produced by py-iku's to_dict(), but callers that
+         *     construct recipes directly may populate it.
+         */
+        "DataikuRecipeModel-Output": {
+            /** Name */
+            name: string;
+            type: components["schemas"]["RecipeTypeEnum"];
+            /** Inputs */
+            inputs?: string[];
+            /** Outputs */
+            outputs?: string[];
+            /** Source Lines */
+            source_lines?: number[];
+            /** Notes */
+            notes?: string[];
+            /**
+             * Confidence
+             * @description LLM self-reported mapping confidence in [0.0, 1.0]. None means rule-based or unspecified. UI shading bands: >=0.85 high (no shade), 0.60-0.84 medium (warn), <0.60 low (danger).
+             */
+            confidence?: number | null;
+            /**
+             * Reasoning
+             * @description One-sentence rationale for the recipe mapping. None for rule-based recipes.
+             */
+            reasoning?: string | null;
             /**
              * Settings
              * @description Composed recipe settings (discriminated union over 12 subclasses). Not populated by py-iku to_dict(); present here to expose the full settings schema contract in /openapi.json.
@@ -538,28 +534,6 @@ export interface components {
          */
         DatasetTypeEnum: "input" | "intermediate" | "output";
         /**
-         * DiffRequest
-         * @description Request body for POST /diff.
-         */
-        DiffRequest: {
-            /** @description The 'before' flow (e.g., rule output) */
-            a: components["schemas"]["DataikuFlowModel"];
-            /** @description The 'after' flow (e.g., LLM output) */
-            b: components["schemas"]["DataikuFlowModel"];
-        };
-        /**
-         * DiffResponse
-         * @description Response body for POST /diff.
-         */
-        DiffResponse: {
-            /** Added */
-            added?: components["schemas"]["NodeDiff"][];
-            /** Removed */
-            removed?: components["schemas"]["NodeDiff"][];
-            /** Changed */
-            changed?: components["schemas"]["NodeDiff"][];
-        };
-        /**
          * DistinctSettingsModel
          * @description Mirrors DistinctSettings.to_dict(): computeCount.
          */
@@ -574,36 +548,6 @@ export interface components {
              * @default false
              */
             computeCount: boolean;
-        };
-        /**
-         * ExportFormat
-         * @description Supported export formats for ``POST /export/{format}``.
-         * @enum {string}
-         */
-        ExportFormat: "zip" | "json" | "yaml" | "svg" | "png" | "pdf";
-        /**
-         * ExportRequest
-         * @description Request body for ``POST /export/{format}``.
-         *
-         *     ``flow`` is the raw ``DataikuFlow.to_dict()`` payload (round-trippable via
-         *     ``DataikuFlow.from_dict``).  ``opts`` is a free-form dict reserved for
-         *     format-specific knobs (e.g. ``{"scale": 2.0}`` for PNG).
-         */
-        ExportRequest: {
-            /**
-             * Flow
-             * @description DataikuFlow.to_dict() payload
-             */
-            flow: {
-                [key: string]: unknown;
-            };
-            /**
-             * Opts
-             * @description Optional format-specific options (passed through to the sink)
-             */
-            opts?: {
-                [key: string]: unknown;
-            } | null;
         };
         /**
          * FlowRecommendationModel
@@ -693,37 +637,6 @@ export interface components {
             /** Selected Columns */
             selected_columns?: {
                 [key: string]: string[];
-            } | null;
-        };
-        /**
-         * NodeDiff
-         * @description A single per-node difference entry.
-         *
-         *     For ``added`` and ``removed`` entries ``diff`` is None. For ``changed`` entries
-         *     ``diff`` enumerates which fields differ between A and B.
-         */
-        NodeDiff: {
-            /**
-             * Id
-             * @description Recipe name used as the node id
-             */
-            id: string;
-            /**
-             * Recipe Type A
-             * @description Recipe type in flow A (None when added in B)
-             */
-            recipe_type_a?: string | null;
-            /**
-             * Recipe Type B
-             * @description Recipe type in flow B (None when removed from B)
-             */
-            recipe_type_b?: string | null;
-            /**
-             * Diff
-             * @description When kind=changed: which fields differ ({field: {a, b}}).
-             */
-            diff?: {
-                [key: string]: unknown;
             } | null;
         };
         /**
@@ -925,7 +838,7 @@ export interface components {
          * @description Request body for ``POST /flows``.
          */
         SaveFlowRequest: {
-            flow: components["schemas"]["DataikuFlowModel"];
+            flow: components["schemas"]["DataikuFlowModel-Input"];
             /** Name */
             name: string;
             /** Tags */
@@ -940,41 +853,13 @@ export interface components {
             id: string;
             /** Name */
             name: string;
-            flow: components["schemas"]["DataikuFlowModel"];
+            flow: components["schemas"]["DataikuFlowModel-Output"];
             /** Created At */
             created_at: string;
             /** Updated At */
             updated_at: string;
             /** Tags */
             tags?: string[];
-        };
-        /**
-         * ShareFlowRequest
-         * @description Body for ``POST /flows/{id}/share``.
-         */
-        ShareFlowRequest: {
-            /**
-             * Ttl Seconds
-             * @description Token validity in seconds (default: server-configured TTL).
-             */
-            ttl_seconds?: number | null;
-            /**
-             * Scopes
-             * @description Token scopes (default: ['read']).
-             */
-            scopes?: string[] | null;
-        };
-        /**
-         * ShareFlowResponse
-         * @description Response from ``POST /flows/{id}/share``.
-         */
-        ShareFlowResponse: {
-            /** Token */
-            token: string;
-            /** Url */
-            url: string;
-            /** Expires At */
-            expires_at: string;
         };
         /**
          * SortSettingsModel
@@ -1051,7 +936,7 @@ export interface components {
          * @description Request body for ``PATCH /flows/{id}`` — every field is optional.
          */
         UpdateFlowRequest: {
-            flow?: components["schemas"]["DataikuFlowModel"] | null;
+            flow?: components["schemas"]["DataikuFlowModel-Input"] | null;
             /** Name */
             name?: string | null;
             /** Tags */
@@ -1069,6 +954,22 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * VersionResponse
+         * @description Lightweight response for the in-app release-notes modal.
+         */
+        VersionResponse: {
+            /** Api Version */
+            api_version: string;
+            /** Py Iku Version */
+            py_iku_version: string;
+            /** Commit */
+            commit: string | null;
+            /** Commit Message */
+            commit_message: string;
+            /** Source */
+            source: string;
         };
         /**
          * WindowSettingsModel
@@ -1122,9 +1023,31 @@ export interface operations {
             };
         };
     };
-    post_convert_convert_post: {
+    version_api_version_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionResponse"];
+                };
+            };
+        };
+    };
+    post_convert_convert_post: {
+        parameters: {
+            query?: {
+                force?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1266,39 +1189,6 @@ export interface operations {
             };
         };
     };
-    post_diff_diff_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DiffRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DiffResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     post_score_score_post: {
         parameters: {
             query?: never;
@@ -1308,7 +1198,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DataikuFlowModel"];
+                "application/json": components["schemas"]["DataikuFlowModel-Input"];
             };
         };
         responses: {
@@ -1329,51 +1219,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
-            };
-        };
-    };
-    post_export_export__format__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                format: components["schemas"]["ExportFormat"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExportRequest"];
-            };
-        };
-        responses: {
-            /** @description Binary export payload (zip / json / yaml / svg / png / pdf) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/zip": unknown;
-                    "application/json": unknown;
-                    "application/x-yaml": unknown;
-                    "image/svg+xml": unknown;
-                    "image/png": unknown;
-                    "application/pdf": unknown;
-                };
-            };
-            /** @description Invalid format or malformed flow body */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Format not supported in this environment */
-            501: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -1463,137 +1308,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SavedFlowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    post_share_flows__flow_id__share_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                flow_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ShareFlowRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ShareFlowResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_share_share__token__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SavedFlowResponse"];
-                };
-            };
-            /** @description Token signature is invalid */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token references an unknown flow */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token expired */
-            410: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Rate limit exceeded */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_audit_audit_get: {
-        parameters: {
-            query?: {
-                /** @description ISO timestamp lower bound */
-                since?: string | null;
-                /** @description Filter to a single actor */
-                actor?: string | null;
-                limit?: number;
-                /** @description Pagination cursor */
-                cursor?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuditListResponse"];
                 };
             };
             /** @description Validation Error */

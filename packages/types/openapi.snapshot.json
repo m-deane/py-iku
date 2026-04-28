@@ -28,23 +28,57 @@
         }
       }
     },
+    "/api/version": {
+      "get": {
+        "tags": [
+          "version"
+        ],
+        "summary": "Latest version + commit message for the release-notes modal",
+        "description": "Return service version + latest commit message.",
+        "operationId": "version_api_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/convert": {
       "post": {
         "tags": [
           "convert"
         ],
         "summary": "Convert Python code to a Dataiku flow (synchronous)",
-        "description": "Convert Python code to a DataikuFlow.\n\n- **mode=rule** (default): AST-based, offline, fast.\n- **mode=llm**: LLM-assisted, requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`\n  set in the server environment. Max 30-second wall-clock timeout.\n\nErrors in the py2dataiku hierarchy are mapped to RFC 7807 problem+json.",
+        "description": "Convert Python code to a DataikuFlow.\n\n- **mode=rule** (default): AST-based, offline, fast.\n- **mode=llm**: LLM-assisted, requires `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`\n  set in the server environment. Max 30-second wall-clock timeout.\n\nPre-call budget enforcement: when ``mode=llm`` and the projected call cost\nwould breach the per-call or monthly budget cap, the route returns 402 with\nthe projected cost in the body. Pass ``?force=true`` to acknowledge the\nwarning and proceed; the actual cost is still recorded post-call.\n\nErrors in the py2dataiku hierarchy are mapped to RFC 7807 problem+json.",
         "operationId": "post_convert_convert_post",
+        "parameters": [
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ConvertRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -218,48 +252,6 @@
         }
       }
     },
-    "/diff": {
-      "post": {
-        "tags": [
-          "diff"
-        ],
-        "summary": "Compute the per-node diff between two flows",
-        "description": "Compare two flows by recipe name (the node id) and return added/removed/changed.\n\n- **added**: recipe present in B but not in A.\n- **removed**: recipe present in A but not in B.\n- **changed**: recipe present in both with a different ``type`` or\n  different settings/steps.",
-        "operationId": "post_diff_diff_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DiffRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiffResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/score": {
       "post": {
         "tags": [
@@ -272,7 +264,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DataikuFlowModel"
+                "$ref": "#/components/schemas/DataikuFlowModel-Input"
               }
             }
           },
@@ -298,55 +290,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/export/{format}": {
-      "post": {
-        "tags": [
-          "export"
-        ],
-        "summary": "Export a DataikuFlow as a binary payload",
-        "description": "Render the flow as ``format`` and stream it back as an attachment.",
-        "operationId": "post_export_export__format__post",
-        "parameters": [
-          {
-            "name": "format",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ExportFormat"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExportRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Binary export payload (zip / json / yaml / svg / png / pdf)",
-            "content": {
-              "application/zip": {},
-              "application/json": {},
-              "application/x-yaml": {},
-              "image/svg+xml": {},
-              "image/png": {},
-              "application/pdf": {}
-            }
-          },
-          "422": {
-            "description": "Invalid format or malformed flow body"
-          },
-          "501": {
-            "description": "Format not supported in this environment"
           }
         }
       }
@@ -483,282 +426,10 @@
           }
         }
       }
-    },
-    "/flows/{flow_id}/share": {
-      "post": {
-        "tags": [
-          "flows"
-        ],
-        "summary": "Mint a signed share token for a flow",
-        "operationId": "post_share_flows__flow_id__share_post",
-        "parameters": [
-          {
-            "name": "flow_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Flow Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShareFlowRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShareFlowResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/share/{token}": {
-      "get": {
-        "tags": [
-          "share"
-        ],
-        "summary": "Public read-only view of a shared flow",
-        "operationId": "get_share_share__token__get",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SavedFlowResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Token signature is invalid"
-          },
-          "404": {
-            "description": "Token references an unknown flow"
-          },
-          "410": {
-            "description": "Token expired"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Rate limit exceeded"
-          }
-        }
-      }
-    },
-    "/audit": {
-      "get": {
-        "tags": [
-          "audit"
-        ],
-        "summary": "List audit-log events",
-        "operationId": "get_audit_audit_get",
-        "parameters": [
-          {
-            "name": "since",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "ISO timestamp lower bound",
-              "title": "Since"
-            },
-            "description": "ISO timestamp lower bound"
-          },
-          {
-            "name": "actor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter to a single actor",
-              "title": "Actor"
-            },
-            "description": "Filter to a single actor"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 1000,
-              "exclusiveMinimum": 0,
-              "default": 100,
-              "title": "Limit"
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Pagination cursor",
-              "title": "Cursor"
-            },
-            "description": "Pagination cursor"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuditListResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
-      "AuditEventModel": {
-        "properties": {
-          "actor": {
-            "type": "string",
-            "title": "Actor"
-          },
-          "action": {
-            "type": "string",
-            "title": "Action"
-          },
-          "resource_type": {
-            "type": "string",
-            "title": "Resource Type"
-          },
-          "resource_id": {
-            "type": "string",
-            "title": "Resource Id"
-          },
-          "details": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Details"
-          },
-          "ts": {
-            "type": "string",
-            "title": "Ts"
-          }
-        },
-        "type": "object",
-        "required": [
-          "actor",
-          "action",
-          "resource_type",
-          "resource_id",
-          "ts"
-        ],
-        "title": "AuditEventModel",
-        "description": "A single audit log entry returned by ``GET /audit``."
-      },
-      "AuditListResponse": {
-        "properties": {
-          "events": {
-            "items": {
-              "$ref": "#/components/schemas/AuditEventModel"
-            },
-            "type": "array",
-            "title": "Events"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          }
-        },
-        "type": "object",
-        "required": [
-          "events"
-        ],
-        "title": "AuditListResponse",
-        "description": "Paginated audit response."
-      },
       "ColumnSchemaModel": {
         "properties": {
           "name": {
@@ -808,6 +479,12 @@
             "type": "integer",
             "title": "Processor Count",
             "description": "Total prepare steps across all PREPARE recipes"
+          },
+          "dataset_count": {
+            "type": "integer",
+            "title": "Dataset Count",
+            "description": "Total number of datasets in the flow (input + intermediate + output)",
+            "default": 0
           },
           "max_depth": {
             "type": "integer",
@@ -952,7 +629,7 @@
       "ConvertResponse": {
         "properties": {
           "flow": {
-            "$ref": "#/components/schemas/DataikuFlowModel"
+            "$ref": "#/components/schemas/DataikuFlowModel-Output"
           },
           "score": {
             "$ref": "#/components/schemas/ComplexityScore"
@@ -1050,7 +727,7 @@
         "title": "DataikuDatasetModel",
         "description": "Mirrors DataikuDataset.to_dict() exactly."
       },
-      "DataikuFlowModel": {
+      "DataikuFlowModel-Input": {
         "properties": {
           "flow_name": {
             "type": "string",
@@ -1098,7 +775,7 @@
           },
           "recipes": {
             "items": {
-              "$ref": "#/components/schemas/DataikuRecipeModel"
+              "$ref": "#/components/schemas/DataikuRecipeModel-Input"
             },
             "type": "array",
             "title": "Recipes"
@@ -1129,7 +806,86 @@
         "title": "DataikuFlowModel",
         "description": "Mirrors DataikuFlow.to_dict() shape exactly.\n\nValidates that all recipe inputs/outputs reference datasets that exist\nin the datasets list."
       },
-      "DataikuRecipeModel": {
+      "DataikuFlowModel-Output": {
+        "properties": {
+          "flow_name": {
+            "type": "string",
+            "title": "Flow Name",
+            "default": "converted_flow"
+          },
+          "generated_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated From"
+          },
+          "generation_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generation Timestamp"
+          },
+          "total_recipes": {
+            "type": "integer",
+            "title": "Total Recipes",
+            "default": 0
+          },
+          "total_datasets": {
+            "type": "integer",
+            "title": "Total Datasets",
+            "default": 0
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DataikuDatasetModel"
+            },
+            "type": "array",
+            "title": "Datasets"
+          },
+          "recipes": {
+            "items": {
+              "$ref": "#/components/schemas/DataikuRecipeModel-Output"
+            },
+            "type": "array",
+            "title": "Recipes"
+          },
+          "optimization_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Optimization Notes"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/FlowRecommendationModel"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "zones": {
+            "items": {
+              "$ref": "#/components/schemas/FlowZoneModel"
+            },
+            "type": "array",
+            "title": "Zones"
+          }
+        },
+        "type": "object",
+        "title": "DataikuFlowModel",
+        "description": "Mirrors DataikuFlow.to_dict() shape exactly.\n\nValidates that all recipe inputs/outputs reference datasets that exist\nin the datasets list."
+      },
+      "DataikuRecipeModel-Input": {
         "properties": {
           "name": {
             "type": "string",
@@ -1165,6 +921,171 @@
             },
             "type": "array",
             "title": "Notes"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence",
+            "description": "LLM self-reported mapping confidence in [0.0, 1.0]. None means rule-based or unspecified. UI shading bands: >=0.85 high (no shade), 0.60-0.84 medium (warn), <0.60 low (danger)."
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning",
+            "description": "One-sentence rationale for the recipe mapping. None for rule-based recipes."
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/PrepareSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GroupingSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/JoinSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/WindowSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SamplingSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SplitSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SortSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TopNSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DistinctSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StackSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PythonSettingsModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PivotSettingsModel"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "distinct": "#/components/schemas/DistinctSettingsModel",
+                    "grouping": "#/components/schemas/GroupingSettingsModel",
+                    "join": "#/components/schemas/JoinSettingsModel",
+                    "pivot": "#/components/schemas/PivotSettingsModel",
+                    "prepare": "#/components/schemas/PrepareSettingsModel",
+                    "python": "#/components/schemas/PythonSettingsModel",
+                    "sampling": "#/components/schemas/SamplingSettingsModel",
+                    "sort": "#/components/schemas/SortSettingsModel",
+                    "split": "#/components/schemas/SplitSettingsModel",
+                    "stack": "#/components/schemas/StackSettingsModel",
+                    "topn": "#/components/schemas/TopNSettingsModel",
+                    "window": "#/components/schemas/WindowSettingsModel"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings",
+            "description": "Composed recipe settings (discriminated union over 12 subclasses). Not populated by py-iku to_dict(); present here to expose the full settings schema contract in /openapi.json."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "DataikuRecipeModel",
+        "description": "Mirrors DataikuRecipe.to_dict() shape.\n\npy-iku's to_dict() inlines recipe-type-specific settings via to_display_dict()\nrather than nesting them under a 'settings' key. Those fields pass through via\n`extra=\"allow\"`.\n\nThe `settings` field is declared here as Optional so all 12 RecipeSettings\nsubclass schemas are registered in the OpenAPI component registry. In practice\nit will be None for flows produced by py-iku's to_dict(), but callers that\nconstruct recipes directly may populate it."
+      },
+      "DataikuRecipeModel-Output": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RecipeTypeEnum"
+          },
+          "inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Inputs"
+          },
+          "outputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Outputs"
+          },
+          "source_lines": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Source Lines"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence",
+            "description": "LLM self-reported mapping confidence in [0.0, 1.0]. None means rule-based or unspecified. UI shading bands: >=0.85 high (no shade), 0.60-0.84 medium (warn), <0.60 low (danger)."
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning",
+            "description": "One-sentence rationale for the recipe mapping. None for rule-based recipes."
           },
           "settings": {
             "anyOf": [
@@ -1272,53 +1193,6 @@
         "title": "DatasetTypeEnum",
         "description": "Dataset types — mirrors DatasetType enum values."
       },
-      "DiffRequest": {
-        "properties": {
-          "a": {
-            "$ref": "#/components/schemas/DataikuFlowModel",
-            "description": "The 'before' flow (e.g., rule output)"
-          },
-          "b": {
-            "$ref": "#/components/schemas/DataikuFlowModel",
-            "description": "The 'after' flow (e.g., LLM output)"
-          }
-        },
-        "type": "object",
-        "required": [
-          "a",
-          "b"
-        ],
-        "title": "DiffRequest",
-        "description": "Request body for POST /diff."
-      },
-      "DiffResponse": {
-        "properties": {
-          "added": {
-            "items": {
-              "$ref": "#/components/schemas/NodeDiff"
-            },
-            "type": "array",
-            "title": "Added"
-          },
-          "removed": {
-            "items": {
-              "$ref": "#/components/schemas/NodeDiff"
-            },
-            "type": "array",
-            "title": "Removed"
-          },
-          "changed": {
-            "items": {
-              "$ref": "#/components/schemas/NodeDiff"
-            },
-            "type": "array",
-            "title": "Changed"
-          }
-        },
-        "type": "object",
-        "title": "DiffResponse",
-        "description": "Response body for POST /diff."
-      },
       "DistinctSettingsModel": {
         "properties": {
           "kind": {
@@ -1336,48 +1210,6 @@
         "type": "object",
         "title": "DistinctSettingsModel",
         "description": "Mirrors DistinctSettings.to_dict(): computeCount."
-      },
-      "ExportFormat": {
-        "type": "string",
-        "enum": [
-          "zip",
-          "json",
-          "yaml",
-          "svg",
-          "png",
-          "pdf"
-        ],
-        "title": "ExportFormat",
-        "description": "Supported export formats for ``POST /export/{format}``."
-      },
-      "ExportRequest": {
-        "properties": {
-          "flow": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Flow",
-            "description": "DataikuFlow.to_dict() payload"
-          },
-          "opts": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Opts",
-            "description": "Optional format-specific options (passed through to the sink)"
-          }
-        },
-        "type": "object",
-        "required": [
-          "flow"
-        ],
-        "title": "ExportRequest",
-        "description": "Request body for ``POST /export/{format}``.\n\n``flow`` is the raw ``DataikuFlow.to_dict()`` payload (round-trippable via\n``DataikuFlow.from_dict``).  ``opts`` is a free-form dict reserved for\nformat-specific knobs (e.g. ``{\"scale\": 2.0}`` for PNG)."
       },
       "FlowRecommendationModel": {
         "properties": {
@@ -1571,58 +1403,6 @@
         "type": "object",
         "title": "JoinSettingsModel",
         "description": "Mirrors JoinSettings.to_display_dict(): join_type, join_keys, selected_columns."
-      },
-      "NodeDiff": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "Recipe name used as the node id"
-          },
-          "recipe_type_a": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recipe Type A",
-            "description": "Recipe type in flow A (None when added in B)"
-          },
-          "recipe_type_b": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recipe Type B",
-            "description": "Recipe type in flow B (None when removed from B)"
-          },
-          "diff": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Diff",
-            "description": "When kind=changed: which fields differ ({field: {a, b}})."
-          }
-        },
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "title": "NodeDiff",
-        "description": "A single per-node difference entry.\n\nFor ``added`` and ``removed`` entries ``diff`` is None. For ``changed`` entries\n``diff`` enumerates which fields differ between A and B."
       },
       "PivotSettingsModel": {
         "properties": {
@@ -2033,7 +1813,7 @@
       "SaveFlowRequest": {
         "properties": {
           "flow": {
-            "$ref": "#/components/schemas/DataikuFlowModel"
+            "$ref": "#/components/schemas/DataikuFlowModel-Input"
           },
           "name": {
             "type": "string",
@@ -2068,7 +1848,7 @@
             "title": "Name"
           },
           "flow": {
-            "$ref": "#/components/schemas/DataikuFlowModel"
+            "$ref": "#/components/schemas/DataikuFlowModel-Output"
           },
           "created_at": {
             "type": "string",
@@ -2096,65 +1876,6 @@
         ],
         "title": "SavedFlowResponse",
         "description": "Full saved-flow record."
-      },
-      "ShareFlowRequest": {
-        "properties": {
-          "ttl_seconds": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ttl Seconds",
-            "description": "Token validity in seconds (default: server-configured TTL)."
-          },
-          "scopes": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Scopes",
-            "description": "Token scopes (default: ['read'])."
-          }
-        },
-        "type": "object",
-        "title": "ShareFlowRequest",
-        "description": "Body for ``POST /flows/{id}/share``."
-      },
-      "ShareFlowResponse": {
-        "properties": {
-          "token": {
-            "type": "string",
-            "title": "Token"
-          },
-          "url": {
-            "type": "string",
-            "title": "Url"
-          },
-          "expires_at": {
-            "type": "string",
-            "title": "Expires At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "token",
-          "url",
-          "expires_at"
-        ],
-        "title": "ShareFlowResponse",
-        "description": "Response from ``POST /flows/{id}/share``."
       },
       "SortSettingsModel": {
         "properties": {
@@ -2254,7 +1975,7 @@
           "flow": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DataikuFlowModel"
+                "$ref": "#/components/schemas/DataikuFlowModel-Input"
               },
               {
                 "type": "null"
@@ -2332,6 +2053,47 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VersionResponse": {
+        "properties": {
+          "api_version": {
+            "type": "string",
+            "title": "Api Version"
+          },
+          "py_iku_version": {
+            "type": "string",
+            "title": "Py Iku Version"
+          },
+          "commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commit"
+          },
+          "commit_message": {
+            "type": "string",
+            "title": "Commit Message"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "api_version",
+          "py_iku_version",
+          "commit",
+          "commit_message",
+          "source"
+        ],
+        "title": "VersionResponse",
+        "description": "Lightweight response for the in-app release-notes modal."
       },
       "WindowSettingsModel": {
         "properties": {

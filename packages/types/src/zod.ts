@@ -12,9 +12,6 @@ export type DatasetConnectionTypeEnum = z.infer<typeof DatasetConnectionTypeEnum
 export const DatasetTypeEnumSchema = z.enum(["input", "intermediate", "output"]);
 export type DatasetTypeEnum = z.infer<typeof DatasetTypeEnumSchema>;
 
-export const ExportFormatSchema = z.enum(["zip", "json", "yaml", "svg", "png", "pdf"]);
-export type ExportFormat = z.infer<typeof ExportFormatSchema>;
-
 export const ProcessorTypeEnumSchema = z.enum(["ColumnRenamer", "ColumnCopier", "ColumnsSelector", "ColumnReorder", "ColumnsConcat", "FillEmptyWithValue", "RemoveRowsOnEmpty", "UpDownFill", "FillEmptyWithComputedValue", "ImputeWithML", "StringTransformer", "Tokenizer", "PatternExtract", "FindReplace", "ColumnsSplitter", "HtmlStripper", "MultiColumnFindReplace", "Ngrammer", "SimplifyText", "StemText", "LemmatizeText", "LanguageDetector", "SentimentAnalyzer", "TextHasher", "UnicodeNormalizer", "URLParser", "IPAddressParser", "EmailDomainExtractor", "PhoneFormatter", "CountryNormalizer", "UserAgentParser", "NumericalTransformer", "Round", "NumberClipping", "Binner", "MeasureNormalize", "TypeSetter", "DateParser", "DateFormatter", "DateComponentExtractor", "DateDifference", "HolidaysComputer", "TimezoneConverter", "DateRangeClassifier", "TimestampExtractor", "FilterOnValue", "FilterOnBadType", "FilterOnFormula", "FilterOnDateRange", "FilterOnNumericRange", "FilterOnMultipleValues", "FilterOnNullNumeric", "FilterOnGeoZone", "FilterOnCustomCondition", "FlagOnValue", "FlagOnFormula", "FlagOnBadType", "FlagOnDateRange", "FlagOnNumericRange", "RemoveDuplicates", "SortRows", "SampleRows", "ShuffleRows", "CreateColumnWithGREL", "Formula", "MultiColumnFormula", "ColumnPseudoAnonymizer", "HashComputer", "UUIDGenerator", "LongTailGrouper", "CategoricalEncoder", "GeoPointCreator", "GeoEncoder", "GeoIPResolver", "GeoDistanceCalculator", "GeoPolygonMatcher", "AddressParser", "ReverseGeocoder", "IfThenElse", "SwitchCase", "TranslateValues", "ExtractWithJSONPath", "SplitURL", "FoldMultipleColumns", "TransposeRowsToColumns", "Unfold", "Coalesce", "FillColumn", "ArraySplitter", "ArrayJoiner", "ArraySorter", "ArrayUnfold", "ArrayFold", "ArrayElementExtractor", "JSONFlattener", "JSONExtractor", "XMLExtractor", "NestedProcessor", "ProcessorGroup", "PythonUDF"]);
 export type ProcessorTypeEnum = z.infer<typeof ProcessorTypeEnumSchema>;
 
@@ -130,22 +127,6 @@ export const RecipeSettingsModelSchema = z.discriminatedUnion("kind", [
 ]);
 export type RecipeSettingsModel = z.infer<typeof RecipeSettingsModelSchema>;
 
-export const AuditEventModelSchema = z.object({
-  "actor": z.string(),
-  "action": z.string(),
-  "resource_type": z.string(),
-  "resource_id": z.string(),
-  "details": z.record(z.string(), z.unknown()).optional(),
-  "ts": z.string()
-}).passthrough();
-export type AuditEventModel = z.infer<typeof AuditEventModelSchema>;
-
-export const AuditListResponseSchema = z.object({
-  "events": z.array(AuditEventModelSchema),
-  "next_cursor": z.string().nullable().optional()
-}).passthrough();
-export type AuditListResponse = z.infer<typeof AuditListResponseSchema>;
-
 export const ColumnSchemaModelSchema = z.object({
   "name": z.string(),
   "type": z.string(),
@@ -158,6 +139,7 @@ export type ColumnSchemaModel = z.infer<typeof ColumnSchemaModelSchema>;
 export const ComplexityScoreSchema = z.object({
   "recipe_count": z.number(),
   "processor_count": z.number(),
+  "dataset_count": z.number(),
   "max_depth": z.number(),
   "fan_out_max": z.number(),
   "complexity": z.number(),
@@ -192,13 +174,15 @@ export const DataikuDatasetModelSchema = z.object({
 }).passthrough();
 export type DataikuDatasetModel = z.infer<typeof DataikuDatasetModelSchema>;
 
-export const DataikuRecipeModelSchema = z.object({
+export const DataikuRecipeModelOutputSchema = z.object({
   "name": z.string(),
   "type": RecipeTypeEnumSchema,
   "inputs": z.array(z.string()).optional(),
   "outputs": z.array(z.string()).optional(),
   "source_lines": z.array(z.number()).optional(),
   "notes": z.array(z.string()).optional(),
+  "confidence": z.number().nullable().optional(),
+  "reasoning": z.string().nullable().optional(),
   "settings": z.discriminatedUnion("kind", [
       PrepareSettingsModelSchema,
       GroupingSettingsModelSchema,
@@ -214,7 +198,7 @@ export const DataikuRecipeModelSchema = z.object({
       PivotSettingsModelSchema
     ]).nullable().optional()
 }).passthrough();
-export type DataikuRecipeModel = z.infer<typeof DataikuRecipeModelSchema>;
+export type DataikuRecipeModelOutput = z.infer<typeof DataikuRecipeModelOutputSchema>;
 
 export const FlowRecommendationModelSchema = z.object({
   "type": z.string(),
@@ -234,22 +218,22 @@ export const FlowZoneModelSchema = z.object({
 }).passthrough();
 export type FlowZoneModel = z.infer<typeof FlowZoneModelSchema>;
 
-export const DataikuFlowModelSchema = z.object({
+export const DataikuFlowModelOutputSchema = z.object({
   "flow_name": z.string(),
   "generated_from": z.string().nullable().optional(),
   "generation_timestamp": z.string().nullable().optional(),
   "total_recipes": z.number(),
   "total_datasets": z.number(),
   "datasets": z.array(DataikuDatasetModelSchema).optional(),
-  "recipes": z.array(DataikuRecipeModelSchema).optional(),
+  "recipes": z.array(DataikuRecipeModelOutputSchema).optional(),
   "optimization_notes": z.array(z.string()).optional(),
   "recommendations": z.array(FlowRecommendationModelSchema).optional(),
   "zones": z.array(FlowZoneModelSchema).optional()
 }).passthrough();
-export type DataikuFlowModel = z.infer<typeof DataikuFlowModelSchema>;
+export type DataikuFlowModelOutput = z.infer<typeof DataikuFlowModelOutputSchema>;
 
 export const ConvertResponseSchema = z.object({
-  "flow": DataikuFlowModelSchema,
+  "flow": DataikuFlowModelOutputSchema,
   "score": ComplexityScoreSchema,
   "warnings": z.array(z.string()).optional()
 }).passthrough();
@@ -261,32 +245,45 @@ export const CreatedFlowResponseSchema = z.object({
 }).passthrough();
 export type CreatedFlowResponse = z.infer<typeof CreatedFlowResponseSchema>;
 
-export const DiffRequestSchema = z.object({
-  "a": DataikuFlowModelSchema,
-  "b": DataikuFlowModelSchema
+export const DataikuRecipeModelInputSchema = z.object({
+  "name": z.string(),
+  "type": RecipeTypeEnumSchema,
+  "inputs": z.array(z.string()).optional(),
+  "outputs": z.array(z.string()).optional(),
+  "source_lines": z.array(z.number()).optional(),
+  "notes": z.array(z.string()).optional(),
+  "confidence": z.number().nullable().optional(),
+  "reasoning": z.string().nullable().optional(),
+  "settings": z.discriminatedUnion("kind", [
+      PrepareSettingsModelSchema,
+      GroupingSettingsModelSchema,
+      JoinSettingsModelSchema,
+      WindowSettingsModelSchema,
+      SamplingSettingsModelSchema,
+      SplitSettingsModelSchema,
+      SortSettingsModelSchema,
+      TopNSettingsModelSchema,
+      DistinctSettingsModelSchema,
+      StackSettingsModelSchema,
+      PythonSettingsModelSchema,
+      PivotSettingsModelSchema
+    ]).nullable().optional()
 }).passthrough();
-export type DiffRequest = z.infer<typeof DiffRequestSchema>;
+export type DataikuRecipeModelInput = z.infer<typeof DataikuRecipeModelInputSchema>;
 
-export const NodeDiffSchema = z.object({
-  "id": z.string(),
-  "recipe_type_a": z.string().nullable().optional(),
-  "recipe_type_b": z.string().nullable().optional(),
-  "diff": z.record(z.string(), z.unknown()).nullable().optional()
+export const DataikuFlowModelInputSchema = z.object({
+  "flow_name": z.string(),
+  "generated_from": z.string().nullable().optional(),
+  "generation_timestamp": z.string().nullable().optional(),
+  "total_recipes": z.number(),
+  "total_datasets": z.number(),
+  "datasets": z.array(DataikuDatasetModelSchema).optional(),
+  "recipes": z.array(DataikuRecipeModelInputSchema).optional(),
+  "optimization_notes": z.array(z.string()).optional(),
+  "recommendations": z.array(FlowRecommendationModelSchema).optional(),
+  "zones": z.array(FlowZoneModelSchema).optional()
 }).passthrough();
-export type NodeDiff = z.infer<typeof NodeDiffSchema>;
-
-export const DiffResponseSchema = z.object({
-  "added": z.array(NodeDiffSchema).optional(),
-  "removed": z.array(NodeDiffSchema).optional(),
-  "changed": z.array(NodeDiffSchema).optional()
-}).passthrough();
-export type DiffResponse = z.infer<typeof DiffResponseSchema>;
-
-export const ExportRequestSchema = z.object({
-  "flow": z.record(z.string(), z.unknown()),
-  "opts": z.record(z.string(), z.unknown()).nullable().optional()
-}).passthrough();
-export type ExportRequest = z.infer<typeof ExportRequestSchema>;
+export type DataikuFlowModelInput = z.infer<typeof DataikuFlowModelInputSchema>;
 
 export const ValidationErrorSchema = z.object({
   "loc": z.array(z.union([
@@ -337,7 +334,7 @@ export const RecipeCatalogEntrySchema = z.object({
 export type RecipeCatalogEntry = z.infer<typeof RecipeCatalogEntrySchema>;
 
 export const SaveFlowRequestSchema = z.object({
-  "flow": DataikuFlowModelSchema,
+  "flow": DataikuFlowModelInputSchema,
   "name": z.string(),
   "tags": z.array(z.string()).optional()
 }).passthrough();
@@ -346,29 +343,31 @@ export type SaveFlowRequest = z.infer<typeof SaveFlowRequestSchema>;
 export const SavedFlowResponseSchema = z.object({
   "id": z.string(),
   "name": z.string(),
-  "flow": DataikuFlowModelSchema,
+  "flow": DataikuFlowModelOutputSchema,
   "created_at": z.string(),
   "updated_at": z.string(),
   "tags": z.array(z.string()).optional()
 }).passthrough();
 export type SavedFlowResponse = z.infer<typeof SavedFlowResponseSchema>;
 
-export const ShareFlowRequestSchema = z.object({
-  "ttl_seconds": z.number().nullable().optional(),
-  "scopes": z.array(z.string()).nullable().optional()
-}).passthrough();
-export type ShareFlowRequest = z.infer<typeof ShareFlowRequestSchema>;
-
-export const ShareFlowResponseSchema = z.object({
-  "token": z.string(),
-  "url": z.string(),
-  "expires_at": z.string()
-}).passthrough();
-export type ShareFlowResponse = z.infer<typeof ShareFlowResponseSchema>;
-
 export const UpdateFlowRequestSchema = z.object({
-  "flow": DataikuFlowModelSchema.nullable().optional(),
+  "flow": DataikuFlowModelInputSchema.nullable().optional(),
   "name": z.string().nullable().optional(),
   "tags": z.array(z.string()).nullable().optional()
 }).passthrough();
 export type UpdateFlowRequest = z.infer<typeof UpdateFlowRequestSchema>;
+
+export const VersionResponseSchema = z.object({
+  "api_version": z.string(),
+  "py_iku_version": z.string(),
+  "commit": z.string().nullable(),
+  "commit_message": z.string(),
+  "source": z.string()
+}).passthrough();
+export type VersionResponse = z.infer<typeof VersionResponseSchema>;
+
+export const DataikuFlowModelSchema = DataikuFlowModelOutputSchema;
+export type DataikuFlowModel = z.infer<typeof DataikuFlowModelSchema>;
+
+export const DataikuRecipeModelSchema = DataikuRecipeModelOutputSchema;
+export type DataikuRecipeModel = z.infer<typeof DataikuRecipeModelSchema>;

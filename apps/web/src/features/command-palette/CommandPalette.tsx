@@ -33,23 +33,15 @@ import styles from "./CommandPalette.module.css";
 const SECTION_ORDER: PaletteSection[] = [
   "Recipes",
   "Datasets",
-  "Snippets",
-  "Audit events",
   "Actions",
   "Help",
 ];
 
 const SECTION_ICONS: Record<PaletteSection, string> = {
-  "Recently used": "↺",
   Pinned: "★",
   Recipes: "⊞",
   Datasets: "⌬",
-  Snippets: "❍",
-  "Audit events": "⊙",
   Actions: "▶",
-  Templates: "▦",
-  "GREL Formulas": "ƒ",
-  "LMP Nodes": "⌁",
   Help: "?",
 };
 
@@ -317,10 +309,6 @@ export interface CommandPaletteProps {
 export function CommandPalette(props: CommandPaletteProps): JSX.Element | null {
   const isOpen = useCommandPaletteStore((s) => s.isOpen);
   const close = useCommandPaletteStore((s) => s.close);
-  const recent = useCommandPaletteStore((s) => s.recent);
-  const pushRecent = useCommandPaletteStore((s) => s.pushRecent);
-  const recentSearches = useCommandPaletteStore((s) => s.recentSearches);
-  const pushRecentSearch = useCommandPaletteStore((s) => s.pushRecentSearch);
   const pinnedIds = useCommandPaletteStore((s) => s.pinnedIds);
   const togglePin = useCommandPaletteStore((s) => s.togglePin);
   const currentArgsItemId = useCommandPaletteStore((s) => s.currentArgsItemId);
@@ -545,18 +533,6 @@ export function CommandPalette(props: CommandPaletteProps): JSX.Element | null {
           items: pinnedItems,
         });
       }
-      if (recent.length > 0) {
-        const recentItems: PaletteItem[] = recent
-          .map((r) => filteredItems.find((i) => i.id === r.id) ?? null)
-          .filter((x): x is PaletteItem => x !== null)
-          .slice(0, PER_SECTION_CAP);
-        if (recentItems.length > 0) {
-          prefix.push({
-            section: "Recently used" as PaletteSection,
-            items: recentItems,
-          });
-        }
-      }
       return [...prefix, ...baseGroups];
     }
 
@@ -566,7 +542,6 @@ export function CommandPalette(props: CommandPaletteProps): JSX.Element | null {
     query,
     filteredItems,
     fuse,
-    recent,
     pinnedItems,
     currentStep,
   ]);
@@ -645,17 +620,9 @@ export function CommandPalette(props: CommandPaletteProps): JSX.Element | null {
     }
   }, [activeIndex]);
 
-  // Run an item: persist the query, animate, then invoke.
+  // Run an item: animate, then invoke.
   const runItem = useCallback(
     (item: PaletteItem) => {
-      if (query.trim()) pushRecentSearch(query.trim());
-      pushRecent({
-        id: item.id,
-        section: item.section,
-        primary: item.primary,
-        secondary: item.secondary,
-        icon: item.icon,
-      });
       setAnimatingId(item.id);
       window.setTimeout(() => {
         setAnimatingId(null);
@@ -669,7 +636,7 @@ export function CommandPalette(props: CommandPaletteProps): JSX.Element | null {
         item.invoke();
       }, SCALE_ANIMATION_MS);
     },
-    [pushRecentSearch, pushRecent, beginArgs, query],
+    [beginArgs],
   );
 
   // Section-jump shortcut: focus the first item in the Nth visible section.
@@ -901,33 +868,6 @@ export function CommandPalette(props: CommandPaletteProps): JSX.Element | null {
               <kbd className={styles.kbd}>Esc</kbd>
             </span>
           </div>
-
-          {/* Recent searches tag list — only when input is empty + not in args mode */}
-          {query.length === 0 &&
-          !currentStep &&
-          recentSearches.length > 0 ? (
-            <div
-              className={styles.recentSearches}
-              data-testid="command-palette-recent-searches"
-            >
-              <span className={styles.recentSearchesLabel}>Recent</span>
-              {recentSearches.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className={styles.recentSearchTag}
-                  data-testid={`recent-search-${q}`}
-                  onClick={() => {
-                    setQuery(q);
-                    setHasUserActivity(true);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          ) : null}
 
           <div
             id="command-palette-results"

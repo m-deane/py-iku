@@ -90,8 +90,6 @@ beforeEach(() => {
   // Reset the palette store between tests.
   useCommandPaletteStore.setState({
     isOpen: false,
-    recent: [],
-    recentSearches: [],
     pinnedIds: [],
     currentArgsItemId: null,
     currentArgs: [],
@@ -251,7 +249,6 @@ describe("<CommandPalette />", () => {
       },
       { timeout: 1000 },
     );
-    expect(useCommandPaletteStore.getState().recent.length).toBe(1);
   });
 
   it("shows a 'Convert a script first' hint when no flow is loaded", async () => {
@@ -268,31 +265,6 @@ describe("<CommandPalette />", () => {
     );
   });
 
-  it("renders the Recently used section when recent has items and query is empty", async () => {
-    useCommandPaletteStore.setState({
-      isOpen: true,
-      recent: [
-        {
-          id: "action:convert",
-          section: "Actions",
-          primary: "Convert",
-          secondary: "x",
-          icon: "→",
-          ts: Date.now(),
-        },
-      ],
-    });
-    render(
-      <Harness>
-        <CommandPalette inlineForTesting />
-      </Harness>,
-    );
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("command-palette-section-recently-used"),
-      ).toBeInTheDocument();
-    });
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -446,118 +418,6 @@ describe("<CommandPalette /> Sprint 3 polish", () => {
     const backdrop = screen.getByTestId("command-palette-backdrop");
     fireEvent.keyDown(backdrop, { key: "p", metaKey: true });
     expect(useCommandPaletteStore.getState().pinnedIds.length).toBe(1);
-  });
-
-  it("Cmd+3 from empty palette focuses the first Snippets item", async () => {
-    useCommandPaletteStore.setState({ isOpen: true });
-    render(
-      <Harness>
-        <CommandPalette inlineForTesting forcePreviewVisible={false} />
-      </Harness>,
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("command-palette-item-recipe:filter-value"),
-      ).toBeInTheDocument(),
-    );
-    // Visible section order with empty query, no pin/recent:
-    // 1. Recipes, 2. Datasets, 3. Snippets, 4. Actions, 5. Help
-    // (Audit events is empty under the test stub, so dropped.)
-    const backdrop = screen.getByTestId("command-palette-backdrop");
-    fireEvent.keyDown(backdrop, { key: "3", metaKey: true });
-
-    await waitFor(() => {
-      // The first item in the Snippets section should be aria-selected.
-      const snippetSection = screen.getByTestId(
-        "command-palette-section-snippets",
-      );
-      const first = snippetSection.querySelector(
-        '[role="option"]',
-      ) as HTMLElement | null;
-      expect(first).not.toBeNull();
-      expect(first?.getAttribute("aria-selected")).toBe("true");
-    });
-  });
-
-  it("highlighting a snippet renders source first 10 lines in the preview pane", async () => {
-    useCommandPaletteStore.setState({ isOpen: true });
-    render(
-      <Harness>
-        <CommandPalette inlineForTesting forcePreviewVisible={true} />
-      </Harness>,
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("command-palette-item-recipe:filter-value"),
-      ).toBeInTheDocument(),
-    );
-    // Hover the first snippet to highlight it.
-    const snippetSection = screen.getByTestId(
-      "command-palette-section-snippets",
-    );
-    const firstSnippet = snippetSection.querySelector(
-      '[role="option"]',
-    ) as HTMLElement | null;
-    expect(firstSnippet).not.toBeNull();
-    fireEvent.mouseMove(firstSnippet!);
-
-    await waitFor(() => {
-      const preview = screen.getByTestId("command-palette-preview-snippet");
-      expect(preview).toBeInTheDocument();
-      // First snippet is groupby-agg from snippets.ts; it starts with `import pandas as pd`.
-      expect(preview.querySelector("pre")?.textContent ?? "").toContain(
-        "import pandas as pd",
-      );
-      // 10-line cap: the rendered <pre> should never exceed 10 newlines.
-      const text = preview.querySelector("pre")?.textContent ?? "";
-      const newlines = (text.match(/\n/g) ?? []).length;
-      expect(newlines).toBeLessThanOrEqual(9);
-    });
-  });
-
-  it("recent searches: query → invoke → reopen → empty input shows query as tag", async () => {
-    useCommandPaletteStore.setState({ isOpen: true });
-    const { rerender } = render(
-      <Harness>
-        <CommandPalette inlineForTesting forcePreviewVisible={false} />
-      </Harness>,
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("command-palette-item-recipe:filter-value"),
-      ).toBeInTheDocument(),
-    );
-    fireEvent.change(screen.getByTestId("command-palette-input"), {
-      target: { value: "join" },
-    });
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("command-palette-item-recipe:join"),
-      ).toBeInTheDocument(),
-    );
-    // Click invokes — closes the palette.
-    fireEvent.click(screen.getByTestId("command-palette-item-recipe:join"));
-    await waitFor(
-      () =>
-        expect(
-          screen.queryByTestId("command-palette"),
-        ).not.toBeInTheDocument(),
-      { timeout: 1000 },
-    );
-
-    // Reopen — empty input shows recent searches as tags.
-    useCommandPaletteStore.setState({ isOpen: true });
-    rerender(
-      <Harness>
-        <CommandPalette inlineForTesting forcePreviewVisible={false} />
-      </Harness>,
-    );
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("command-palette-recent-searches"),
-      ).toBeInTheDocument();
-      expect(screen.getByTestId("recent-search-join")).toBeInTheDocument();
-    });
   });
 
   it("Help → Show keyboard shortcuts opens the sub-modal", async () => {

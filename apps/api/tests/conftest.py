@@ -11,9 +11,6 @@ from httpx import ASGITransport, AsyncClient
 
 from app.deps import get_settings, reset_repo_singletons
 from app.main import app
-from app.routes.comments import reset_comments_store
-from app.routes.explain import reset_explain_cache_singleton
-from app.routes.share import reset_share_rate_limiter
 
 
 @pytest.fixture(autouse=True)
@@ -24,14 +21,8 @@ def _isolate_persistence_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(settings, "flows_dir", tmp_path / "flows-store")
     # Force a fresh FlowsRepo / AuditRepo bound to the new dir.
     reset_repo_singletons()
-    reset_share_rate_limiter()
-    reset_comments_store()
-    reset_explain_cache_singleton()
     yield
     reset_repo_singletons()
-    reset_share_rate_limiter()
-    reset_comments_store()
-    reset_explain_cache_singleton()
 
 
 @pytest_asyncio.fixture

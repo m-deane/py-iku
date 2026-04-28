@@ -9,11 +9,6 @@ import {
 } from "../features/command-palette";
 import { useCommandPaletteStore } from "../store/commandPalette";
 import { useUiStore } from "../state/uiStore";
-import { useSettingsStore } from "../state/settingsStore";
-import { useTabHotkeys } from "../store/useTabHotkeys";
-import { ShareUrlButton, useShareUrlBoot } from "./ShareUrlButton";
-import { ChatDrawer, useChatStore } from "../features/chat";
-import { CostMeterWidget } from "../features/cost-meter/CostMeterWidget";
 import styles from "./AppLayout.module.css";
 
 export interface AppLayoutProps {
@@ -21,8 +16,8 @@ export interface AppLayoutProps {
 }
 
 /**
- * Sidebar nav definition. The IA review reorganized 12 modules into four
- * clusters; previously the top bar exposed only 5 of those 12 as flat links.
+ * Sidebar nav definition. Studio's scope reduction collapsed the previous
+ * 4-cluster sidebar down to three: Build, Library, Account.
  *
  * Cluster headers render as small uppercase tracking-wide labels (Linear /
  * Vercel / Notion style) using `--fg-muted`. Active items use the accent
@@ -54,42 +49,18 @@ const NAV_CLUSTERS: NavCluster[] = [
   {
     id: "library",
     title: "Library",
-    items: [
-      { to: "/catalog", label: "Catalog" },
-      { to: "/snippets", label: "Snippets" },
-      { to: "/templates", label: "Templates" },
-      { to: "/plugins", label: "Plugins" },
-      { to: "/grel", label: "GREL Formulas" },
-      { to: "/lmp", label: "LMP Nodes" },
-    ],
-  },
-  {
-    id: "lifecycle",
-    title: "Lifecycle",
-    items: [
-      { to: "/diff", label: "Diff" },
-      { to: "/diff/curves", label: "Curve Diff" },
-      { to: "/validation", label: "Validation" },
-      { to: "/export", label: "Export" },
-      { to: "/deploy", label: "Deploy" },
-      { to: "/share", label: "Share" },
-      { to: "/audit", label: "Audit" },
-    ],
+    items: [{ to: "/catalog", label: "Catalog" }],
   },
   {
     id: "account",
     title: "Account",
-    items: [
-      { to: "/settings", label: "Settings" },
-      { to: "/llm-history", label: "LLM history" },
-    ],
+    items: [{ to: "/settings", label: "Settings" }],
   },
 ];
 
 export function AppLayout({ children }: AppLayoutProps): JSX.Element {
   const openSettings = useUiStore((s) => s.openSettingsDrawer);
   const openPalette = useCommandPaletteStore((s) => s.open);
-  const multiTabEnabled = useSettingsStore((s) => s.multiTabEnabled);
   // Sprint 5 — mobile sidebar drawer. Closed by default; toggled via the
   // hamburger button that's only visible at <800px viewports. Closes on any
   // nav-link click, on Escape, and when the viewport returns to desktop.
@@ -97,12 +68,6 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
   // Mount the global Cmd+K listener once at the shell level. Every route
   // sits below this so the shortcut works everywhere.
   useCommandPaletteHotkey();
-  // Sprint 4 — gate Cmd+T/W/1..8 behind the multi-tab flag so users on the
-  // legacy single-tab UI keep their browser-native behaviour intact.
-  useTabHotkeys(multiTabEnabled);
-  // Sprint 4 — restore tabs/theme/panels from `#state=...` if a colleague
-  // pasted a share URL.
-  useShareUrlBoot();
 
   // Close the mobile drawer on Escape.
   useEffect(() => {
@@ -185,7 +150,6 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
 
       <header className={styles.header}>
         <div className={styles.headerActions}>
-          <CostMeterWidget />
           <button
             type="button"
             data-testid="command-palette-open-trigger"
@@ -197,17 +161,6 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
             ⌕
           </button>
           <ThemeToggle />
-          <ShareUrlButton />
-          <button
-            type="button"
-            data-testid="chat-open-trigger"
-            onClick={() => useChatStore.getState().toggleOpen()}
-            aria-label="Open chat with flow (Cmd+I)"
-            title="Chat with flow · Cmd+I"
-            className={styles.iconBtn}
-          >
-            💬
-          </button>
           <button
             type="button"
             data-testid="settings-open-trigger"
@@ -227,7 +180,6 @@ export function AppLayout({ children }: AppLayoutProps): JSX.Element {
 
       <SettingsDrawer />
       <CommandPalette />
-      <ChatDrawer />
     </div>
   );
 }

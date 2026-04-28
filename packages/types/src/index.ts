@@ -8,8 +8,8 @@ export * from "./zod.js";
 // Convenience type aliases from generated components
 import type { components } from "./openapi.js";
 
-export type DataikuFlow = components["schemas"]["DataikuFlowModel"];
-export type DataikuRecipe = components["schemas"]["DataikuRecipeModel"];
+export type DataikuFlow = components["schemas"]["DataikuFlowModel-Output"];
+export type DataikuRecipe = components["schemas"]["DataikuRecipeModel-Output"];
 export type DataikuDataset = components["schemas"]["DataikuDatasetModel"];
 export type PrepareStep = components["schemas"]["PrepareStepModel"];
 export type ConvertRequest = components["schemas"]["ConvertRequest"];

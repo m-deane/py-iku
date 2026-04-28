@@ -1,6 +1,5 @@
 """Pydantic v2 schema package for py-iku Studio API."""
 
-from .audit import AuditEventModel, AuditListResponse
 from .catalog import ProcessorCatalogEntry, RecipeCatalogEntry
 from .convert import ComplexityScore, ConvertMode, ConvertOptions, ConvertRequest, ConvertResponse
 from .flow import (
@@ -16,8 +15,6 @@ from .flows import (
     CreatedFlowResponse,
     SavedFlowResponse,
     SaveFlowRequest,
-    ShareFlowRequest,
-    ShareFlowResponse,
     UpdateFlowRequest,
 )
 from .processor import PrepareStepModel, ProcessorTypeEnum
@@ -40,8 +37,6 @@ from .recipe import (
 )
 
 __all__ = [
-    "AuditEventModel",
-    "AuditListResponse",
     "ComplexityScore",
     "ConvertMode",
     "ConvertOptions",
@@ -71,8 +66,6 @@ __all__ = [
     "SamplingSettingsModel",
     "SaveFlowRequest",
     "SavedFlowResponse",
-    "ShareFlowRequest",
-    "ShareFlowResponse",
     "SortSettingsModel",
     "SplitSettingsModel",
     "StackSettingsModel",

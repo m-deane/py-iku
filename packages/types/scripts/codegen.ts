@@ -112,11 +112,21 @@ function refToName(ref: string): string {
   return ref.split("/").pop() ?? ref;
 }
 
+/**
+ * Convert an OpenAPI component name (which may contain hyphens for FastAPI's
+ * Input/Output split — e.g. "DataikuRecipeModel-Input") into a valid JS
+ * identifier (`DataikuRecipeModelInput`). Same transform applied to both the
+ * declaration and every reference.
+ */
+function safeIdent(name: string): string {
+  return name.replace(/[^A-Za-z0-9_]/g, "");
+}
+
 function schemaToZod(schema: OpenAPISchema, allSchemas: Record<string, OpenAPISchema>, indent: number): string {
   const pad = "  ".repeat(indent);
 
   if (schema.$ref) {
-    const name = refToName(schema.$ref);
+    const name = safeIdent(refToName(schema.$ref));
     return `${name}Schema`;
   }
 
@@ -233,9 +243,10 @@ function generateZodSchemas(openapi: OpenAPIDocument): string {
   // Emit enums first
   for (const name of enumNames) {
     const schema = schemas[name]!;
+    const ident = safeIdent(name);
     const values = schema.enum!.map((v) => JSON.stringify(v)).join(", ");
-    lines.push(`export const ${name}Schema = z.enum([${values}]);`);
-    lines.push(`export type ${name} = z.infer<typeof ${name}Schema>;`);
+    lines.push(`export const ${ident}Schema = z.enum([${values}]);`);
+    lines.push(`export type ${ident} = z.infer<typeof ${ident}Schema>;`);
     lines.push("");
   }
 
@@ -284,8 +295,9 @@ function generateZodSchemas(openapi: OpenAPIDocument): string {
     emitted.add(name);
 
     const zodExpr = schemaToZod(schema, schemas, 0);
-    lines.push(`export const ${name}Schema = ${zodExpr};`);
-    lines.push(`export type ${name} = z.infer<typeof ${name}Schema>;`);
+    const ident = safeIdent(name);
+    lines.push(`export const ${ident}Schema = ${zodExpr};`);
+    lines.push(`export type ${ident} = z.infer<typeof ${ident}Schema>;`);
     lines.push("");
   }
 
@@ -326,6 +338,25 @@ function generateZodSchemas(openapi: OpenAPIDocument): string {
     emitSchema(name);
   }
 
+  // FastAPI sometimes splits a single Pydantic model into "<Name>-Input" and
+  // "<Name>-Output" variants when the model is consumed in both request and
+  // response bodies (and `extra="allow"` further forces the split). Tests and
+  // the public API surface refer to the bare name, so alias the Output variant
+  // under the bare identifier when both are present. We pick Output because
+  // that's what `/convert` returns and what the bulk of consumers care about.
+  const allNames = new Set(objectNames);
+  for (const name of objectNames) {
+    if (!name.endsWith("-Output")) continue;
+    const base = name.slice(0, -"-Output".length);
+    // Skip if a bare schema already exists (no split happened).
+    if (allNames.has(base)) continue;
+    const baseIdent = safeIdent(base);
+    const outputIdent = safeIdent(name);
+    lines.push(`export const ${baseIdent}Schema = ${outputIdent}Schema;`);
+    lines.push(`export type ${baseIdent} = z.infer<typeof ${baseIdent}Schema>;`);
+    lines.push("");
+  }
+
   return lines.join("\n");
 }
 
@@ -333,7 +364,18 @@ function generateZodSchemas(openapi: OpenAPIDocument): string {
 // Step 4: Emit src/index.ts
 // ---------------------------------------------------------------------------
 
-function generateIndex(): string {
+function generateIndex(openapi: OpenAPIDocument): string {
+  // FastAPI may split a model into <Name>-Input/-Output variants when it's
+  // used in both request and response bodies (especially with
+  // `model_config = {"extra": "allow"}`). For convenience-aliased types we
+  // pick the Output variant when both exist, falling back to the bare name.
+  const schemas = openapi.components?.schemas ?? {};
+  const pickKey = (base: string): string =>
+    schemas[base] ? base : `${base}-Output`;
+  const flowKey = pickKey("DataikuFlowModel");
+  const recipeKey = pickKey("DataikuRecipeModel");
+  const datasetKey = pickKey("DataikuDatasetModel");
+
   return `// AUTO-GENERATED — do not edit. Run \`pnpm codegen\`
 // Public API for @py-iku-studio/types
 
@@ -344,9 +386,9 @@ export * from "./zod.js";
 // Convenience type aliases from generated components
 import type { components } from "./openapi.js";
 
-export type DataikuFlow = components["schemas"]["DataikuFlowModel"];
-export type DataikuRecipe = components["schemas"]["DataikuRecipeModel"];
-export type DataikuDataset = components["schemas"]["DataikuDatasetModel"];
+export type DataikuFlow = components["schemas"]["${flowKey}"];
+export type DataikuRecipe = components["schemas"]["${recipeKey}"];
+export type DataikuDataset = components["schemas"]["${datasetKey}"];
 export type PrepareStep = components["schemas"]["PrepareStepModel"];
 export type ConvertRequest = components["schemas"]["ConvertRequest"];
 export type ConvertResponse = components["schemas"]["ConvertResponse"];
@@ -410,7 +452,11 @@ async function main(): Promise<void> {
   console.log("  [codegen] src/zod.ts written");
 
   // 5. Write index.ts
-  fs.writeFileSync(path.join(SRC_DIR, "index.ts"), generateIndex(), "utf8");
+  fs.writeFileSync(
+    path.join(SRC_DIR, "index.ts"),
+    generateIndex(openapi as OpenAPIDocument),
+    "utf8",
+  );
   console.log("  [codegen] src/index.ts written");
 
   // 6. Summary

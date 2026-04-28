@@ -1,6 +1,5 @@
 import { useSettingsStore, type LlmProvider } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
-import { BudgetSettingsCard } from "../cost-meter/BudgetSettingsCard";
 
 /**
  * Full Settings surface. The gear-drawer (`SettingsDrawer`) stays for in-flow
@@ -10,9 +9,7 @@ import { BudgetSettingsCard } from "../cost-meter/BudgetSettingsCard";
  *   - Provider keys / aliases (read-only masked echo of the alias)
  *   - Theme
  *   - API base URL
- *   - Budget alerts (placeholder — Sprint 3 wiring)
  *   - Telemetry opt-out (placeholder)
- *   - Advanced flags (placeholder)
  *
  * All form mutations route through the same `useSettingsStore` actions the
  * drawer uses, so the two surfaces never diverge.
@@ -119,36 +116,11 @@ export function SettingsPage(): JSX.Element {
         </Row>
       </Card>
 
-      <BudgetSettingsCard />
-
       <Card title="Telemetry" description="Anonymous usage events. No code or flow content is ever sent.">
         <Row label="Opt out">
           <label style={{ display: "inline-flex", gap: "var(--space-2, 8px)" }}>
             <input type="checkbox" disabled aria-label="Telemetry opt-out" />
             <span style={{ color: "var(--fg-muted, #5b6470)" }}>(coming soon)</span>
-          </label>
-        </Row>
-      </Card>
-
-      <Card title="Advanced flags" description="Experimental flags. Off by default.">
-        <Row label="Streaming WebSocket">
-          <label style={{ display: "inline-flex", gap: "var(--space-2, 8px)" }}>
-            <input type="checkbox" defaultChecked disabled aria-label="Streaming flag" />
-            <span style={{ color: "var(--fg-muted, #5b6470)" }}>Enabled</span>
-          </label>
-        </Row>
-        <Row label="Multi-tab workspace">
-          <label style={{ display: "inline-flex", gap: "var(--space-2, 8px)" }}>
-            <input
-              type="checkbox"
-              checked={settings.multiTabEnabled}
-              onChange={(e) => settings.setMultiTabEnabled(e.target.checked)}
-              aria-label="Multi-tab workspace"
-              data-testid="settings-multi-tab-toggle"
-            />
-            <span style={{ color: "var(--fg-muted, #5b6470)" }}>
-              Enable Cmd+T tabs on Convert/Editor (up to 8 tabs).
-            </span>
           </label>
         </Row>
       </Card>

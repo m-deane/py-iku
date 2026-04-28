@@ -51,14 +51,14 @@ describe("<Breadcrumb />", () => {
 });
 
 describe("<RouteBreadcrumb />", () => {
-  it("renders 'Lifecycle / Diff' for /diff", () => {
+  it("renders 'Library / Catalog' for /catalog", () => {
     render(
-      <MemoryRouter initialEntries={["/diff"]}>
+      <MemoryRouter initialEntries={["/catalog"]}>
         <RouteBreadcrumb />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Lifecycle")).toBeInTheDocument();
-    expect(screen.getByText("Diff")).toBeInTheDocument();
+    expect(screen.getByText("Library")).toBeInTheDocument();
+    expect(screen.getByText("Catalog")).toBeInTheDocument();
   });
 
   it("renders 'Build / Convert' for /convert", () => {

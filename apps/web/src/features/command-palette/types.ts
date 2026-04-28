@@ -13,16 +13,10 @@
  */
 
 export type PaletteSection =
-  | "Recently used"
   | "Pinned"
   | "Recipes"
   | "Datasets"
-  | "Snippets"
-  | "Audit events"
   | "Actions"
-  | "Templates"
-  | "GREL Formulas"
-  | "LMP Nodes"
   | "Help";
 
 /** A single choice the user can pick at one arg-collection step. */

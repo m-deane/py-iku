@@ -1,32 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MonacoEditor } from "../editor/MonacoEditor";
 import { SnippetPicker } from "../editor/SnippetPicker";
 import { JsonView } from "../../components/JsonView";
 import { Banner } from "../../components/Banner";
-import { ExportButtons } from "../export/ExportButtons";
-import { ValidationPanel } from "../validation/ValidationPanel";
 import { NodeInspector } from "../inspector/NodeInspector";
-import { ColumnLineageOverlay } from "../inspector/ColumnLineageOverlay";
-import { LintBadge } from "../inspector/LintPanel";
-import { LintPanel } from "../inspector/LintPanel";
-import { BudgetConfirmModal } from "./BudgetConfirmModal";
 import {
   client,
   ApiError,
   type ConvertResponse,
   type ConversionMode,
-  type LineageResponse,
-  type LintResponse,
 } from "../../api/client";
 import { useFlowStore } from "../../state/flowStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useUiStore } from "../../state/uiStore";
 import { useRecentsStore, deriveFlowName } from "../../store/recents";
-import { useTabsStore } from "../../store/tabs";
-import { useReplayStore } from "../../store/replay";
-import { TabStrip } from "../../components/TabStrip";
-import { ReplayTimeline } from "../../components/ReplayTimeline";
 import {
   useConvertStream,
   type ConvertPhase,
@@ -46,10 +34,6 @@ export interface ConvertPageProps {
   useFallbackEditor?: boolean;
   /** When true, disables the streaming code path (used by REST-only tests). */
   useRestOnly?: boolean;
-  /** Test seam — swap in a stub client for the export buttons. */
-  exportClientImpl?: typeof client;
-  /** Test seam — full client used for save/share calls. */
-  shareClientImpl?: typeof client;
 }
 
 export function ConvertPage(props: ConvertPageProps): JSX.Element {
@@ -60,41 +44,11 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const status = useFlowStore((s) => s.conversionStatus);
   const setStatus = useFlowStore((s) => s.setConversionStatus);
   const setFlow = useFlowStore((s) => s.setFlow);
-  const setLineageFocus = useFlowStore((s) => s.setLineageFocus);
   const apiKeyAlias = useSettingsStore((s) => s.apiKeyAlias);
   const provider = useSettingsStore((s) => s.llmProvider);
   const model = useSettingsStore((s) => s.llmModel);
-  const multiTabEnabled = useSettingsStore((s) => s.multiTabEnabled);
   const openSettings = useUiStore((s) => s.openSettingsDrawer);
   const addRecent = useRecentsStore((s) => s.addRecent);
-  // Sprint 4 — tabs + replay history. Tabs are read-only here when the flag
-  // is off (the strip never renders). When on, we mirror the active tab's
-  // code into `flowStore` so the rest of the page (which reads `code` from
-  // `flowStore`) keeps working without rewiring every selector.
-  const activeTabId = useTabsStore((s) => s.activeTabId);
-  const activeTab = useTabsStore((s) =>
-    s.tabs.find((t) => t.id === s.activeTabId),
-  );
-  const updateTab = useTabsStore((s) => s.updateTab);
-  const recordRun = useReplayStore((s) => s.recordRun);
-
-  // Mirror tab → flowStore on tab switch so the editor and panels redraw
-  // with the new tab's contents. We only run this when the flag is on.
-  useEffect(() => {
-    if (!multiTabEnabled || !activeTab) return;
-    setCurrentCode(activeTab.code);
-    setMode(activeTab.mode);
-    if (activeTab.lastFlow) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setFlow(activeTab.lastFlow as any);
-    } else {
-      setFlow(null);
-    }
-    // We deliberately depend on `activeTabId`, not `activeTab` — switching
-    // tabs is the trigger; subsequent edits within the same tab should NOT
-    // round-trip through this effect (that would loop with `setCurrentCode`).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTabId, multiTabEnabled]);
 
   /**
    * Push a successful conversion onto the Recents rail.
@@ -134,65 +88,13 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     null,
   );
   const [editorValue, setEditorValue] = useState<string | undefined>(undefined);
-  const [validationOpen, setValidationOpen] = useState(false);
-  const [savedFlowId, setSavedFlowId] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
-  // Lint result published into a state slot so the metric-tile-row LintBadge
-  // and the inline LintPanel can both subscribe.
-  const [lintResult, setLintResult] = useState<LintResponse | null>(null);
-  const [lintPanelOpen, setLintPanelOpen] = useState(false);
   // Sprint 5 — mobile pane toggle. At <800px the editor + flow stack vertically;
   // this state picks which is visible (default: editor) so users on phones can
   // focus on one pane at a time. Desktop CSS overrides this.
   const [mobilePane, setMobilePane] = useState<"editor" | "flow">("editor");
-  // Budget confirmation modal — opened when the API returns 402.
-  const [budgetModal, setBudgetModal] = useState<{
-    projectedCostUsd: number;
-    todayRemainingUsd: number;
-    onConfirm: () => void;
-  } | null>(null);
   // Stash the last convert attempt so the inline error Banner's Retry button
   // can re-fire the same request without the user having to re-click Convert.
   const lastAttempt = useRef<(() => void) | null>(null);
-
-  // The full client used for save/share/lint calls. Resolved early so handlers
-  // (lint refresh, lineage fetch) can reach it without temporal-dead-zone gymnastics.
-  const cli = props.shareClientImpl ?? client;
-
-  /**
-   * Translate a `LineageResponse` into the canvas-side dimming domain.
-   *
-   * dimmedNodeIds — every recipe id NOT in `lineage.recipes`.
-   * highlightedEdgeIds — derived from each lineage edge as
-   *   `{input_dataset}->{recipe_id}` and `{recipe_id}->{output_dataset}`,
-   *   matching the convention flow-viz callers use when wiring edges.
-   *
-   * Empty lineage → cleared focus (canvas renders normally).
-   */
-  const handleLineageHighlight = (lineage: LineageResponse | null): void => {
-    if (!lineage || lineage.edges.length === 0) {
-      setLineageFocus(null);
-      return;
-    }
-    const flow = response?.flow as Record<string, unknown> | undefined;
-    const allRecipeIds: string[] = Array.isArray(flow?.recipes)
-      ? (flow.recipes as Array<{ name?: string }>)
-          .map((r) => (typeof r?.name === "string" ? r.name : ""))
-          .filter((n): n is string => n.length > 0)
-      : [];
-    const touched = new Set(lineage.recipes);
-    const dimmed = allRecipeIds.filter((id) => !touched.has(id));
-    const edgeIds = new Set<string>();
-    for (const e of lineage.edges) {
-      edgeIds.add(`${e.input_dataset}->${e.recipe_id}`);
-      edgeIds.add(`${e.recipe_id}->${e.output_dataset}`);
-    }
-    setLineageFocus({
-      column: lineage.column,
-      dimmedNodeIds: dimmed,
-      highlightedEdgeIds: Array.from(edgeIds),
-    });
-  };
 
   // Streaming hook (always-on for M5 unless explicitly disabled by tests).
   const useStreamHook = props.streamConvertImpl ?? useConvertStream;
@@ -222,32 +124,10 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         warnings: stream.warnings ?? [],
       };
       setResponse(fakeResp);
-      // Refresh lint badge in the background — fire-and-forget; failures are
-      // tolerated because the badge gracefully renders null when missing.
-      void cli
-        .lint(stream.flow as Record<string, unknown>)
-        .then((r) => setLintResult(r))
-        .catch(() => setLintResult(null));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setFlow(stream.flow as any);
       setStatus("done");
       recordRecent(code, stream.flow);
-      // Capture the successful run on the replay timeline + tab.
-      recordRun({
-        source: code,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        flow: stream.flow as any,
-        mode,
-        provider: mode === "llm" ? provider : undefined,
-        model: mode === "llm" ? model : undefined,
-        status: "success",
-        recipeCount: fakeResp.score.recipe_count ?? 0,
-        complexity: fakeResp.score.complexity ?? 0,
-      });
-      if (multiTabEnabled && activeTabId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        updateTab(activeTabId, { lastFlow: stream.flow as any, code });
-      }
       if (stream.warnings.length > 0) {
         toast.message(
           `Converted with ${stream.warnings.length} warning${
@@ -258,18 +138,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     } else if (stream.status === "error" && stream.error) {
       setError(stream.error);
       setStatus("error");
-      // Capture the failed run on the replay timeline.
-      recordRun({
-        source: code,
-        flow: null,
-        mode,
-        provider: mode === "llm" ? provider : undefined,
-        model: mode === "llm" ? model : undefined,
-        status: "error",
-        recipeCount: 0,
-        complexity: 0,
-        errorTitle: stream.error.title,
-      });
       toast.error(stream.error.title, {
         description: stream.error.detail ?? stream.error.title,
       });
@@ -289,7 +157,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     }
     setError(null);
     setResponse(null);
-    setSavedFlowId(null);
     // Stash the function the inline error Banner's Retry button calls.
     lastAttempt.current = (): void => {
       void onConvert();
@@ -298,41 +165,18 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     // REST path (legacy / test compatibility).
     if (props.useRestOnly || props.convertImpl) {
       setStatus("running");
-      const runConvert = async (force: boolean): Promise<void> => {
+      const runConvert = async (): Promise<void> => {
         const convert = props.convertImpl ?? client.convert;
-        const result = await convert(
-          {
-            code,
-            mode,
-            options: mode === "llm" ? { provider, model } : undefined,
-          },
-          force ? ({ force: true } as { force: boolean }) : undefined,
-        );
+        const result = await convert({
+          code,
+          mode,
+          options: mode === "llm" ? { provider, model } : undefined,
+        });
         setResponse(result);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setFlow(result.flow as any);
         setStatus("done");
-        void cli
-          .lint(result.flow as Record<string, unknown>)
-          .then((r) => setLintResult(r))
-          .catch(() => setLintResult(null));
         recordRecent(code, result.flow);
-        recordRun({
-          source: code,
-          flow: result.flow as Record<string, unknown>,
-          mode,
-          provider: mode === "llm" ? provider : undefined,
-          model: mode === "llm" ? model : undefined,
-          status: "success",
-          recipeCount: result.score.recipe_count ?? 0,
-          complexity: result.score.complexity ?? 0,
-        });
-        if (multiTabEnabled && activeTabId) {
-          updateTab(activeTabId, {
-            lastFlow: result.flow as Record<string, unknown>,
-            code,
-          });
-        }
         if (result.warnings.length > 0) {
           toast.message(
             `Converted with ${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"}`,
@@ -340,58 +184,8 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         }
       };
       try {
-        await runConvert(false);
+        await runConvert();
       } catch (err) {
-        // 402 → open the budget confirmation modal and retry on confirm.
-        if (err instanceof ApiError && err.status === 402) {
-          // The 402 problem-detail body is namespaced under `detail` server-side
-          // but ApiError stores the parsed body under `data` (or, for fastapi
-          // HTTPException, exposes a flat `detail`). We tolerate both shapes.
-          const raw =
-            (err as unknown as { data?: Record<string, unknown> }).data ?? {};
-          const detail = (raw.detail as Record<string, unknown> | undefined) ?? raw;
-          const projected =
-            typeof detail.projected_cost_usd === "number"
-              ? (detail.projected_cost_usd as number)
-              : 0;
-          const budget = (detail.budget as Record<string, unknown> | undefined) ?? {};
-          const monthlyCap =
-            typeof (budget.budget as Record<string, unknown> | undefined)?.monthly_cap_usd ===
-            "number"
-              ? ((budget.budget as Record<string, number>).monthly_cap_usd as number)
-              : 0;
-          const monthUsd =
-            typeof budget.month_usd === "number" ? (budget.month_usd as number) : 0;
-          const remaining = Math.max(0, monthlyCap - monthUsd);
-          setBudgetModal({
-            projectedCostUsd: projected,
-            todayRemainingUsd: remaining,
-            onConfirm: () => {
-              setBudgetModal(null);
-              setError(null);
-              setStatus("running");
-              void runConvert(true).catch((e) => {
-                const inner =
-                  e instanceof ApiError
-                    ? e
-                    : new ApiError({
-                        type: "about:blank",
-                        title: "Unexpected error",
-                        status: 0,
-                        detail: e instanceof Error ? e.message : String(e),
-                      });
-                setError({
-                  title: friendlyTitle(inner.status, inner.title),
-                  detail: inner.detail,
-                  status: inner.status,
-                });
-                setStatus("error");
-              });
-            },
-          });
-          setStatus("idle");
-          return;
-        }
         const apiErr =
           err instanceof ApiError
             ? err
@@ -404,17 +198,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         const friendly = friendlyTitle(apiErr.status, apiErr.title);
         setError({ title: friendly, detail: apiErr.detail, status: apiErr.status });
         setStatus("error");
-        recordRun({
-          source: code,
-          flow: null,
-          mode,
-          provider: mode === "llm" ? provider : undefined,
-          model: mode === "llm" ? model : undefined,
-          status: "error",
-          recipeCount: 0,
-          complexity: 0,
-          errorTitle: friendly,
-        });
         toast.error(friendly, { description: apiErr.detail ?? apiErr.title });
       }
       return;
@@ -434,41 +217,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
     stream.cancel();
   };
 
-  const onShare = async (): Promise<void> => {
-    if (!response) return;
-    setSharing(true);
-    try {
-      let flowId = savedFlowId;
-      if (!flowId) {
-        const saved = await cli.saveFlow({
-          flow: response.flow,
-          name:
-            (response.flow as { flow_name?: string }).flow_name ||
-            "shared-flow",
-        });
-        flowId = saved.id;
-        setSavedFlowId(flowId);
-      }
-      const shared = await cli.shareFlow(flowId, {
-        ttl_seconds: 24 * 60 * 60,
-        scopes: ["read"],
-      });
-      try {
-        if (typeof navigator !== "undefined" && navigator.clipboard) {
-          await navigator.clipboard.writeText(shared.url);
-        }
-      } catch {
-        /* clipboard not available — fall through to toast */
-      }
-      toast.success("Share link copied", { description: shared.url });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error("Could not share flow", { description: msg });
-    } finally {
-      setSharing(false);
-    }
-  };
-
   const progressList = stream.progress;
   const showProgress = progressList.length > 0;
   // The dedicated progress-bar replaces the spinner once we have any
@@ -486,15 +234,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
   const visibleError = error ?? stream.error;
 
   return (
-    <>
-    {budgetModal ? (
-      <BudgetConfirmModal
-        projectedCostUsd={budgetModal.projectedCostUsd}
-        todayRemainingUsd={budgetModal.todayRemainingUsd}
-        onConfirm={budgetModal.onConfirm}
-        onCancel={() => setBudgetModal(null)}
-      />
-    ) : null}
     <section
       data-testid="convert-page"
       data-route="convert"
@@ -545,11 +284,9 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             }}
           />
           {response ? (
-            <button
-              type="button"
+            <div
               data-testid="score-badge"
-              onClick={() => setValidationOpen((v) => !v)}
-              aria-label="Toggle validation panel"
+              aria-label="Complexity score"
               style={{
                 marginLeft: "auto",
                 padding: "0.3rem 0.6rem",
@@ -557,13 +294,12 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
                 border: "1px solid var(--color-grid, #e0e0e0)",
                 background: "transparent",
                 color: "inherit",
-                cursor: "pointer",
                 fontSize: 12,
                 fontWeight: 600,
               }}
             >
               complexity: {response.score.complexity.toFixed(1)}
-            </button>
+            </div>
           ) : null}
         </header>
         {visibleError ? (
@@ -594,23 +330,16 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             onCancel={onCancel}
           />
         ) : null}
-        {multiTabEnabled ? <TabStrip /> : null}
         <MonacoEditor
           value={editorValue}
           onChange={(v) => {
             setCurrentCode(v);
-            // Mirror the edit into the active tab so a tab switch later
-            // restores the in-progress source verbatim.
-            if (multiTabEnabled && activeTabId) {
-              updateTab(activeTabId, { code: v });
-            }
           }}
           fallbackTextarea={props.useFallbackEditor}
         />
         {showProgress ? (
           <ProgressLog events={progressList} />
         ) : null}
-        <ReplayTimeline />
       </div>
 
       <div className="convert-pane convert-pane-flow" data-pane="flow" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -626,9 +355,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
             mode={mode}
             onChange={(m) => {
               setMode(m);
-              if (multiTabEnabled && activeTabId) {
-                updateTab(activeTabId, { mode: m });
-              }
             }}
           />
           <button
@@ -705,8 +431,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
           mode={mode}
           response={response}
           error={error}
-          lintResult={lintResult}
-          onOpenLint={() => setLintPanelOpen((v) => !v)}
         />
 
         {response ? (
@@ -717,62 +441,7 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
                 — recipes, datasets, and the DAG payload below
               </span>
             </h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-                alignItems: "center",
-                flexWrap: "wrap",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <ExportButtons
-                flow={response.flow}
-                clientImpl={props.exportClientImpl}
-              />
-              <button
-                type="button"
-                data-testid="share-flow-button"
-                onClick={onShare}
-                disabled={sharing}
-                aria-disabled={sharing}
-                style={{
-                  padding: "0.4rem 0.8rem",
-                  borderRadius: 6,
-                  border: "1px solid var(--color-grid, #e0e0e0)",
-                  background: "transparent",
-                  color: "inherit",
-                  cursor: sharing ? "not-allowed" : "pointer",
-                  fontSize: 13,
-                  opacity: sharing ? 0.6 : 1,
-                }}
-              >
-                {sharing ? "Sharing…" : "Share this flow"}
-              </button>
-              <PinFlowButton code={code} flow={response.flow} />
-            </div>
-            <ValidationPanel
-              flow={response.flow}
-              warnings={response.warnings}
-              defaultOpen={validationOpen}
-              key={validationOpen ? "open" : "closed"}
-              clientImpl={cli}
-            />
-            <ColumnLineageOverlay
-              flow={response.flow as Record<string, unknown>}
-              onHighlight={handleLineageHighlight}
-            />
-            {lintPanelOpen ? (
-              <LintPanel
-                flow={response.flow as Record<string, unknown>}
-                initialResult={lintResult ?? undefined}
-                onFlowReplaced={(f) => {
-                  setResponse({ ...response, flow: f as ConvertResponse["flow"] });
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  setFlow(f as any);
-                }}
-              />
-            ) : null}
+            <PinFlowButton code={code} flow={response.flow} />
             <NodeList flow={response.flow} />
             <NodeInspector />
             <JsonView value={response.flow} />
@@ -780,7 +449,6 @@ export function ConvertPage(props: ConvertPageProps): JSX.Element {
         ) : null}
       </div>
     </section>
-    </>
   );
 }
 
@@ -835,12 +503,6 @@ function NodeList(props: { flow: Record<string, unknown> }): JSX.Element | null 
 
 /**
  * ProgressBar — thin top-of-panel bar that surfaces the 5 backend WS phases.
- *
- * Replaces the bare spinner once any progress event lands. Renders an
- * accessible progressbar (`role="progressbar"`, `aria-valuenow={pct}`) plus a
- * 1-line status string and a discoverable but secondary Cancel button next to
- * it (the bigger Cancel is in the header — this one is co-located with the bar
- * for users who scrolled past).
  */
 function ProgressBar(props: {
   phase: ConvertPhase;
@@ -1092,10 +754,8 @@ function StatusPanel(props: {
   mode: ConversionMode;
   response: ConvertResponse | null;
   error: { title: string; detail?: string; status: number } | null;
-  lintResult: LintResponse | null;
-  onOpenLint: () => void;
 }): JSX.Element {
-  const { status, mode, response, error, lintResult, onOpenLint } = props;
+  const { status, mode, response, error } = props;
   const card = (label: string, value: string | number, testId?: string) => (
     <div
       key={label}
@@ -1145,13 +805,8 @@ function StatusPanel(props: {
         {card("Mode", mode)}
         {card("Complexity", response.score.complexity, "stat-complexity")}
         {card("Recipes", response.score.recipe_count)}
-        <DatasetsTile
-          loading={status === "running" || status === "streaming"}
-          count={response.score.dataset_count}
-          flow={response.flow as Record<string, unknown>}
-        />
+        {card("Datasets", response.score.dataset_count, "stat-datasets")}
         {response.warnings.length > 0 ? card("Warnings", response.warnings.length) : null}
-        <LintBadge result={lintResult} onClick={onOpenLint} />
       </div>
     );
   }
@@ -1170,125 +825,6 @@ function StatusPanel(props: {
       {status === "running" || status === "streaming"
         ? "Converting…"
         : "Pick a snippet or paste Python, then click Convert."}
-    </div>
-  );
-}
-
-/**
- * Dedicated tile for the Datasets metric. Renders three states:
- *  - loading: a skeleton bar while a conversion is in flight.
- *  - empty: explanatory copy when the conversion produced no datasets.
- *  - populated: the count plus a tiny inline bar marker so the tile carries
- *    visual weight even before a real sparkline series is wired up.
- */
-function DatasetsTile(props: {
-  loading: boolean;
-  count: number;
-  flow: Record<string, unknown>;
-}): JSX.Element {
-  const { loading, count } = props;
-  const tile: React.CSSProperties = {
-    padding: "0.6rem 0.8rem",
-    borderRadius: 6,
-    border: "1px solid var(--color-grid, #e0e0e0)",
-    minWidth: 140,
-  };
-  const label = (
-    <div
-      style={{
-        fontSize: 11,
-        color: "var(--fg-muted, #5b6470)",
-        textTransform: "uppercase",
-      }}
-    >
-      Datasets
-    </div>
-  );
-
-  if (loading) {
-    return (
-      <div data-testid="stat-datasets" data-state="loading" style={tile}>
-        {label}
-        <div
-          aria-hidden
-          style={{
-            marginTop: 6,
-            height: 18,
-            width: 64,
-            borderRadius: 3,
-            background:
-              "linear-gradient(90deg, var(--color-grid, #e0e0e0) 25%, var(--color-bg, #fafafa) 50%, var(--color-grid, #e0e0e0) 75%)",
-            backgroundSize: "200% 100%",
-            animation: "py-iku-skeleton 1.2s ease-in-out infinite",
-          }}
-        />
-        <span style={{ position: "absolute", left: -9999 }}>Loading datasets…</span>
-      </div>
-    );
-  }
-
-  if (count <= 0) {
-    return (
-      <div data-testid="stat-datasets" data-state="empty" style={tile}>
-        {label}
-        <div
-          style={{
-            fontSize: 13,
-            color: "var(--fg-muted, #5b6470)",
-            marginTop: 4,
-            lineHeight: 1.35,
-          }}
-        >
-          No datasets in this conversion.
-        </div>
-      </div>
-    );
-  }
-
-  // Populated: show the count plus a tiny visual marker. We don't have a
-  // historical series available client-side, so render a deterministic bar
-  // sized to the count (clamped) — a real sparkline plugs in once the API
-  // exposes per-conversion history.
-  const filled = Math.min(8, Math.max(1, count));
-  return (
-    <div data-testid="stat-datasets" data-state="populated" style={tile}>
-      {label}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: "0.5rem",
-          marginTop: 2,
-        }}
-      >
-        <div style={{ fontSize: 18, fontWeight: 600 }}>{count}</div>
-        <div
-          aria-hidden
-          style={{
-            display: "flex",
-            gap: 2,
-            height: 14,
-            alignItems: "flex-end",
-          }}
-        >
-          {Array.from({ length: 8 }).map((_, i) => (
-            <span
-              key={i}
-              style={{
-                display: "inline-block",
-                width: 3,
-                height: 4 + ((i % 4) + 1) * 2,
-                background:
-                  i < filled
-                    ? "var(--color-connectionhover, #1976d2)"
-                    : "var(--color-grid, #e0e0e0)",
-                borderRadius: 1,
-                opacity: i < filled ? 0.85 : 0.5,
-              }}
-            />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1379,6 +915,3 @@ function friendlyTitle(status: number, fallback: string): string {
       return fallback;
   }
 }
-
-// Suppress unused-suffix warnings: useMemo is intentionally available for future use.
-void useMemo;

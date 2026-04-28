@@ -4,12 +4,11 @@ import { Breadcrumb, type BreadcrumbItem } from "./Breadcrumb";
 /**
  * Map route prefix → cluster label + leaf label.
  *
- * The prefix is matched in declaration order, so put longer paths first
- * (e.g. /settings/connections before /settings).
+ * The prefix is matched in declaration order, so put longer paths first.
  */
 interface RouteCrumb {
   prefix: string;
-  cluster?: "Build" | "Library" | "Lifecycle" | "Account";
+  cluster?: "Build" | "Library" | "Account";
   leaf: string;
 }
 
@@ -22,30 +21,14 @@ const ROUTE_CRUMBS: RouteCrumb[] = [
 
   // Library cluster
   { prefix: "/catalog", cluster: "Library", leaf: "Catalog" },
-  { prefix: "/snippets", cluster: "Library", leaf: "Snippets" },
-  { prefix: "/templates", cluster: "Library", leaf: "Templates" },
-
-  // Lifecycle cluster
-  { prefix: "/diff", cluster: "Lifecycle", leaf: "Diff" },
-  { prefix: "/validation", cluster: "Lifecycle", leaf: "Validation" },
-  { prefix: "/export", cluster: "Lifecycle", leaf: "Export" },
-  { prefix: "/deploy", cluster: "Lifecycle", leaf: "Deploy" },
-  { prefix: "/share/", cluster: "Lifecycle", leaf: "Share" },
-  { prefix: "/audit", cluster: "Lifecycle", leaf: "Audit" },
 
   // Account cluster
-  { prefix: "/settings/connections", cluster: "Account", leaf: "DSS Connections" },
   { prefix: "/settings", cluster: "Account", leaf: "Settings" },
 ];
 
 /**
  * Renders a breadcrumb based on the current pathname. Returns nothing for
  * `/` so the home page stays clean.
- *
- * Format examples:
- *   /convert         → Build / Convert
- *   /diff            → Lifecycle / Diff
- *   /settings        → Account / Settings
  */
 export function RouteBreadcrumb(): JSX.Element | null {
   const { pathname } = useLocation();
