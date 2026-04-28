@@ -22,7 +22,7 @@ router = APIRouter(tags=["convert"])
 
 logger = logging.getLogger(__name__)
 
-_SYNC_TIMEOUT_SECONDS = 30.0
+_SYNC_TIMEOUT_SECONDS = 90.0
 _HEARTBEAT_SECONDS = 15.0
 _WS_SUBPROTOCOL = "py-iku-studio.v1"
 
