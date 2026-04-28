@@ -286,12 +286,64 @@ Expected JSON (CRITICAL: a sklearn min-max scaler -> ``MeasureNormalize`` with m
   ],
   "steps": [
     {{"step_number": 1, "operation": "read_data", "description": "Read features.csv", "output_dataset": "df", "suggested_recipe": "sync"}},
-    {{"step_number": 2, "operation": "normalize_scale", "description": "MinMax scale age, income", "input_datasets": ["df"], "output_dataset": "df", "columns": ["age", "income"], "column_transforms": [{{"column": "age", "operation": "min_max", "parameters": {{"mode": "min_max"}}}}, {{"column": "income", "operation": "min_max", "parameters": {{"mode": "min_max"}}}}], "suggested_recipe": "prepare", "suggested_processors": ["MeasureNormalize"], "reasoning": "MinMaxScaler -> PREPARE+MeasureNormalize(MIN_MAX); reuse df name (self-mutation)."}},
-    {{"step_number": 3, "operation": "encode_categorical", "description": "One-hot encode country", "input_datasets": ["df"], "output_dataset": "df", "columns": ["country"], "suggested_recipe": "prepare", "suggested_processors": ["CategoricalEncoder"], "reasoning": "pd.get_dummies and sklearn one-hot encoders both map to PREPARE+CategoricalEncoder."}}
+    {{"step_number": 2, "operation": "normalize_scale", "description": "MinMax scale age, income", "input_datasets": ["df"], "output_dataset": "df_scaled", "columns": ["age", "income"], "column_transforms": [{{"column": "age", "operation": "min_max", "parameters": {{"mode": "min_max"}}}}, {{"column": "income", "operation": "min_max", "parameters": {{"mode": "min_max"}}}}], "suggested_recipe": "prepare", "suggested_processors": ["MeasureNormalize"], "reasoning": "MinMaxScaler -> PREPARE+MeasureNormalize(MIN_MAX); fresh output name to avoid self-loop."}},
+    {{"step_number": 3, "operation": "encode_categorical", "description": "One-hot encode country", "input_datasets": ["df_scaled"], "output_dataset": "df_encoded", "columns": ["country"], "suggested_recipe": "prepare", "suggested_processors": ["CategoricalEncoder"], "reasoning": "pd.get_dummies and sklearn one-hot encoders both map to PREPARE+CategoricalEncoder."}}
   ],
   "recommendations": [], "warnings": []
 }}
 ```
+
+### Example 5: complementary-condition SPLIT (the consolidation case)
+
+Input:
+```python
+curves = pd.read_csv("curves.csv")
+cond = curves["effective_date"] <= "2024-12-31"
+current = curves[cond]
+history = curves[~cond]
+```
+
+Expected JSON (CRITICAL: ONE step with ``suggested_recipe="split"``, ``output_datasets`` listing BOTH branch names, NOT one output plus orphan datasets):
+```json
+{{
+  "code_summary": "Read curves, split into current and history at the cutoff.",
+  "total_operations": 2, "complexity_score": 2,
+  "datasets": [
+    {{"name": "curves", "source": "curves.csv", "is_input": true, "is_output": false}},
+    {{"name": "current", "source": "derived", "is_input": false, "is_output": true}},
+    {{"name": "history", "source": "derived", "is_input": false, "is_output": true}}
+  ],
+  "steps": [
+    {{"step_number": 1, "operation": "read_data", "description": "Read curves.csv", "output_dataset": "curves", "suggested_recipe": "sync"}},
+    {{"step_number": 2, "operation": "split", "description": "Partition curves into current vs history at the cutoff", "input_datasets": ["curves"], "output_datasets": ["current", "history"], "split_condition": "val(\"effective_date\") <= \"2024-12-31\"", "suggested_recipe": "split", "source_lines": [2, 4], "confidence": 0.95, "reasoning": "Complementary cond/~cond on the same dataframe -> one SPLIT recipe with both branches as outputs."}}
+  ],
+  "recommendations": [], "warnings": []
+}}
+```
+
+Note the ``output_datasets`` (plural) field on the SPLIT step — this is the canonical way to express both branches. Do NOT emit a step with ``output_dataset: "filtered_1"`` and then leak ``current`` and ``history`` as orphan datasets — the SPLIT MUST own both names.
+
+## CRITICAL output-dataset naming rules
+
+A recipe's ``input_datasets`` and ``output_dataset`` MUST NOT share a name. The downstream graph layer rejects recipes with input == output as cycles, breaking every consumer.
+
+When the user's pandas code rebinds the same variable (e.g., ``trades = trades[trades["x"] > 0]`` or ``df["a"] = df["a"].fillna(0)``), pick a FRESH output dataset name:
+- ``trades`` -> ``trades_filtered`` -> ``trades_clean`` (one rename per step)
+- For long mutation chains, use ``<name>_step_2``, ``<name>_step_3``, ...
+- Never reuse the input name for the output, even when the user's variable name is reused.
+
+## Pattern catalog (use these mappings exactly)
+
+These idioms are commonly mis-routed. Apply them deterministically:
+
+1. ``df.sort_values(col, ascending=False).head(N)`` -> **TOP_N** with ``ranking_column=col``, ``top_n=N``. NOT ``SAMPLING``.
+2. ``df.head(N)`` (no preceding sort) -> **SAMPLING** with ``rows=N``.
+3. ``df.nlargest(N, col)`` / ``df.nsmallest(N, col)`` -> **TOP_N**.
+4. ``df["new"] = df["src"].str.extract(r"(<regex>)")`` -> **PREPARE + PatternExtract** with ``pattern=<regex>``. NOT ``ColumnsSplitter``.
+5. ``df[(df.x > 5) & (df.y < 10)]`` (compound predicate with ``&`` or ``|``) -> **PREPARE + FilterOnFormula** with a single GREL expression like ``val("x") > 5 && val("y") < 10``. NOT multiple ``FilterOnNumericRange`` processors.
+6. ``df[df.x > N]`` (single-clause numeric comparison) -> **PREPARE + FilterOnNumericRange** with ``min=N``.
+7. ``df[df.x == "v"]`` (single-clause equality) -> **PREPARE + FilterOnValue** with ``matchingMode=FULL_STRING``.
+8. ``cond = <expr>; current = df[cond]; history = df[~cond]`` (complementary predicates) -> ONE **SPLIT** recipe with ``inputs=[df]`` and ``outputs=[current, history]`` (BOTH outputs on the SAME recipe). NOT a SPLIT with one output plus a separate orphan dataset. NOT two filter recipes. The split_condition is the GREL of ``<expr>``.
 
 Be precise and thorough. Extract ALL operations, even implicit ones. When in doubt, prefer a ``prepare`` recipe with no processors over guessing a structural recipe."""
 

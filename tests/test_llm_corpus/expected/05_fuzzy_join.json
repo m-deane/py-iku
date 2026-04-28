@@ -1,0 +1,10 @@
+{
+  "id": "05_fuzzy_join",
+  "category": "single_recipe_type",
+  "expected_recipe_types": ["fuzzy_join"],
+  "expected_dataset_count": 3,
+  "expected_outputs": ["counterparties_fuzzy_matched"],
+  "must_not_contain": [],
+  "known_issues": ["fuzzy-rule-path-not-yet"],
+  "notes": "rapidfuzz token_sort_ratio matching should emit FUZZY_JOIN under LLM mode (rule-based path may fall back to PYTHON)."
+}

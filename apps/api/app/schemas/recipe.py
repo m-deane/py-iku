@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .processor import PrepareStepModel
 
@@ -255,3 +255,30 @@ class DataikuRecipeModel(BaseModel):
     # Recipe-type-specific fields emitted by to_dict() / to_display_dict()
     # (steps, keys, aggregations, join_type, …) pass through via extra.
     model_config = {"extra": "allow"}
+
+    @model_validator(mode="after")
+    def _reject_self_loop(self) -> "DataikuRecipeModel":
+        """Reject recipes whose inputs and outputs share a dataset name.
+
+        The LLM occasionally translates self-rebinding pandas idioms
+        (``trades = trades[...]``, ``df["x"] = ...``) into recipes where
+        the same dataset appears in both ``inputs`` and ``outputs``. The
+        flow object is structurally valid, but ``flow.graph.topological_sort()``
+        rejects it as a cycle, breaking every downstream consumer.
+
+        We catch this at the API boundary so the user sees an actionable
+        error pointing back at the rebinding instead of a stack trace
+        from the graph layer.
+        """
+        shared = set(self.inputs) & set(self.outputs)
+        if shared:
+            shared_list = sorted(shared)
+            raise ValueError(
+                f"Recipe '{self.name}' has a self-loop: dataset(s) "
+                f"{shared_list} appear in both inputs and outputs. "
+                "This usually means the analyzer translated a self-rebinding "
+                "pandas idiom (e.g., `trades = trades[...]`) without emitting "
+                "a fresh output dataset name. Suggest a unique output name "
+                "such as 'trades_filtered' or 'trades_step_2'."
+            )
+        return self

@@ -740,14 +740,28 @@ class LLMFlowGenerator(BaseFlowGenerator):
     def _create_split_recipe(
         self, step: DataStep, input_dataset: Optional[str]
     ) -> str:
-        """Create a Split recipe."""
-        self.recipe_counter += 1
-        output_name = step.output_dataset or f"filtered_{self.recipe_counter}"
-        output_name = self._sanitize_name(output_name)
+        """Create a Split recipe.
 
-        # C3 fix: prevent DAG cycle when output would equal input
-        if output_name == input_dataset:
-            output_name = f"{output_name}_filtered"
+        Honors ``step.output_datasets`` (plural) when present so a
+        complementary cond/~cond pattern produces ONE SPLIT recipe with
+        BOTH branches as outputs, not a SPLIT with one output plus an
+        orphan dataset for the other branch.
+        """
+        self.recipe_counter += 1
+        if step.output_datasets:
+            outputs = [self._sanitize_name(n) for n in step.output_datasets]
+            outputs = [
+                f"{n}_filtered" if n == input_dataset else n for n in outputs
+            ]
+            primary_output = outputs[0]
+        else:
+            primary_output = self._sanitize_name(
+                step.output_dataset or f"filtered_{self.recipe_counter}"
+            )
+            # C3 fix: prevent DAG cycle when output would equal input
+            if primary_output == input_dataset:
+                primary_output = f"{primary_output}_filtered"
+            outputs = [primary_output]
 
         # Build condition string
         conditions = []
@@ -759,7 +773,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
             name=f"split_{self.recipe_counter}",
             recipe_type=RecipeType.SPLIT,
             inputs=[input_dataset or ""],
-            outputs=[output_name],
+            outputs=outputs,
             split_condition=condition_str,
         )
 
@@ -768,7 +782,7 @@ class LLMFlowGenerator(BaseFlowGenerator):
 
         self._apply_step_metadata(recipe, step)
         self.flow.add_recipe(recipe)
-        return output_name
+        return primary_output
 
     def _create_distinct_recipe(
         self, step: DataStep, input_dataset: Optional[str]

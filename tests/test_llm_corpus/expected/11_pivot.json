@@ -1,0 +1,10 @@
+{
+  "id": "11_pivot",
+  "category": "single_recipe_type",
+  "expected_recipe_types": ["pivot"],
+  "expected_dataset_count": 2,
+  "expected_outputs": ["trades_pivot"],
+  "must_not_contain": ["python"],
+  "known_issues": [],
+  "notes": "pivot_table → PIVOT recipe."
+}

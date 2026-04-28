@@ -1,0 +1,10 @@
+{
+  "id": "07_sort_multikey",
+  "category": "single_recipe_type",
+  "expected_recipe_types": ["sort"],
+  "expected_dataset_count": 2,
+  "expected_outputs": ["positions_sorted"],
+  "must_not_contain": ["python"],
+  "known_issues": [],
+  "notes": "Multi-key descending sort_values → SORT recipe."
+}

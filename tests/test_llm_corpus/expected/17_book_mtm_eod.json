@@ -1,0 +1,10 @@
+{
+  "id": "17_book_mtm_eod",
+  "category": "trading_domain",
+  "expected_recipe_types": ["join", "prepare", "grouping"],
+  "expected_dataset_count": 4,
+  "expected_outputs": ["book_mtm_eod"],
+  "must_not_contain": ["python"],
+  "known_issues": ["bug-1"],
+  "notes": "Formula step (mark_price - cost_basis) * quantity must NOT be dropped — should appear as a CREATE_COLUMN_WITH_GREL processor inside the PREPARE recipe."
+}

@@ -79,6 +79,15 @@ class ComplexityScore(BaseModel):
     cost_estimate: float | None = Field(
         default=None, description="Estimated LLM cost in USD (LLM mode only)"
     )
+    usage: dict[str, int | None] | None = Field(
+        default=None,
+        description=(
+            "Token-usage telemetry for the LLM call (LLM mode only). "
+            "Keys: input_tokens, output_tokens, cache_read_input_tokens, "
+            "cache_creation_input_tokens. Pricing assumes Claude Sonnet 4 "
+            "($3/MTok input, $15/MTok output, $0.30/MTok cache read)."
+        ),
+    )
 
 
 class ConvertResponse(BaseModel):

@@ -220,12 +220,33 @@ def convert_sync(req: ConvertRequest) -> ConvertResponse:
     # Reconcile recipe_count / dataset_count with the sanitized flow so the
     # UI's "Datasets" / "Recipes" badges match what the user actually sees
     # on the canvas after empty-name datasets / dangling recipes are scrubbed.
-    score = score.model_copy(
-        update={
-            "recipe_count": len(flow_dict.get("recipes") or []),
-            "dataset_count": len(flow_dict.get("datasets") or []),
+    score_updates: dict = {
+        "recipe_count": len(flow_dict.get("recipes") or []),
+        "dataset_count": len(flow_dict.get("datasets") or []),
+    }
+    # Surface token usage + an estimated USD cost when the analyzer
+    # exposed it (LLM mode only — None for rule-based and MockProvider
+    # paths that didn't supply usage).
+    llm_usage = getattr(flow, "llm_usage", None)
+    if llm_usage:
+        score_updates["usage"] = {
+            "input_tokens": llm_usage.get("input_tokens"),
+            "output_tokens": llm_usage.get("output_tokens"),
+            "cache_read_input_tokens": llm_usage.get("cache_read_input_tokens"),
+            "cache_creation_input_tokens": llm_usage.get(
+                "cache_creation_input_tokens"
+            ),
         }
-    )
+        # Anthropic Sonnet 4 list pricing (April 2026): input $3/MTok,
+        # cached $0.30/MTok, output $15/MTok. Approximate; the real
+        # dashboard is the source of truth for billing.
+        in_tok = llm_usage.get("input_tokens") or 0
+        out_tok = llm_usage.get("output_tokens") or 0
+        cached = llm_usage.get("cache_read_input_tokens") or 0
+        score_updates["cost_estimate"] = round(
+            (in_tok * 3.0 + cached * 0.30 + out_tok * 15.0) / 1_000_000, 6
+        )
+    score = score.model_copy(update=score_updates)
 
     return ConvertResponse(
         flow=flow_model,
@@ -385,12 +406,27 @@ def convert_streaming(req: ConvertRequest, emitter: ConversionEventEmitter) -> N
         extra_warnings = _sanitize_flow_dict(flow_dict)
         flow_model = DataikuFlowModel.model_validate(flow_dict)
         score = score_flow(flow)
-        score = score.model_copy(
-            update={
-                "recipe_count": len(flow_dict.get("recipes") or []),
-                "dataset_count": len(flow_dict.get("datasets") or []),
+        score_updates: dict = {
+            "recipe_count": len(flow_dict.get("recipes") or []),
+            "dataset_count": len(flow_dict.get("datasets") or []),
+        }
+        llm_usage = getattr(flow, "llm_usage", None)
+        if llm_usage:
+            score_updates["usage"] = {
+                "input_tokens": llm_usage.get("input_tokens"),
+                "output_tokens": llm_usage.get("output_tokens"),
+                "cache_read_input_tokens": llm_usage.get("cache_read_input_tokens"),
+                "cache_creation_input_tokens": llm_usage.get(
+                    "cache_creation_input_tokens"
+                ),
             }
-        )
+            in_tok = llm_usage.get("input_tokens") or 0
+            out_tok = llm_usage.get("output_tokens") or 0
+            cached = llm_usage.get("cache_read_input_tokens") or 0
+            score_updates["cost_estimate"] = round(
+                (in_tok * 3.0 + cached * 0.30 + out_tok * 15.0) / 1_000_000, 6
+            )
+        score = score.model_copy(update=score_updates)
         emitter.completed(
             flow=flow_model,
             score=score,

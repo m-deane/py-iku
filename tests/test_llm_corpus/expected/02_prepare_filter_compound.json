@@ -1,0 +1,10 @@
+{
+  "id": "02_prepare_filter_compound",
+  "category": "single_recipe_type",
+  "expected_recipe_types": ["prepare"],
+  "expected_dataset_count": 2,
+  "expected_outputs": ["trades_filtered"],
+  "must_not_contain": ["python"],
+  "known_issues": ["bug-8"],
+  "notes": "Compound filter must produce FilterOnFormula GREL processor, not split into two FilterOnNumericRange steps."
+}

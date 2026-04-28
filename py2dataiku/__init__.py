@@ -400,6 +400,13 @@ def convert_with_llm(
     generator = LLMFlowGenerator()
     flow = generator.generate(analysis, flow_name=flow_name, optimize=optimize)
 
+    # Surface LLM token usage on the produced flow so the API layer can
+    # populate score.usage / score.cost_estimate without a second analyze
+    # call. analysis.usage is None when the provider didn't expose counts
+    # (e.g., MockProvider with no canned usage block).
+    if getattr(analysis, "usage", None) is not None:
+        flow.llm_usage = dict(analysis.usage)
+
     if optimize:
         _emit("optimizing", {"recipe_count": len(flow.recipes)})
 

@@ -145,6 +145,11 @@ class DataStep:
     # Input/Output
     input_datasets: list[str] = field(default_factory=list)
     output_dataset: Optional[str] = None
+    # Plural form for SPLIT recipes that fan a single input into multiple
+    # outputs (e.g., complementary cond/~cond branches). When present, the
+    # generator uses every name listed here as a SPLIT output instead of
+    # auto-generating a placeholder. Empty/None for single-output steps.
+    output_datasets: list[str] = field(default_factory=list)
 
     # Columns involved
     columns: list[str] = field(default_factory=list)
@@ -183,6 +188,7 @@ class DataStep:
             "description": self.description,
             "input_datasets": self.input_datasets,
             "output_dataset": self.output_dataset,
+            "output_datasets": self.output_datasets,
             "columns": self.columns,
             "filter_conditions": [
                 {"column": f.column, "operator": f.operator, "value": f.value}
@@ -226,6 +232,7 @@ class DataStep:
             description=data.get("description", ""),
             input_datasets=data.get("input_datasets", []),
             output_dataset=data.get("output_dataset"),
+            output_datasets=data.get("output_datasets") or [],
             columns=data.get("columns", []),
             filter_conditions=[
                 FilterCondition(
