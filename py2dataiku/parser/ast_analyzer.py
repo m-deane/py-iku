@@ -34,6 +34,13 @@ class CodeAnalyzer:
         "sample": "_handle_sample",
         "astype": "_handle_astype",
         "to_datetime": "_handle_to_datetime",
+        # pd.to_numeric(series, errors='coerce') is the canonical
+        # numeric-coercion idiom; routes to TypeSetter (DSS coerces
+        # uncoercible values to NULL, matching errors='coerce').
+        "to_numeric": "_handle_to_numeric",
+        # Series.isin([...]) used as a filter predicate routes to
+        # FilterOnValue with multi-value match.
+        "isin": "_handle_isin",
         "pivot": "_handle_pivot",
         "pivot_table": "_handle_pivot",
         "melt": "_handle_melt",
@@ -1116,6 +1123,60 @@ class CodeAnalyzer:
                 parameters={},
                 source_line=self.current_line,
                 suggested_processor="DateParser",
+            )
+        )
+
+    def _handle_to_numeric(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle ``pd.to_numeric(series, errors=...)`` -> PREPARE+TypeSetter.
+
+        DSS's TypeSetter coerces non-numeric strings to NULL, matching
+        the pandas ``errors='coerce'`` behavior. The ``errors=`` kwarg
+        is not surfaced as a recipe parameter — DSS's coercion
+        semantics are fixed.
+        """
+        column = ""
+        if node.args:
+            arg = node.args[0]
+            if isinstance(arg, ast.Subscript) and isinstance(arg.slice, ast.Constant):
+                column = str(arg.slice.value)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.TYPE_CAST,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={"column": column, "dtype": "double"},
+                source_line=self.current_line,
+                suggested_processor="TypeSetter",
+            )
+        )
+
+    def _handle_isin(self, df: str, node: ast.Call, target: str) -> None:
+        """Handle ``series.isin([...])`` -> PREPARE+FilterOnValue.
+
+        Multi-value match. The list of values is collected from the
+        positional argument when present; left empty otherwise (the
+        downstream generator emits a stub processor that the user
+        configures in DSS).
+        """
+        values: list = []
+        if node.args:
+            arg = node.args[0]
+            if isinstance(arg, (ast.List, ast.Tuple, ast.Set)):
+                for elt in arg.elts:
+                    if isinstance(elt, ast.Constant):
+                        values.append(elt.value)
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.FILTER,
+                source_dataframe=df,
+                target_dataframe=target,
+                parameters={
+                    "operator": "in",
+                    "values": values,
+                    "matchingMode": "FULL_STRING",
+                },
+                source_line=self.current_line,
+                suggested_processor="FilterOnValue",
             )
         )
 

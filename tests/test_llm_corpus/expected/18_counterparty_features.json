@@ -7,7 +7,7 @@
     "prepare",
     "prepare",
     "prepare",
-    "python"
+    "split"
   ],
   "expected_dataset_count": 5,
   "expected_outputs": [

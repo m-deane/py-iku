@@ -3,15 +3,11 @@
   "category": "trading_domain",
   "expected_recipe_types": [
     "prepare",
-    "python",
-    "python",
     "split"
   ],
-  "expected_dataset_count": 4,
+  "expected_dataset_count": 2,
   "expected_outputs": [
-    "raw",
-    "raw_notional",
-    "raw_price"
+    "raw"
   ],
   "must_not_contain": [
     "python"
