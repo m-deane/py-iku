@@ -1,0 +1,19 @@
+{
+  "id": "13_window_partition_cumsum",
+  "category": "single_recipe_type",
+  "expected_recipe_types": [
+    "prepare",
+    "sort",
+    "window"
+  ],
+  "expected_dataset_count": 5,
+  "expected_outputs": [
+    "trades_final",
+    "trades_windowed"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "groupby + cumsum \u2192 WINDOW recipe with CUMULATIVE_SUM aggregation."
+}

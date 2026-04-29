@@ -1,0 +1,21 @@
+{
+  "id": "21_self_mutating_chain",
+  "category": "stress_edge",
+  "expected_recipe_types": [
+    "prepare"
+  ],
+  "expected_dataset_count": 4,
+  "expected_outputs": [
+    "trades",
+    "trades_step_2",
+    "trades_step_4",
+    "trades_step_5"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [
+    "bug-2"
+  ],
+  "notes": "Four self-rebinds of `trades` must collapse into a single PREPARE chain (not four separate datasets)."
+}

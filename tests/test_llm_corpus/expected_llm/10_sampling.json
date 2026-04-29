@@ -1,0 +1,16 @@
+{
+  "id": "10_sampling",
+  "category": "single_recipe_type",
+  "expected_recipe_types": [
+    "sampling"
+  ],
+  "expected_dataset_count": 2,
+  "expected_outputs": [
+    "sampled"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "df.sample(frac=...) \u2192 SAMPLING recipe."
+}

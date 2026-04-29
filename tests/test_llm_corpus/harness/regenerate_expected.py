@@ -24,7 +24,15 @@ from pathlib import Path
 
 CORPUS = Path(__file__).resolve().parents[1]
 SCRIPTS = CORPUS / "scripts"
-EXPECTED = CORPUS / "expected"
+
+
+def _expected_dir_for(mode: str) -> Path:
+    """Pick the expected directory for the given mode.
+
+    Rule mode writes to ``expected/``; LLM mode writes to
+    ``expected_llm/``. Both directories live alongside ``scripts/``.
+    """
+    return CORPUS / ("expected_llm" if mode == "llm" else "expected")
 
 
 def post_convert(code: str, mode: str, endpoint: str, timeout: int) -> dict:
@@ -51,14 +59,22 @@ def main() -> int:
 
     refreshed: list[str] = []
     skipped: list[str] = []
+    target_dir = _expected_dir_for(args.mode)
+    target_dir.mkdir(exist_ok=True)
+    rule_dir = _expected_dir_for("rule")
     for script in sorted(SCRIPTS.glob("*.py")):
         sid = script.stem
-        exp_path = EXPECTED / f"{sid}.json"
-        if not exp_path.exists():
-            print(f"  skip {sid}: no expected file", file=sys.stderr)
+        exp_path = target_dir / f"{sid}.json"
+        # When seeding LLM expected files for the first time, copy
+        # category / known_issues / notes / must_not_contain across
+        # from the rule expected (which already has them). Otherwise
+        # the LLM expected starts empty and loses curator context.
+        seed_from = exp_path if exp_path.exists() else (rule_dir / f"{sid}.json")
+        if not seed_from.exists():
+            print(f"  skip {sid}: no seed expected", file=sys.stderr)
             skipped.append(sid)
             continue
-        existing = json.loads(exp_path.read_text())
+        existing = json.loads(seed_from.read_text())
         code = script.read_text()
         resp = post_convert(code, args.mode, args.endpoint, args.timeout)
         if "_error" in resp:

@@ -1,0 +1,19 @@
+{
+  "id": "15_split_consolidation",
+  "category": "single_recipe_type",
+  "expected_recipe_types": [
+    "split"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "itm",
+    "otm"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [
+    "bug-3"
+  ],
+  "notes": "Complementary mask (cond + ~cond) must consolidate into ONE SPLIT recipe with two outputs."
+}

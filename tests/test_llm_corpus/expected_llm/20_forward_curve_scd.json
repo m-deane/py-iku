@@ -1,0 +1,20 @@
+{
+  "id": "20_forward_curve_scd",
+  "category": "trading_domain",
+  "expected_recipe_types": [
+    "prepare",
+    "python",
+    "split"
+  ],
+  "expected_dataset_count": 5,
+  "expected_outputs": [
+    "current_curve",
+    "historical_curves"
+  ],
+  "must_not_contain": [],
+  "known_issues": [
+    "bug-3",
+    "scalar-max-fallback: pd.Series.max() is a scalar reduction with no flow representation; the rule path emits a PYTHON recipe to compute the cutoff timestamp. The downstream SPLIT consolidation still works correctly."
+  ],
+  "notes": "Date-based current vs historical complementary split \u2014 must consolidate to ONE SPLIT recipe. The leading PYTHON recipe carries the scalar Series.max() cutoff; that's an honest escape hatch, not a bug."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "24_mixed_idioms",
+  "category": "stress_edge",
+  "expected_recipe_types": [
+    "grouping",
+    "join",
+    "prepare"
+  ],
+  "expected_dataset_count": 6,
+  "expected_outputs": [
+    "res",
+    "res_grouped"
+  ],
+  "must_not_contain": [],
+  "known_issues": [
+    "analyzer-stress"
+  ],
+  "notes": "isin filter, .loc assignment, np.where, .query(), pd.merge() functional form, groupby with named agg. Stresses analyzer pattern recognition."
+}

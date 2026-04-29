@@ -1,0 +1,25 @@
+{
+  "id": "23_deep_chain",
+  "category": "stress_edge",
+  "expected_recipe_types": [
+    "distinct",
+    "grouping",
+    "join",
+    "join",
+    "prepare",
+    "sampling",
+    "sort",
+    "sort",
+    "topn",
+    "window"
+  ],
+  "expected_dataset_count": 13,
+  "expected_outputs": [
+    "final"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "Deep 9+ recipe chain. The first four PREPARE-style steps merge into one recipe; structural ops form distinct nodes."
+}

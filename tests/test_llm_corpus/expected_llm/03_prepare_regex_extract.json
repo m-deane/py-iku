@@ -1,0 +1,20 @@
+{
+  "id": "03_prepare_regex_extract",
+  "category": "single_recipe_type",
+  "expected_recipe_types": [
+    "prepare"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "logs",
+    "logs_extracted",
+    "logs_step_2"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [
+    "bug-4"
+  ],
+  "notes": "str.extract should map to EXTRACT_REGEX processor, not be dropped or routed to PYTHON."
+}

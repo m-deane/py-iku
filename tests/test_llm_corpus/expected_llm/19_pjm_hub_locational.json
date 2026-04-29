@@ -1,0 +1,18 @@
+{
+  "id": "19_pjm_hub_locational",
+  "category": "trading_domain",
+  "expected_recipe_types": [
+    "grouping",
+    "join",
+    "prepare"
+  ],
+  "expected_dataset_count": 5,
+  "expected_outputs": [
+    "hub_avg"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "Geographic JOIN + filter + GROUPING. Filter step may merge with the JOIN's downstream PREPARE."
+}

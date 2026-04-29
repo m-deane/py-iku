@@ -1,0 +1,18 @@
+{
+  "id": "16_trade_blotter",
+  "category": "trading_domain",
+  "expected_recipe_types": [
+    "prepare"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "raw",
+    "raw_step_2",
+    "raw_step_9"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "Full ingestion + validation chain \u2014 should fold into one PREPARE recipe with multiple processors."
+}

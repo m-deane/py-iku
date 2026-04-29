@@ -1,0 +1,19 @@
+{
+  "id": "01_prepare_only",
+  "category": "single_recipe_type",
+  "expected_recipe_types": [
+    "prepare"
+  ],
+  "expected_dataset_count": 4,
+  "expected_outputs": [
+    "customers",
+    "customers_clean",
+    "customers_step_2",
+    "customers_step_5"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "Canonical 4-step PREPARE chain (dropna, fillna, rename, type-cast)."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "12_window_rolling",
+  "category": "single_recipe_type",
+  "expected_recipe_types": [
+    "prepare",
+    "sort",
+    "window"
+  ],
+  "expected_dataset_count": 5,
+  "expected_outputs": [
+    "prices_with_rolling",
+    "prices_with_window"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "groupby + rolling().mean() \u2192 WINDOW recipe with partition + rolling aggregation."
+}

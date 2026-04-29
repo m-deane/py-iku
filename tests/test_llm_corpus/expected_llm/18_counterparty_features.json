@@ -1,0 +1,18 @@
+{
+  "id": "18_counterparty_features",
+  "category": "trading_domain",
+  "expected_recipe_types": [
+    "prepare"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "cps",
+    "cps_step_11",
+    "cps_step_2"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "Long PREPARE chain \u2014 many processors merged into one recipe."
+}

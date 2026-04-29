@@ -33,11 +33,23 @@ except ImportError:  # pragma: no cover
 CORPUS_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = CORPUS_ROOT / "scripts"
 EXPECTED_DIR = CORPUS_ROOT / "expected"
+EXPECTED_LLM_DIR = CORPUS_ROOT / "expected_llm"
 RESULTS_DIR = CORPUS_ROOT / "results"
 
 
-def _load_expected(script_id: str) -> dict:
-    path = EXPECTED_DIR / f"{script_id}.json"
+def _expected_dir_for(mode: str) -> Path:
+    """Return the expected/ directory for the given convert mode.
+
+    Rule mode and LLM mode produce structurally different flows for
+    several pandas idioms (compound predicates -> SPLIT vs PREPARE+
+    FilterOnFormula; head-after-sort -> sort+sampling vs TOP_N; etc.).
+    Each mode has its own pinned expectations.
+    """
+    return EXPECTED_LLM_DIR if mode == "llm" else EXPECTED_DIR
+
+
+def _load_expected(script_id: str, mode: str = "rule") -> dict:
+    path = _expected_dir_for(mode) / f"{script_id}.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -196,7 +208,15 @@ def run_corpus(
                     stopped = True
                     break
                 code = (SCRIPTS_DIR / f"{sid}.py").read_text(encoding="utf-8")
-                expected = _load_expected(sid)
+                # Use the mode-specific expected file when available
+                # (expected_llm/ for LLM mode, expected/ for rule mode).
+                # Falls back to the rule expected if a per-mode file is
+                # missing — the harness reports the mismatch rather than
+                # failing to load.
+                try:
+                    expected = _load_expected(sid, current_mode)
+                except FileNotFoundError:
+                    expected = _load_expected(sid, "rule")
                 resp = _post_convert(endpoint, code, current_mode, timeout=timeout)
                 cost = _extract_cost(resp["body"] if isinstance(resp["body"], dict) else {})
                 total_cost += cost

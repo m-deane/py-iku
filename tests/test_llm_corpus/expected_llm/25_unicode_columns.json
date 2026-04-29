@@ -1,0 +1,19 @@
+{
+  "id": "25_unicode_columns",
+  "category": "stress_edge",
+  "expected_recipe_types": [
+    "prepare"
+  ],
+  "expected_dataset_count": 4,
+  "expected_outputs": [
+    "prices",
+    "prices_clean",
+    "prices_filtered",
+    "prices_step_2"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [],
+  "notes": "Tricky column names (price ($), \u65e5\u4ed8, soci\u00e9t\u00e9, qt\u00e9). PREPARE recipe should preserve unicode in COLUMN_RENAMER values."
+}
