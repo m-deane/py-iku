@@ -1,12 +1,21 @@
 """Complete catalog of Dataiku Prepare recipe processor types."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
 @dataclass
 class ProcessorInfo:
-    """Information about a Dataiku processor type."""
+    """Information about a Dataiku processor type.
+
+    ``params`` is the canonical, full list of parameter names that a DSS
+    processor accepts on the wire. When omitted, it is auto-derived from
+    ``required_params + optional_params`` after construction. Override
+    ``params`` explicitly when the doc-canonical wire name set differs
+    from the lib's historical ``required_params``/``optional_params``
+    split (e.g. when the doc enumerates ``matchingMode`` while the lib
+    historically tracked ``matchMode``).
+    """
 
     name: str
     category: str
@@ -14,6 +23,23 @@ class ProcessorInfo:
     required_params: list[str]
     optional_params: list[str]
     example_params: dict[str, Any]
+    # Full list of canonical wire param names. Defaults to required+optional
+    # when not supplied. The DSS round-trip harness validates that every
+    # documented param key appears in this list.
+    params: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # If params wasn't supplied at construction, derive it from the
+        # required/optional union so existing entries don't have to be
+        # rewritten. Preserves order: required first, then optional.
+        if not self.params:
+            seen: set[str] = set()
+            merged: list[str] = []
+            for p in list(self.required_params) + list(self.optional_params):
+                if p not in seen:
+                    seen.add(p)
+                    merged.append(p)
+            self.params = merged
 
 
 class ProcessorCatalog:
@@ -60,8 +86,12 @@ class ProcessorCatalog:
             category="Column Manipulation",
             description="Keep only specified columns",
             required_params=["columns"],
-            optional_params=["keep"],
-            example_params={"columns": ["col1", "col2"], "keep": True},
+            optional_params=["keep", "appliesTo"],
+            example_params={
+                "columns": ["col1", "col2"],
+                "keep": True,
+                "appliesTo": "COLUMNS",
+            },
         ),
         "ColumnReorder": ProcessorInfo(
             name="ColumnReorder",
@@ -372,7 +402,7 @@ class ProcessorCatalog:
             category="Type Conversion",
             description="Parse string to date",
             required_params=["column"],
-            optional_params=["formats", "timezone"],
+            optional_params=["formats", "timezone", "outputColumn"],
             example_params={"column": "date_str", "formats": ["yyyy-MM-dd"]},
         ),
         "DateFormatter": ProcessorInfo(
@@ -465,17 +495,28 @@ class ProcessorCatalog:
             name="FilterOnFormula",
             category="Filtering",
             description="Filter rows using a formula",
+            # Lib historically used 'formula'/'keep'; doc-canonical wire names
+            # are 'expression'/'action' (KEEP_ROW / REMOVE_ROW). Both spellings
+            # are accepted because the params dict round-trips opaquely.
             required_params=["formula"],
-            optional_params=["keep"],
-            example_params={"formula": "age > 18", "keep": True},
+            optional_params=["keep", "expression", "action"],
+            example_params={
+                "expression": "age > 18",
+                "action": "KEEP_ROW",
+            },
         ),
         "FilterOnNumericRange": ProcessorInfo(
             name="FilterOnNumericRange",
             category="Filtering",
             description="Filter rows by numeric range",
             required_params=["column"],
-            optional_params=["min", "max", "keep"],
-            example_params={"column": "price", "min": 0, "max": 100},
+            optional_params=["min", "max", "keep", "action"],
+            example_params={
+                "column": "price",
+                "min": 0,
+                "max": 100,
+                "action": "KEEP_ROW",
+            },
         ),
         "FilterOnDateRange": ProcessorInfo(
             name="FilterOnDateRange",
@@ -785,8 +826,14 @@ class ProcessorCatalog:
             name="IfThenElse",
             category="Conditional Logic",
             description="Apply if-then-else conditional value assignment",
+            # Lib historically modelled the single-branch flat shape
+            # (column / condition / thenValue / elseValue). DSS docs describe
+            # a richer multi-branch shape (outputColumn + rules:[{condition,
+            # value}, ...]). We accept 'rules' here so the catalog metadata
+            # covers both shapes; the round-trip preserves whichever shape
+            # comes in via the free-form params dict.
             required_params=["column", "condition", "thenValue", "elseValue"],
-            optional_params=["outputColumn"],
+            optional_params=["outputColumn", "rules"],
             example_params={
                 "column": "age",
                 "condition": "val >= 18",
@@ -815,8 +862,11 @@ class ProcessorCatalog:
             name="TranslateValues",
             category="Value Manipulation",
             description="Map/translate values using a lookup table",
+            # Doc-canonical wire field is 'mappings'; lib historically used
+            # 'translations'. Both spellings are accepted; the inner shape
+            # ({from, to}) is identical.
             required_params=["column", "translations"],
-            optional_params=["outputColumn"],
+            optional_params=["outputColumn", "mappings"],
             example_params={
                 "column": "code",
                 "translations": [
@@ -854,12 +904,17 @@ class ProcessorCatalog:
             name="FoldMultipleColumns",
             category="Reshaping",
             description="Fold (melt/unpivot) multiple columns into rows",
+            # Doc-canonical wire names are 'varColumnOutput' / 'valColumnOutput'.
+            # Lib historically tracked them as 'varName' / 'valueName'. Both
+            # spellings are accepted via the free-form params dict.
             required_params=["columns"],
-            optional_params=["varName", "valueName"],
+            optional_params=[
+                "varName", "valueName", "varColumnOutput", "valColumnOutput",
+            ],
             example_params={
                 "columns": ["q1", "q2", "q3", "q4"],
-                "varName": "quarter",
-                "valueName": "revenue",
+                "varColumnOutput": "quarter",
+                "valColumnOutput": "revenue",
             },
         ),
         "TransposeRowsToColumns": ProcessorInfo(

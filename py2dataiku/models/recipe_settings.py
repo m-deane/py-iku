@@ -493,3 +493,327 @@ class PivotSettings(RecipeSettings):
             "pivotColumnMaxValues": 100,
             "explicitValues": [],
         }
+
+
+@dataclass
+class SyncSettings(RecipeSettings):
+    """Settings for a Sync recipe.
+
+    Sync copies data from one dataset to another, optionally between
+    different storage backends. Per docs/dataiku-reference/recipes/sync.md
+    (https://doc.dataiku.com/dss/latest/other_recipes/sync.html).
+    """
+
+    engine: str = "DSS"
+    """Execution engine. One of: ``DSS`` (DSS streaming, always available),
+    ``SPARK``, ``SQL``, ``HIVE``, ``IMPALA``, or a fast-path engine name.
+    Per docs/dataiku-reference/recipes/sync.md L39-L62."""
+
+    write_mode: str = "OVERWRITE"
+    """Output write mode. ``OVERWRITE`` replaces the existing dataset (default
+    DSS behavior when re-running a sync). Per docs/dataiku-reference/recipes/sync.md."""
+
+    schema_resync: str = "AUTO"
+    """Schema resynchronization policy. ``AUTO`` keeps the output schema
+    aligned with the input. Per docs/dataiku-reference/recipes/sync.md L19-L29."""
+
+    partition_dependency: str = "EQUALS"
+    """Partition dependency for partitioned syncs. ``EQUALS`` is the default
+    DSS behavior — output partitions mirror input partitions one-to-one.
+    Per docs/dataiku-reference/recipes/sync.md L31-L37."""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "engine": self.engine,
+            "writeMode": self.write_mode,
+            "schemaResync": self.schema_resync,
+            "partitionDependency": self.partition_dependency,
+        }
+
+    def to_display_dict(self) -> dict[str, Any]:
+        return {
+            "engine": self.engine,
+            "write_mode": self.write_mode,
+            "schema_resync": self.schema_resync,
+            "partition_dependency": self.partition_dependency,
+        }
+
+    def to_dss_builder_args(self) -> dict[str, Any]:
+        return {
+            "engineParams": _default_engine_params(),
+            "writeMode": self.write_mode,
+        }
+
+
+@dataclass
+class FuzzyJoinSettings(RecipeSettings):
+    """Settings for a Fuzzy Join recipe.
+
+    Fuzzy join performs nearest-match joins where keys don't match exactly.
+    Per docs/dataiku-reference/recipes/fuzzy-join.md
+    (https://doc.dataiku.com/dss/latest/other_recipes/fuzzy-join.html).
+    """
+
+    join_type: str = "INNER"
+    """Join type: ``INNER`` | ``OUTER`` | ``LEFT`` | ``RIGHT``. Per
+    docs/dataiku-reference/recipes/fuzzy-join.md L17-L25."""
+
+    join_keys: list[Any] = field(default_factory=list)
+    """JoinKey-like objects describing per-pair fuzzy matching rules.
+    Per docs/dataiku-reference/recipes/fuzzy-join.md L27-L31."""
+
+    distance_metric: str = "DAMERAU_LEVENSHTEIN"
+    """Distance metric used to score key similarity. One of:
+    ``DAMERAU_LEVENSHTEIN`` | ``HAMMING`` | ``JACCARD`` | ``COSINE`` (text),
+    ``EUCLIDEAN`` (numeric), ``GEOSPATIAL`` (geopoint), ``EQUALITY`` (strict).
+    Per docs/dataiku-reference/recipes/fuzzy-join.md L33-L64."""
+
+    threshold: float = 2.0
+    """Match threshold; absolute or relative depending on
+    :attr:`threshold_relative`. Per docs/dataiku-reference/recipes/fuzzy-join.md L66-L72."""
+
+    threshold_relative: bool = False
+    """Whether the threshold is interpreted as a percentage of the key length
+    (``True``) or as an absolute distance value (``False``, the DSS default).
+    Per docs/dataiku-reference/recipes/fuzzy-join.md L66-L72."""
+
+    text_normalization: list[str] = field(default_factory=list)
+    """Optional text-normalization steps applied before matching, e.g.
+    ``CASE_INSENSITIVE``, ``REMOVE_PUNCTUATION``, ``CLEAR_SALUTATIONS``,
+    ``CLEAR_STOP_WORDS``, ``STEM``, ``ALPHABETIC_SORT``.
+    Per docs/dataiku-reference/recipes/fuzzy-join.md L45-L55."""
+
+    output_meta: bool = False
+    """If True, emit an additional meta column with per-row matching
+    details (distance type, threshold, calculated distance, match
+    result, joined values). Per docs/dataiku-reference/recipes/fuzzy-join.md L77-L86."""
+
+    debug_mode: bool = False
+    """If True, force a cross join and enable meta output for debugging
+    unmatched rows. Per docs/dataiku-reference/recipes/fuzzy-join.md L88-L92."""
+
+    selected_columns: Optional[dict[str, list[str]]] = None
+    """Optional output-column selection. Per docs/dataiku-reference/recipes/fuzzy-join.md L94-L96."""
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "joinType": self.join_type,
+            "joins": [k.to_dict() for k in self.join_keys],
+            "distanceMetric": self.distance_metric,
+            "threshold": self.threshold,
+            "thresholdRelative": self.threshold_relative,
+            "textNormalization": list(self.text_normalization),
+            "outputMeta": self.output_meta,
+            "debugMode": self.debug_mode,
+        }
+        if self.selected_columns:
+            result["selectedColumns"] = self.selected_columns
+        return result
+
+    def to_display_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "join_type": self.join_type,
+            "join_keys": [k.to_dict() for k in self.join_keys],
+            "distance_metric": self.distance_metric,
+            "threshold": self.threshold,
+            "threshold_relative": self.threshold_relative,
+            "text_normalization": list(self.text_normalization),
+            "output_meta": self.output_meta,
+            "debug_mode": self.debug_mode,
+        }
+        if self.selected_columns:
+            result["selected_columns"] = self.selected_columns
+        return result
+
+    def to_dss_builder_args(self) -> dict[str, Any]:
+        joins = []
+        if self.join_keys:
+            conditions = []
+            for k in self.join_keys:
+                conditions.append({
+                    "type": "FUZZY",
+                    "column1": {"name": k.left_column, "table": 0},
+                    "column2": {"name": k.right_column, "table": 1},
+                    "distanceMetric": self.distance_metric,
+                    "threshold": self.threshold,
+                    "thresholdRelative": self.threshold_relative,
+                })
+            joins.append({
+                "table1": 0,
+                "table2": 1,
+                "conditionsMode": "AND",
+                "joinType": self.join_type,
+                "conditions": conditions,
+                "outerJoinOnTheLeft": True,
+            })
+        return {
+            "engineParams": _default_engine_params(),
+            "virtualInputs": [
+                {"index": 0, "computedColumns": [], "preFilter": {}},
+                {"index": 1, "computedColumns": [], "preFilter": {}},
+            ],
+            "joins": joins,
+            "postFilter": {},
+            "computedColumns": [],
+            "selectedColumns": self.selected_columns if self.selected_columns else [],
+            "limitOutputColumns": False,
+            "textNormalization": list(self.text_normalization),
+            "outputMeta": self.output_meta,
+            "debugMode": self.debug_mode,
+        }
+
+
+@dataclass
+class GeoJoinSettings(RecipeSettings):
+    """Settings for a Geo Join recipe.
+
+    Geo join performs spatial joins between datasets containing geometry
+    or geopoint columns. Per docs/dataiku-reference/recipes/geojoin.md
+    (https://doc.dataiku.com/dss/latest/other_recipes/geojoin.html).
+    """
+
+    join_type: str = "INNER"
+    """Join type: ``INNER`` | ``LEFT`` | ``RIGHT`` | ``FULL`` | ``CROSS``.
+    Per docs/dataiku-reference/recipes/geojoin.md L11."""
+
+    join_keys: list[Any] = field(default_factory=list)
+    """JoinKey-like objects describing per-pair geospatial matching rules.
+    Per docs/dataiku-reference/recipes/geojoin.md L51-L62."""
+
+    spatial_operator: str = "INTERSECTS"
+    """Spatial relation operator. One of: ``CONTAINS`` | ``IS_CONTAINED`` |
+    ``WITHIN_DISTANCE`` | ``BEYOND_DISTANCE`` | ``INTERSECTS`` | ``TOUCHES`` |
+    ``DISJOINT`` | ``STRICT_EQUALITY``.
+    Per docs/dataiku-reference/recipes/geojoin.md L64-L74."""
+
+    distance_value: Optional[float] = None
+    """Distance value for ``WITHIN_DISTANCE`` / ``BEYOND_DISTANCE`` operators.
+    Required for those operators, ignored otherwise.
+    Per docs/dataiku-reference/recipes/geojoin.md L76."""
+
+    distance_unit: str = "METER"
+    """Distance unit: ``METER`` | ``KILOMETER`` | ``FOOT`` | ``YARD`` |
+    ``MILE`` | ``NAUTICAL_MILE``. Per docs/dataiku-reference/recipes/geojoin.md L76."""
+
+    selected_columns: Optional[dict[str, list[str]]] = None
+    """Optional output-column selection. Per docs/dataiku-reference/recipes/geojoin.md L78-L80."""
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "joinType": self.join_type,
+            "joins": [k.to_dict() for k in self.join_keys],
+            "spatialOperator": self.spatial_operator,
+            "distanceUnit": self.distance_unit,
+        }
+        if self.distance_value is not None:
+            result["distanceValue"] = self.distance_value
+        if self.selected_columns:
+            result["selectedColumns"] = self.selected_columns
+        return result
+
+    def to_display_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "join_type": self.join_type,
+            "join_keys": [k.to_dict() for k in self.join_keys],
+            "spatial_operator": self.spatial_operator,
+            "distance_unit": self.distance_unit,
+        }
+        if self.distance_value is not None:
+            result["distance_value"] = self.distance_value
+        if self.selected_columns:
+            result["selected_columns"] = self.selected_columns
+        return result
+
+    def to_dss_builder_args(self) -> dict[str, Any]:
+        joins = []
+        if self.join_keys:
+            conditions = []
+            for k in self.join_keys:
+                cond: dict[str, Any] = {
+                    "type": self.spatial_operator,
+                    "column1": {"name": k.left_column, "table": 0},
+                    "column2": {"name": k.right_column, "table": 1},
+                }
+                if self.distance_value is not None:
+                    cond["distanceValue"] = self.distance_value
+                    cond["distanceUnit"] = self.distance_unit
+                conditions.append(cond)
+            joins.append({
+                "table1": 0,
+                "table2": 1,
+                "conditionsMode": "AND",
+                "joinType": self.join_type,
+                "conditions": conditions,
+                "outerJoinOnTheLeft": True,
+            })
+        return {
+            "engineParams": _default_engine_params(),
+            "virtualInputs": [
+                {"index": 0, "computedColumns": [], "preFilter": {}},
+                {"index": 1, "computedColumns": [], "preFilter": {}},
+            ],
+            "joins": joins,
+            "postFilter": {},
+            "computedColumns": [],
+            "selectedColumns": self.selected_columns if self.selected_columns else [],
+            "limitOutputColumns": False,
+        }
+
+
+@dataclass
+class GenerateStatisticsSettings(RecipeSettings):
+    """Settings for a Generate Statistics recipe.
+
+    Generate Statistics profiles a dataset, producing summary statistics
+    for selected columns. Maps from pandas ``df.describe()`` / ``df.info()``
+    per CLAUDE.md. (No public DSS doc snapshot is captured under
+    ``docs/dataiku-reference/recipes/`` — this class is built from the
+    pandas mapping in ``mappings/pandas_mappings.py`` and DSS recipe-type
+    ``generate_statistics``.)
+    """
+
+    columns: list[str] = field(default_factory=list)
+    """Columns to profile. Empty list means all columns."""
+
+    statistic_types: list[str] = field(default_factory=lambda: [
+        "COUNT", "MEAN", "STDDEV", "MIN", "PERCENTILE_25",
+        "PERCENTILE_50", "PERCENTILE_75", "MAX",
+    ])
+    """Statistics to compute. Defaults match pandas' ``df.describe()``
+    output (count / mean / std / min / 25% / 50% / 75% / max)."""
+
+    sampling_method: str = "FULL"
+    """Sampling strategy: ``FULL`` (entire dataset, default) or
+    ``HEAD_SEQUENTIAL`` / ``RANDOM_FIXED_NB`` / ``RANDOM_FIXED_RATIO``."""
+
+    sample_size: Optional[int] = None
+    """Sample size when sampling_method != ``FULL``. ``None`` uses DSS default."""
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "columns": list(self.columns),
+            "statisticTypes": list(self.statistic_types),
+            "samplingMethod": self.sampling_method,
+        }
+        if self.sample_size is not None:
+            result["sampleSize"] = self.sample_size
+        return result
+
+    def to_display_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "columns": list(self.columns),
+            "statistic_types": list(self.statistic_types),
+            "sampling_method": self.sampling_method,
+        }
+        if self.sample_size is not None:
+            result["sample_size"] = self.sample_size
+        return result
+
+    def to_dss_builder_args(self) -> dict[str, Any]:
+        return {
+            "engineParams": _default_engine_params(),
+            "columns": list(self.columns),
+            "statisticTypes": list(self.statistic_types),
+            "samplingMethod": self.sampling_method,
+            "sampleSize": self.sample_size if self.sample_size is not None else 10000,
+        }

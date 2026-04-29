@@ -52,18 +52,25 @@ Or just one category:
 pytest tests/test_dss_roundtrip/test_processor_roundtrip.py -v
 ```
 
-## Baseline (2026-04-29)
+## Baseline (2026-04-29 – post FX wave)
 
 | Outcome | Count | Meaning |
 |---|---|---|
-| **passed** | 44 | Round-trip clean — type resolves, in catalog, params line up |
+| **passed** | 57 | Round-trip clean — type resolves, in catalog, params line up |
 | **xfailed** | 34 | Known drift documented in `_findings.md` (e.g. EmailSplitter, UnixTimestampParser) |
-| **failed** | 13 | Systemic gap newly surfaced: `ProcessorInfo.params` is empty across the catalog. Every "Catalog has []" failure is the same root cause. |
+| **failed** | 0 | Catalog is in lockstep with the doc-canonical wire-name set |
 
-The 13 systemic failures are the right kind of drift to discover via a
-harness: Agent C's manual cross-check matched processors by name but
-didn't reach into the catalog's per-entry `params` schema. The harness
-does, and finds it empty.
+History:
+- **Initial baseline**: 44 / 34 / 13 — the 13 fails were a systemic
+  empty-`ProcessorInfo.params` gap masking real drift.
+- **FX-1 (auto-derive)**: 50 / 34 / 7 — `params` defaulted to
+  `required+optional` post-init; surfaced 7 real wire-name mismatches
+  (ColumnsSelector / DateParser / FilterOnFormula / FilterOnNumericRange /
+  FoldMultipleColumns / IfThenElse / TranslateValues).
+- **FX-1 follow-up (this wave)**: 57 / 34 / 0 — added each missing
+  doc-canonical name to the catalog's `optional_params`. The lib-historical
+  spellings remain accepted; the params dict round-trips opaquely so both
+  shapes work.
 
 ## Fix-wave linkage
 

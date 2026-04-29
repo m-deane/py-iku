@@ -20,6 +20,10 @@ from py2dataiku.models.recipe_settings import (
     PythonSettings,
     PivotSettings,
     SamplingSettings,
+    SyncSettings,
+    FuzzyJoinSettings,
+    GeoJoinSettings,
+    GenerateStatisticsSettings,
 )
 
 
@@ -289,3 +293,271 @@ class TestBackwardCompatibility:
         d = recipe.to_dict()
         # The settings object itself should not leak into the dict
         assert "settings" not in d or not isinstance(d.get("settings"), RecipeSettings)
+
+
+class TestSyncSettings:
+    """Tests for SyncSettings (per docs/dataiku-reference/recipes/sync.md)."""
+
+    def test_defaults(self):
+        s = SyncSettings()
+        assert s.engine == "DSS"
+        assert s.write_mode == "OVERWRITE"
+        assert s.schema_resync == "AUTO"
+        assert s.partition_dependency == "EQUALS"
+
+    def test_to_dict_round_trip(self):
+        s = SyncSettings(engine="SPARK", write_mode="APPEND")
+        d = s.to_dict()
+        assert d["engine"] == "SPARK"
+        assert d["writeMode"] == "APPEND"
+        assert d["schemaResync"] == "AUTO"
+        assert d["partitionDependency"] == "EQUALS"
+
+    def test_to_display_dict_uses_snake_case(self):
+        s = SyncSettings(engine="SQL")
+        d = s.to_display_dict()
+        assert d["engine"] == "SQL"
+        assert d["write_mode"] == "OVERWRITE"
+        assert d["schema_resync"] == "AUTO"
+
+    def test_engine_field_round_trips(self):
+        """Engine choice (the SYNC-specific knob) survives to_dict()."""
+        s = SyncSettings(engine="HIVE")
+        assert s.to_dict()["engine"] == "HIVE"
+
+    def test_to_dss_builder_args(self):
+        s = SyncSettings(write_mode="APPEND")
+        args = s.to_dss_builder_args()
+        assert "engineParams" in args
+        assert args["writeMode"] == "APPEND"
+
+    def test_recipe_with_settings(self):
+        recipe = DataikuRecipe(
+            name="sync_to_warehouse",
+            recipe_type=RecipeType.SYNC,
+            inputs=["staging"],
+            outputs=["warehouse"],
+            settings=SyncSettings(engine="SPARK"),
+        )
+        api = recipe.to_api_dict()
+        assert api["params"]["engine"] == "SPARK"
+
+
+class TestFuzzyJoinSettings:
+    """Tests for FuzzyJoinSettings (per docs/dataiku-reference/recipes/fuzzy-join.md)."""
+
+    def test_defaults(self):
+        s = FuzzyJoinSettings()
+        assert s.join_type == "INNER"
+        assert s.distance_metric == "DAMERAU_LEVENSHTEIN"
+        assert s.threshold == 2.0
+        assert s.threshold_relative is False
+        assert s.text_normalization == []
+        assert s.output_meta is False
+        assert s.debug_mode is False
+
+    def test_to_dict(self):
+        s = FuzzyJoinSettings(
+            join_type="LEFT",
+            join_keys=[JoinKey(left_column="name", right_column="company_name")],
+            distance_metric="JACCARD",
+            threshold=0.5,
+            threshold_relative=True,
+            text_normalization=["CASE_INSENSITIVE", "REMOVE_PUNCTUATION"],
+            output_meta=True,
+        )
+        d = s.to_dict()
+        assert d["joinType"] == "LEFT"
+        assert d["distanceMetric"] == "JACCARD"
+        assert d["threshold"] == 0.5
+        assert d["thresholdRelative"] is True
+        assert d["textNormalization"] == ["CASE_INSENSITIVE", "REMOVE_PUNCTUATION"]
+        assert d["outputMeta"] is True
+        assert len(d["joins"]) == 1
+
+    def test_threshold_round_trip(self):
+        """Threshold (the FUZZY_JOIN-specific knob) survives to_dict()."""
+        s = FuzzyJoinSettings(threshold=4.5)
+        assert s.to_dict()["threshold"] == 4.5
+
+    def test_to_display_dict(self):
+        s = FuzzyJoinSettings(
+            join_keys=[JoinKey(left_column="a", right_column="b")],
+            distance_metric="HAMMING",
+        )
+        d = s.to_display_dict()
+        assert d["join_type"] == "INNER"
+        assert d["distance_metric"] == "HAMMING"
+        assert d["threshold_relative"] is False
+
+    def test_to_dss_builder_args(self):
+        s = FuzzyJoinSettings(
+            join_keys=[JoinKey(left_column="x", right_column="y")],
+            distance_metric="COSINE",
+            threshold=3,
+        )
+        args = s.to_dss_builder_args()
+        assert "engineParams" in args
+        assert len(args["joins"]) == 1
+        assert args["joins"][0]["conditions"][0]["distanceMetric"] == "COSINE"
+        assert args["joins"][0]["conditions"][0]["threshold"] == 3
+
+    def test_with_selected_columns(self):
+        s = FuzzyJoinSettings(
+            selected_columns={"left": ["id"], "right": ["name"]},
+        )
+        d = s.to_dict()
+        assert d["selectedColumns"] == {"left": ["id"], "right": ["name"]}
+
+    def test_recipe_with_settings(self):
+        recipe = DataikuRecipe(
+            name="fuzzy_join",
+            recipe_type=RecipeType.FUZZY_JOIN,
+            inputs=["a", "b"],
+            outputs=["matched"],
+            settings=FuzzyJoinSettings(
+                join_keys=[JoinKey(left_column="name", right_column="name")],
+                distance_metric="DAMERAU_LEVENSHTEIN",
+                threshold=2,
+            ),
+        )
+        api = recipe.to_api_dict()
+        assert api["params"]["distanceMetric"] == "DAMERAU_LEVENSHTEIN"
+
+
+class TestGeoJoinSettings:
+    """Tests for GeoJoinSettings (per docs/dataiku-reference/recipes/geojoin.md)."""
+
+    def test_defaults(self):
+        s = GeoJoinSettings()
+        assert s.join_type == "INNER"
+        assert s.spatial_operator == "INTERSECTS"
+        assert s.distance_value is None
+        assert s.distance_unit == "METER"
+
+    def test_to_dict_with_distance_operator(self):
+        s = GeoJoinSettings(
+            spatial_operator="WITHIN_DISTANCE",
+            distance_value=5.0,
+            distance_unit="KILOMETER",
+            join_keys=[JoinKey(left_column="loc", right_column="store_loc")],
+        )
+        d = s.to_dict()
+        assert d["spatialOperator"] == "WITHIN_DISTANCE"
+        assert d["distanceValue"] == 5.0
+        assert d["distanceUnit"] == "KILOMETER"
+        assert len(d["joins"]) == 1
+
+    def test_to_dict_omits_distance_when_unset(self):
+        """For non-distance operators (CONTAINS, INTERSECTS, ...) distance_value is None."""
+        s = GeoJoinSettings(spatial_operator="CONTAINS")
+        d = s.to_dict()
+        assert "distanceValue" not in d
+
+    def test_spatial_operator_round_trip(self):
+        """spatial_operator (the GEO_JOIN-specific knob) survives to_dict()."""
+        s = GeoJoinSettings(spatial_operator="DISJOINT")
+        assert s.to_dict()["spatialOperator"] == "DISJOINT"
+
+    def test_to_display_dict(self):
+        s = GeoJoinSettings(
+            spatial_operator="CONTAINS",
+            join_keys=[JoinKey(left_column="poly", right_column="point")],
+        )
+        d = s.to_display_dict()
+        assert d["spatial_operator"] == "CONTAINS"
+        assert d["distance_unit"] == "METER"
+
+    def test_to_dss_builder_args_with_distance(self):
+        s = GeoJoinSettings(
+            spatial_operator="WITHIN_DISTANCE",
+            distance_value=10,
+            distance_unit="MILE",
+            join_keys=[JoinKey(left_column="a", right_column="b")],
+        )
+        args = s.to_dss_builder_args()
+        assert "engineParams" in args
+        cond = args["joins"][0]["conditions"][0]
+        assert cond["type"] == "WITHIN_DISTANCE"
+        assert cond["distanceValue"] == 10
+        assert cond["distanceUnit"] == "MILE"
+
+    def test_recipe_with_settings(self):
+        recipe = DataikuRecipe(
+            name="geo_join",
+            recipe_type=RecipeType.GEO_JOIN,
+            inputs=["customers", "stores"],
+            outputs=["nearest"],
+            settings=GeoJoinSettings(
+                spatial_operator="WITHIN_DISTANCE",
+                distance_value=5,
+                distance_unit="KILOMETER",
+            ),
+        )
+        api = recipe.to_api_dict()
+        assert api["params"]["spatialOperator"] == "WITHIN_DISTANCE"
+        assert api["params"]["distanceValue"] == 5
+
+
+class TestGenerateStatisticsSettings:
+    """Tests for GenerateStatisticsSettings (df.describe() / df.info() mapping)."""
+
+    def test_defaults(self):
+        s = GenerateStatisticsSettings()
+        assert s.columns == []
+        # df.describe() default statistic set
+        assert "MEAN" in s.statistic_types
+        assert "PERCENTILE_50" in s.statistic_types
+        assert s.sampling_method == "FULL"
+        assert s.sample_size is None
+
+    def test_to_dict(self):
+        s = GenerateStatisticsSettings(
+            columns=["price", "quantity"],
+            statistic_types=["MEAN", "STDDEV"],
+        )
+        d = s.to_dict()
+        assert d["columns"] == ["price", "quantity"]
+        assert d["statisticTypes"] == ["MEAN", "STDDEV"]
+        assert d["samplingMethod"] == "FULL"
+        assert "sampleSize" not in d
+
+    def test_to_dict_with_sample_size(self):
+        s = GenerateStatisticsSettings(
+            sampling_method="RANDOM_FIXED_NB", sample_size=1000
+        )
+        d = s.to_dict()
+        assert d["samplingMethod"] == "RANDOM_FIXED_NB"
+        assert d["sampleSize"] == 1000
+
+    def test_columns_field_round_trips(self):
+        """columns (the GENERATE_STATISTICS-specific knob) survives to_dict()."""
+        s = GenerateStatisticsSettings(columns=["a", "b", "c"])
+        assert s.to_dict()["columns"] == ["a", "b", "c"]
+
+    def test_to_display_dict(self):
+        s = GenerateStatisticsSettings(columns=["amount"])
+        d = s.to_display_dict()
+        assert d["columns"] == ["amount"]
+        assert d["sampling_method"] == "FULL"
+        assert "statistic_types" in d
+
+    def test_to_dss_builder_args(self):
+        s = GenerateStatisticsSettings(
+            columns=["price"], statistic_types=["MEAN", "MAX"]
+        )
+        args = s.to_dss_builder_args()
+        assert args["columns"] == ["price"]
+        assert args["statisticTypes"] == ["MEAN", "MAX"]
+        assert "engineParams" in args
+
+    def test_recipe_with_settings(self):
+        recipe = DataikuRecipe(
+            name="profile",
+            recipe_type=RecipeType.GENERATE_STATISTICS,
+            inputs=["raw"],
+            outputs=["stats"],
+            settings=GenerateStatisticsSettings(columns=["price"]),
+        )
+        api = recipe.to_api_dict()
+        assert api["params"]["columns"] == ["price"]
