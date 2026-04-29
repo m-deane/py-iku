@@ -114,6 +114,9 @@ DataikuFlow.load("flow.yaml", format="json")  # Explicit override
 # Lower-level export (no I/O)
 flow.to_dict()                     # -> Dict[str, Any]
 flow.to_dict(include_timestamp=False)  # omit generation_timestamp (useful for equality checks)
+flow.to_canonical_dict()           # -> Dict[str, Any] — flow shape only (no notes / reasoning / recommendations / timestamp).
+                                   # `hash(json.dumps(canonical, sort_keys=True))` is byte-stable across
+                                   # identical-input deterministic conversions; the dominant snapshot-test pattern.
 flow.to_json(indent=2)             # -> str (JSON)
 flow.to_yaml()                     # -> str (YAML)
 flow.to_recipe_configs()           # -> List[Dict] (Dataiku API-compatible)

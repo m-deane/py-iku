@@ -34,6 +34,7 @@ from pathlib import Path
 |---|---|
 | `df.groupby(...).agg(...)` | GROUPING |
 | `pd.merge(a, b, ...)` | JOIN |
+| `pd.merge_asof(a, b, on=t, by=k, direction='backward')` | FUZZY_JOIN (direction stored as recipe note) |
 | `pd.concat([a, b, c])` | STACK |
 | `df.drop_duplicates()` | DISTINCT (or PREPARE+RemoveDuplicates) |
 | `df.sort_values(...)` | SORT |
@@ -50,6 +51,9 @@ from pathlib import Path
 | `df.dropna()` | PREPARE + RemoveRowsOnEmpty |
 | `df.rename(columns={...})` | PREPARE + ColumnRenamer |
 | `df.drop(columns=[...])` | PREPARE + ColumnsSelector (with `keep=False`) |
+| `pd.to_numeric(df['c'], errors='coerce')` | PREPARE + TypeSetter (DSS coerces uncoercible to NULL) |
+| `df['c'].isin([...])` | PREPARE + FilterOnValue (multi-value match) |
+| `df['new'] = df['a'] + df['b']` (or `*`, `-`, `/`, `%`, `**`) | PREPARE + CreateColumnWithGREL |
 | `df.describe()` / `df.info()` | GENERATE_STATISTICS |
 
 ### Filter routing (the non-obvious one)

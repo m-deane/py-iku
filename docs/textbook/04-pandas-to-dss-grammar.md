@@ -93,6 +93,7 @@ The table below is the canonical mapping the rule-based analyzer applies. The so
 |---------------------------------------------|--------------------|-------|
 | `df.merge(other, on=..., how=...)`          | `JOIN`             | 2 → 1 |
 | `pd.merge(df, other, on=...)`               | `JOIN`             | 2 → 1 |
+| `pd.merge_asof(left, right, on=t, by=...)`  | `FUZZY_JOIN` (with `direction=` carried as a recipe note for DSS Fuzzy-Join tolerance configuration) | 2 → 1 |
 | `df.groupby(...).agg(...)`                  | `GROUPING`         | 1 → 1 |
 | `df.groupby(...).sum()` / `.mean()` / etc.  | `GROUPING`         | 1 → 1 |
 | `pd.concat([df1, df2, ...], axis=0)`        | `STACK`            | N → 1 |
@@ -124,7 +125,9 @@ The table below is the canonical mapping the rule-based analyzer applies. The so
 | `df["c"] > v` / `< v` (numeric range)       | `FilterOnNumericRange`|
 | `df["c"].isin([...])`                       | `FilterOnValue` (multi) |
 | `pd.to_datetime(df["c"])`                   | `DateParser`            |
+| `pd.to_numeric(df["c"], errors=...)`        | `TypeSetter` (DSS coerces uncoercible to NULL — matches `errors='coerce'`) |
 | `df["c"].dt.year` / `.dt.month`             | `DateComponentExtractor`|
+| `df["new"] = expr` (arithmetic over columns)| `CreateColumnWithGREL` with `+`/`-`/`*`/`/`/`%`/`**` translated to GREL |
 
 ### The non-obvious cases
 

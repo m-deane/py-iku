@@ -12,6 +12,7 @@ Quick-jump to a symptom by anchor:
 - [LLMResponseParseError: provider returned non-conforming JSON](#llmresponseparseerror-provider-returned-non-conforming-json)
 - [InvalidPythonCodeError: source did not parse](#invalidpythoncodeerror-source-did-not-parse)
 - [ProviderError: rate-limited by the LLM provider](#providererror-rate-limited-by-the-llm-provider)
+- [HTTP 402 from /convert: provider usage cap reached](#http-402-from-convert-provider-usage-cap-reached)
 - [Unknown processor name dropped from suggested_processors](#unknown-processor-name-dropped-from-suggested_processors)
 - [Filter mis-routing: predicate became a Python recipe](#filter-mis-routing-predicate-became-a-python-recipe)
 - [Zero recipes returned from a non-empty file](#zero-recipes-returned-from-a-non-empty-file)
@@ -125,6 +126,42 @@ for path in paths:
 For sustained batch conversion, consider running the rule-based path in CI and reserving the LLM path for files that the rule-based path misclassifies.
 
 **Related**: Chapter 11.
+
+## HTTP 402 from /convert: provider usage cap reached
+
+### Symptom
+
+`POST /convert?mode=llm` returns HTTP 402 with body
+```json
+{
+  "type": "/errors/llm-quota-exceeded",
+  "title": "LLM provider usage limit reached",
+  "status": 402,
+  "detail": "...specified API usage limits...",
+  "suggestion": "Wait for the quota window to reset, raise the spend cap on your provider account, or switch to mode='rule' for offline conversion."
+}
+```
+
+### Cause
+
+The Anthropic or OpenAI account hit its monthly spend cap or per-minute quota mid-request. The Studio API translates the provider's 4xx into a structured 402 instead of an opaque 500 so the UI banner can render an actionable message.
+
+### Fix
+
+Three options, in order of cost:
+
+1. **Switch to rule mode**: send `{"mode": "rule"}` in the request body. The rule path does not consume any LLM quota and now covers most idioms (`pd.to_numeric`, `pd.merge_asof`, `df['x'] = formula`, etc).
+2. **Raise the cap**: log into the provider dashboard and increase the monthly limit. The 402 response's `detail` field carries the provider's reset timestamp.
+3. **Wait for the window to reset**: Anthropic spend caps reset on the calendar boundary the dashboard shows; rate-limit windows reset in seconds-to-minutes (see the previous entry).
+
+The same handler also returns:
+
+- HTTP 401 with type `/errors/llm-auth` when the key is missing or invalid (see the first entry in this appendix).
+- HTTP 429 with type `/errors/llm-rate-limited` when the per-minute quota is hit.
+
+**Related**: Chapter 7, the `/convert` route's `force=true` query param does NOT bypass quota errors — only the local in-API budget meter.
+
+
 
 ## Unknown processor name dropped from suggested_processors
 
