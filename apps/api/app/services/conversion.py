@@ -205,6 +205,64 @@ def _sanitize_flow_dict(flow_dict: dict[str, Any]) -> list[str]:
             + "; ".join(orphan_merges)
         )
 
+    # ---- 5. self-loop auto-rename ----
+    # Both rule-based (idioms like df["x"] = df["x"].fillna(0) on a single
+    # frame) and LLM (despite the system-prompt rule) occasionally produce
+    # recipes whose input and output share a dataset name. The downstream
+    # DataikuRecipeModel Pydantic validator rejects these as cycles.
+    # Auto-rename the colliding output to <name>_step_N so the validator
+    # passes while preserving the recipe's intent. Subsequent recipes
+    # that fed off the original name need their inputs rewritten too.
+    self_loop_rewrites: list[str] = []
+    name_remap: dict[str, str] = {}
+    for idx, recipe in enumerate(recipes):
+        inputs_set = set(recipe.get("inputs") or [])
+        outputs = list(recipe.get("outputs") or [])
+        new_outputs: list[str] = []
+        for out in outputs:
+            # Apply any prior remap propagated through the chain.
+            out = name_remap.get(out, out)
+            if out in inputs_set:
+                # Pick a fresh name; avoid collisions with existing dataset
+                # names by suffixing _step_2, _step_3, ...
+                base = out
+                suffix = 2
+                existing = {ds.get("name", "") for ds in datasets} | set(
+                    new_outputs
+                )
+                while f"{base}_step_{suffix}" in existing:
+                    suffix += 1
+                fresh = f"{base}_step_{suffix}"
+                name_remap[out] = fresh
+                self_loop_rewrites.append(
+                    f"recipe '{recipe.get('name')}': '{out}' -> '{fresh}'"
+                )
+                # Add a fresh dataset entry for the renamed output.
+                # Copy the dataset model from the original where possible
+                # so connection_type / type / schema flow through.
+                template = next(
+                    (ds for ds in datasets if ds.get("name") == base), None
+                )
+                new_ds = dict(template) if template else {"name": fresh}
+                new_ds["name"] = fresh
+                new_ds.setdefault("type", "intermediate")
+                datasets.append(new_ds)
+                new_outputs.append(fresh)
+            else:
+                new_outputs.append(out)
+        recipe["outputs"] = new_outputs
+        # Apply name_remap to any subsequent recipe's inputs that referenced
+        # the original (now-renamed) name.
+        for later in recipes[idx + 1 :]:
+            later["inputs"] = [
+                name_remap.get(x, x) for x in (later.get("inputs") or [])
+            ]
+    if self_loop_rewrites:
+        warnings.append(
+            "Renamed self-loop outputs to fresh names: "
+            + "; ".join(self_loop_rewrites)
+        )
+
     flow_dict["datasets"] = datasets
     flow_dict["recipes"] = recipes
     flow_dict["total_datasets"] = len(datasets)
