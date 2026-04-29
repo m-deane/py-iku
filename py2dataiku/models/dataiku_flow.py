@@ -462,6 +462,51 @@ class DataikuFlow:
             result["zones"] = [z.to_dict() for z in self.zones]
         return result
 
+    def to_canonical_dict(self) -> dict[str, Any]:
+        """Convert to a CANONICAL dict — flow shape only, no descriptive prose.
+
+        Bug #7: free-text fields drift between identical T=0 LLM runs even
+        when the flow's structure is identical. ``recipes[*].notes``,
+        ``optimization_notes``, ``recommendations[*].message``, and the
+        per-recipe ``reasoning`` field all vary by ~10% on cosmetic
+        rewording while leaving the structure stable.
+
+        ``hash(json.dumps(flow.to_canonical_dict(), sort_keys=True))``
+        is byte-stable across identical-input T=0 LLM runs, making
+        canonical hashes a reliable assertion target for CI snapshot
+        tests in user pipelines. The full ``to_dict()`` keeps the prose;
+        callers who need it can still read those fields.
+
+        The canonical view drops:
+          - ``generation_timestamp`` (wallclock)
+          - ``optimization_notes`` (free text)
+          - ``recommendations`` (free text)
+          - per-recipe ``notes`` and ``reasoning`` (free text from LLM
+            mapping rationale; per-recipe ``confidence`` and
+            ``source_lines`` are preserved because they are structural
+            metadata)
+
+        It preserves the full DAG structure (datasets, recipes, recipe
+        type, inputs, outputs, settings) and the LLM-mode confidence
+        bands the trader UI renders.
+        """
+        result: dict[str, Any] = {
+            "flow_name": self.name,
+            "total_recipes": len(self.recipes),
+            "total_datasets": len(self.datasets),
+            "datasets": [ds.to_dict() for ds in self.datasets],
+            "recipes": [],
+        }
+        for recipe in self.recipes:
+            r_dict = recipe.to_dict()
+            # Drop free-text drift sources; keep structural fields
+            r_dict.pop("notes", None)
+            r_dict.pop("reasoning", None)
+            result["recipes"].append(r_dict)
+        if self.zones:
+            result["zones"] = [z.to_dict() for z in self.zones]
+        return result
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "DataikuFlow":
         """Reconstruct a DataikuFlow from a dictionary (inverse of ``to_dict``).

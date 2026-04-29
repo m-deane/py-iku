@@ -67,6 +67,50 @@ jobs:
         # apps/api glue rather than the library.
         run: python scripts/llm_smoke_test.py --provider anthropic
 
+      - name: Boot uvicorn for the corpus harness
+        if: steps.key.outputs.have_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          uvicorn app.main:app \
+            --app-dir apps/api \
+            --host 127.0.0.1 \
+            --port 8000 \
+            --log-level warning &
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -m 1 http://127.0.0.1:8000/health; then
+              echo "API up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed to boot within 30s" >&2
+          exit 1
+
+      - name: Run 25-script LLM corpus regression
+        if: steps.key.outputs.have_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        # Cost cap of $2 protects the budget even if the harness goes
+        # rogue. The harness will print STOP and exit cleanly when the
+        # cap is hit; the step then fails because not all scripts ran.
+        # On normal nights the full corpus costs ~$0.80–$1.20.
+        run: |
+          python tests/test_llm_corpus/harness/run_corpus.py \
+            --mode llm \
+            --runs 1 \
+            --timeout 90 \
+            --cost-cap 2.00 \
+            --results-dir /tmp/corpus-llm-results
+
+      - name: Upload LLM corpus artefacts on failure
+        if: failure() && steps.key.outputs.have_key == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-llm-results
+          path: /tmp/corpus-llm-results
+          retention-days: 14
+
       - name: Skipped notice
         if: steps.key.outputs.have_key != 'true'
         run: |
