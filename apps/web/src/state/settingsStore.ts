@@ -34,12 +34,24 @@ export interface SettingsState {
 // about test-only state.
 const FRESH_INSTALL_MULTI_TAB = true;
 
+// Build-time API base. Vite replaces `import.meta.env.VITE_API_BASE_URL` at
+// build time; the HF Space Dockerfile sets it to "" so the SPA calls the
+// FastAPI routes on the same origin. Local `pnpm dev` leaves it unset, in
+// which case we fall back to the dev-server default at localhost:8000.
+const LEGACY_LOCALHOST_BASE = "http://localhost:8000";
+function buildtimeApiBaseUrl(): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const env = (import.meta as any)?.env;
+  const v = env?.VITE_API_BASE_URL;
+  return typeof v === "string" ? v : LEGACY_LOCALHOST_BASE;
+}
+
 const DEFAULTS = {
   theme: null as Theme | null,
   llmProvider: "anthropic" as LlmProvider,
   llmModel: "claude-3-5-sonnet-latest",
   apiKeyAlias: "",
-  apiBaseUrl: "http://localhost:8000",
+  apiBaseUrl: buildtimeApiBaseUrl(),
   // `reset()` returns the legacy default so existing tests that rely on the
   // single-tab layout keep working without explicit toggles. Fresh installs
   // hit the migration path (no persisted blob → migrate runs with version 0)
@@ -62,7 +74,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: "py-iku-studio-settings",
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       // Defensive: never persist anything that looks like a raw API key.
       partialize: (state) => ({
         theme: state.theme,
@@ -80,6 +92,13 @@ export const useSettingsStore = create<SettingsState>()(
         // value migration or an explicit user choice — the migration cannot
         // disambiguate, so it promotes ANY false-or-missing v2 value to true.
         // Explicit-off users can re-toggle from Settings → Advanced flags.
+        // v3→v4: the persisted apiBaseUrl used to default to
+        // "http://localhost:8000". On the HF Space build the SPA needs to call
+        // the FastAPI routes on the same origin (build-time
+        // VITE_API_BASE_URL=""), but returning users had localhost cached in
+        // localStorage which routed every /api/* call to their machine instead
+        // of the Space. We rewrite the legacy default to the build-time value;
+        // explicit overrides are preserved.
         const p = (persisted as Partial<SettingsState>) ?? {};
         let next: Partial<SettingsState> = { ...p };
         if (version < 2) {
@@ -91,6 +110,14 @@ export const useSettingsStore = create<SettingsState>()(
             next.multiTabEnabled === undefined
           ) {
             next = { ...next, multiTabEnabled: FRESH_INSTALL_MULTI_TAB };
+          }
+        }
+        if (version < 4) {
+          if (
+            next.apiBaseUrl === LEGACY_LOCALHOST_BASE ||
+            next.apiBaseUrl === undefined
+          ) {
+            next = { ...next, apiBaseUrl: buildtimeApiBaseUrl() };
           }
         }
         return next;

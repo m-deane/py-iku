@@ -70,11 +70,25 @@ function uuid(): string {
 
 function getBaseUrl(opts: ClientOptions): string {
   if (opts.baseUrl) return opts.baseUrl;
+  let stored: string;
   try {
-    return useSettingsStore.getState().apiBaseUrl;
+    stored = useSettingsStore.getState().apiBaseUrl;
   } catch {
     return "http://localhost:8000";
   }
+  // Defense in depth: if the persisted base points at localhost but we're
+  // running on a remote origin (HF Space, etc.), the request would dead-end
+  // at the user's machine. Migrations cover this for upgraded clients, but a
+  // user who imports an old localStorage blob into a Space session needs the
+  // same protection. Coerce to same-origin in that case.
+  if (
+    typeof window !== "undefined" &&
+    /^https?:\/\/localhost(?::\d+)?\/?$/i.test(stored) &&
+    !/^https?:\/\/localhost\b/i.test(window.location.origin)
+  ) {
+    return "";
+  }
+  return stored;
 }
 
 async function request<T>(
