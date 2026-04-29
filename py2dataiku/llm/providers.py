@@ -102,7 +102,7 @@ class AnthropicProvider(LLMProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-sonnet-4-6",
         max_tokens: int = 4096,
         timeout: Optional[float] = None,
         max_retries: int = 2,
@@ -115,7 +115,12 @@ class AnthropicProvider(LLMProvider):
             api_key: Anthropic API key. Falls back to the
                 ``ANTHROPIC_API_KEY`` environment variable when ``None``.
             model: Claude model ID to use (default:
-                ``"claude-sonnet-4-20250514"``).
+                ``"claude-sonnet-4-6"`` — Sonnet 4.6 is the current
+                workhorse for the analyzer; cheaper than Opus 4.7,
+                accurate enough for structured-output tasks. For
+                heavier reasoning use ``"claude-opus-4-7"``; for
+                cheap latency-sensitive paths use
+                ``"claude-haiku-4-5-20251001"``).
             max_tokens: Maximum tokens in the completion response
                 (default: ``4096``).
             timeout: HTTP request timeout in seconds. ``None`` uses the

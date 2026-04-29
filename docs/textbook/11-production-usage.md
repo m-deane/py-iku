@@ -97,7 +97,7 @@ flow = convert_with_llm(
     on_progress=log_progress,
 )
 # [start] {'code_size': 612}
-# [analyzing] {'provider': 'anthropic', 'model': 'claude-sonnet-4-20250514'}
+# [analyzing] {'provider': 'anthropic', 'model': 'claude-sonnet-4-6'}
 # [analyzed] {'steps': 7, 'datasets': 4, 'complexity': 5}
 # [generating] {'step_count': 7}
 # [optimizing] {'recipe_count': 3}
@@ -265,7 +265,7 @@ The `python -m pytest tests/ -v` step is the same command developers run locally
 # pyproject.toml — optional [tool.py2dataiku] block
 [tool.py2dataiku]
 default_provider = "anthropic"
-default_model = "claude-sonnet-4-20250514"
+default_model = "claude-sonnet-4-6"
 optimize = true
 ```
 
@@ -317,10 +317,10 @@ print(f"created {len(result.datasets_created)} datasets, "
 
 ## Versioning and reproducibility
 
-Two version pins make a CI run reproducible. The first is the `py-iku` version itself — pin it in `requirements.txt` or `pyproject.toml` so that a library upgrade does not silently change the produced flow. The second is the LLM model name. The provider defaults to a specific model (`claude-sonnet-4-20250514` for Anthropic, `gpt-4o` for OpenAI), but a major-version model upgrade can change the produced flow even at temperature=0. Pin the model explicitly:
+Two version pins make a CI run reproducible. The first is the `py-iku` version itself — pin it in `requirements.txt` or `pyproject.toml` so that a library upgrade does not silently change the produced flow. The second is the LLM model name. The provider defaults to a specific model (`claude-sonnet-4-6` for Anthropic, `gpt-4o` for OpenAI), but a major-version model upgrade can change the produced flow even at temperature=0. Pin the model explicitly:
 
 ```python
-flow = convert_with_llm(source, model="claude-sonnet-4-20250514")
+flow = convert_with_llm(source, model="claude-sonnet-4-6")
 ```
 
 A test that hits the LLM path without pinning the model is asserting against a moving target. Pin both, and the only remaining drift is the model's own behavior at temperature=0 — which is what the experiment in Chapter 7 was designed to characterize.

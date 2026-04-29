@@ -133,7 +133,7 @@ flow = convert_with_llm(
     on_progress=show_progress,
 )
 # [start] {'code_size': 843}
-# [analyzing] {'provider': 'anthropic', 'model': 'claude-sonnet-4-20250514'}
+# [analyzing] {'provider': 'anthropic', 'model': 'claude-sonnet-4-6'}
 # [analyzed] {'steps': 5, 'datasets': 3, 'complexity': 4}
 # [generating] {'step_count': 5}
 # [optimizing] {'recipe_count': 4}
@@ -143,7 +143,7 @@ flow = convert_with_llm(
 **Notes:**
 - This is the recommended method for production use
 - Requires an API key (set via parameter or environment variable)
-- Default models: `claude-sonnet-4-20250514` (Anthropic), `gpt-4o` (OpenAI)
+- Default models: `claude-sonnet-4-6` (Anthropic), `gpt-4o` (OpenAI)
 - Use `temperature=0.0` (the default) for reproducible structured output; higher values introduce variability
 
 ---

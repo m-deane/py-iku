@@ -18,8 +18,8 @@ interface DraftSettings {
 }
 
 const MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
-  anthropic: "claude-3-5-sonnet-latest",
-  openai: "gpt-4o-mini",
+  anthropic: "claude-sonnet-4-6",
+  openai: "gpt-5",
 };
 
 function isValidUrl(value: string): boolean {

@@ -94,7 +94,7 @@ def find_config_file(start_dir: Optional[str] = None) -> Optional[Path]
 ```toml
 [py2dataiku]
 default_provider = "anthropic"
-default_model = "claude-sonnet-4-20250514"
+default_model = "claude-sonnet-4-6"
 project_key = "SALES_PIPELINE"
 optimize = true
 optimization_level = 2

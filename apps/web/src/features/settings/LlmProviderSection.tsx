@@ -220,8 +220,8 @@ export function LlmProviderSection(): JSX.Element {
           aria-label="LLM model"
           placeholder={
             provider === "anthropic"
-              ? "claude-3-5-sonnet-latest"
-              : "gpt-4o-mini"
+              ? "claude-sonnet-4-6 (recommended)"
+              : "gpt-5"
           }
         />
       </Row>

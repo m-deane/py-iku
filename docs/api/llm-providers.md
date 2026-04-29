@@ -63,7 +63,7 @@ from py2dataiku import AnthropicProvider
 ```python
 AnthropicProvider(
     api_key: Optional[str] = None,       # Falls back to ANTHROPIC_API_KEY env var
-    model: str = "claude-sonnet-4-20250514",
+    model: str = "claude-sonnet-4-6",
     max_tokens: int = 4096,
     timeout: Optional[float] = None,
     max_retries: int = 2,
