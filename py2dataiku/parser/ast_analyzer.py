@@ -1926,16 +1926,16 @@ class CodeAnalyzer:
                 column = stripped[1:-1]
             else:
                 column = stripped
-
-        # Walk the BinOp for the first subscripted dataframe to anchor
-        # the source df when the target string didn't carry one.
-        if not df_name:
-            for descendant in ast.walk(node):
-                if isinstance(descendant, ast.Subscript) and isinstance(
-                    descendant.value, ast.Name
-                ):
-                    df_name = descendant.value.id
-                    break
+        else:
+            # Plain ``cond = <BinOp>`` or ``x = a + b`` — the target is
+            # a local-variable assignment, not a derived dataframe
+            # column. The analyzer should NOT emit a PREPARE recipe
+            # for these; the BinOp's value is consumed downstream as a
+            # boolean mask (see _handle_filter) or as a scalar.
+            # Letting these fall through would route the cond= line
+            # in 'cond = (df.x <= y) & (df.z != 0)' to a PREPARE step
+            # that confuses the downstream SPLIT detection.
+            return
 
         # Translate the expression to GREL.
         grel = _translate_to_grel(node, df_name) if df_name else None
