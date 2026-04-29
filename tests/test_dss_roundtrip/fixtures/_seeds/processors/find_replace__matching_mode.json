@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/find-replace.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/find-replace.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L32-L49",
+    "extracted_by": "manual",
+    "notes": "FindReplace canonical wire shape — uses 'matchingMode' (NOT 'matchMode') per the rest of the filter family.",
+    "expected_xfail": "Param-name drift (finding #section ‘Param-name drift’) — lib catalog uses 'matchMode' with example 'LITERAL'; doc-canonical is 'matchingMode' with one of FULL_STRING/SUBSTRING/PATTERN."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "FindReplace",
+    "disabled": false,
+    "params": {
+      "column": "city",
+      "matchingMode": "FULL_STRING",
+      "normalizationMode": "EXACT",
+      "mappings": [
+        {"from": "NYC", "to": "New York"}
+      ]
+    }
+  }
+}

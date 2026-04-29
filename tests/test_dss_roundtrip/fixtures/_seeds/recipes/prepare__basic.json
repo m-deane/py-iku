@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/prepare.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/index.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L40",
+    "extracted_by": "manual",
+    "notes": "Canonical shape for a PREPARE recipe carrying a single ColumnRenamer step."
+  },
+  "payload": {
+    "name": "prepare_basic",
+    "type": "prepare",
+    "inputs": ["raw_input"],
+    "outputs": ["clean_output"],
+    "source_lines": [],
+    "notes": [],
+    "steps": [
+      {
+        "metaType": "PROCESSOR",
+        "type": "ColumnRenamer",
+        "disabled": false,
+        "params": {
+          "renamings": [
+            {"from": "old_name", "to": "new_name"}
+          ]
+        }
+      }
+    ]
+  }
+}

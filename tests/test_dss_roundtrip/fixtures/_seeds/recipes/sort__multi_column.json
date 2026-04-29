@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/sort.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/sort.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L7-L17",
+    "extracted_by": "manual",
+    "notes": "SORT recipe with two sort columns. Doc enumerates per-column null_handling (asc -> nulls first, desc -> nulls last).",
+    "expected_xfail": "Settings drift in SortSettings (finding #8 in _findings.md) — null-placement is not modelled."
+  },
+  "payload": {
+    "name": "sort_by_date_then_amount",
+    "type": "sort",
+    "inputs": ["orders"],
+    "outputs": ["orders_sorted"],
+    "source_lines": [],
+    "notes": [],
+    "sort_columns": [
+      {"column": "order_date", "order": "DESC", "nulls": "LAST"},
+      {"column": "amount", "order": "ASC", "nulls": "FIRST"}
+    ]
+  }
+}

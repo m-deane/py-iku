@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/_index.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/index.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1",
+    "extracted_by": "manual",
+    "notes": "TranslateValues — map column values via a list of {from,to} pairs (per CLAUDE.md mapping for pandas Series.map(dict))."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "TranslateValues",
+    "disabled": false,
+    "params": {
+      "column": "country_code",
+      "mappings": [
+        {"from": "US", "to": "United States"},
+        {"from": "UK", "to": "United Kingdom"}
+      ]
+    }
+  }
+}

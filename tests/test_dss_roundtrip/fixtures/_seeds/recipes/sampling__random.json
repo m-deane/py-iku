@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/sampling.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/sampling.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L60",
+    "extracted_by": "manual",
+    "notes": "SAMPLING recipe — random sample of 10000 rows."
+  },
+  "payload": {
+    "name": "sample_orders",
+    "type": "sampling",
+    "inputs": ["orders"],
+    "outputs": ["orders_sampled"],
+    "source_lines": [],
+    "notes": [],
+    "sampling_method": "RANDOM",
+    "sample_size": 10000
+  }
+}

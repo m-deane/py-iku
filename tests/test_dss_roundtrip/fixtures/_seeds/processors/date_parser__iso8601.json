@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/date-parser.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/date-parser.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L40",
+    "extracted_by": "manual",
+    "notes": "DateParser — parse a string column to ISO-8601."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "DateParser",
+    "disabled": false,
+    "params": {
+      "column": "raw_date",
+      "outputColumn": "parsed_date",
+      "formats": ["yyyy-MM-dd"],
+      "timezone": "UTC"
+    }
+  }
+}

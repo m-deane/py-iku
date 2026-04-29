@@ -42,6 +42,15 @@ jobs:
           pytest tests/test_py2dataiku/test_visualizers_pkg/test_sprint6_snapshots.py \
             -v --tb=short
 
+      - name: DSS round-trip harness (recipes + processors vs Dataiku public docs)
+        # Runs against fixtures derived from the docs.dataiku.com snapshot
+        # at docs/dataiku-reference/. Existing xfailed cases track known
+        # drift (see docs/dataiku-reference/_findings.md). A new failure
+        # not already marked xfail is a regression — either the catalog
+        # drifted or the docs caught up faster than the lib.
+        run: |
+          pytest tests/test_dss_roundtrip/ -v --tb=short
+
   flow-viz-unit:
     name: flow-viz unit (jsdom)
     runs-on: ubuntu-latest

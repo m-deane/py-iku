@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/create-if-then-else.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/create-if-then-else.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L30",
+    "extracted_by": "manual",
+    "notes": "IfThenElse — write 'expensive' / 'cheap' into a new column based on price."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "IfThenElse",
+    "disabled": false,
+    "params": {
+      "outputColumn": "price_class",
+      "rules": [
+        {"condition": "price >= 100", "value": "expensive"},
+        {"condition": "true", "value": "cheap"}
+      ]
+    }
+  }
+}

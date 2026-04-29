@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/sync.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/sync.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L39-L62",
+    "extracted_by": "manual",
+    "notes": "SYNC recipe — copy from one dataset to another with engine + schema settings.",
+    "expected_xfail": "No SyncSettings class exists (finding #section ‘Settings drift (4)’ in _findings.md)."
+  },
+  "payload": {
+    "name": "sync_to_warehouse",
+    "type": "sync",
+    "inputs": ["staging_orders"],
+    "outputs": ["warehouse_orders"],
+    "source_lines": [],
+    "notes": [],
+    "engine": "DSS",
+    "schema_resync": "AUTO",
+    "partition_dependency": "EQUALS"
+  }
+}

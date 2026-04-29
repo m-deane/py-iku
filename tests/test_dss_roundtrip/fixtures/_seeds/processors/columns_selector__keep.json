@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/columns-select.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/columns-select.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L25",
+    "extracted_by": "manual",
+    "notes": "ColumnsSelector — keep an explicit list of columns."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "ColumnsSelector",
+    "disabled": false,
+    "params": {
+      "columns": ["id", "name", "amount"],
+      "keep": true,
+      "appliesTo": "COLUMNS"
+    }
+  }
+}

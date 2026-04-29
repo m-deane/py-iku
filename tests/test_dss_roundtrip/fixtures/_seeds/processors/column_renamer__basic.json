@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/column-rename.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/column-rename.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L40",
+    "extracted_by": "manual",
+    "notes": "ColumnRenamer step with a single rename pair."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "ColumnRenamer",
+    "disabled": false,
+    "params": {
+      "renamings": [
+        {"from": "old_name", "to": "new_name"}
+      ]
+    }
+  }
+}

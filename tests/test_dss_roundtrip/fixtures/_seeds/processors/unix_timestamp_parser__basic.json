@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/unixtimestamp-parser.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/unixtimestamp-parser.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L7-L15",
+    "extracted_by": "manual",
+    "notes": "Canonical DSS UnixTimestampParser — converts UNIX seconds/ms to ISO-8601 strings.",
+    "expected_xfail": "Direction mismatch + missing processor (finding #1 in _findings.md). The lib's TimestampExtractor goes the opposite way (date -> unix). 'UnixTimestampParser' is not in ProcessorType — from_dict raises ValueError."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "UnixTimestampParser",
+    "disabled": false,
+    "params": {
+      "column": "ts_unix",
+      "outputColumn": "ts_iso",
+      "unit": "SECONDS"
+    }
+  }
+}

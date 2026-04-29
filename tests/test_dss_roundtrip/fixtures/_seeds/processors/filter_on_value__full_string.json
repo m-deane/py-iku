@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/filter-on-value.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-value.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L39-L58",
+    "extracted_by": "manual",
+    "notes": "FilterOnValue with the canonical wire value matchingMode='FULL_STRING' (per the doc: 'Complete value' matching mode).",
+    "expected_xfail": "Wire-value drift — finding #1 / drift section: lib catalog example uses 'EQUALS' which is not in the doc-enumerated set (FULL_STRING / SUBSTRING / PATTERN). Round-trip preserves whatever value comes in, so this seed PASSES today on the round-trip side; the drift is in the catalog example, not the (de)serializer. Kept as a regression sentinel."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "FilterOnValue",
+    "disabled": false,
+    "params": {
+      "column": "country",
+      "values": ["US"],
+      "matchingMode": "FULL_STRING",
+      "normalizationMode": "EXACT",
+      "action": "KEEP_ROW"
+    }
+  }
+}

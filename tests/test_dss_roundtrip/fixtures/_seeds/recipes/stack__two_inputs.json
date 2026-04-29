@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/stack.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/stack.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L40",
+    "extracted_by": "manual",
+    "notes": "STACK recipe vertically concatenating two datasets."
+  },
+  "payload": {
+    "name": "stack_q1_q2",
+    "type": "stack",
+    "inputs": ["sales_q1", "sales_q2"],
+    "outputs": ["sales_h1"],
+    "source_lines": [],
+    "notes": []
+  }
+}

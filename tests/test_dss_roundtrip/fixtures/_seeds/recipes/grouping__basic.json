@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/grouping.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/grouping.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L7-L23",
+    "extracted_by": "manual",
+    "notes": "GROUPING recipe with a key + a single SUM aggregation."
+  },
+  "payload": {
+    "name": "group_by_country",
+    "type": "grouping",
+    "inputs": ["sales"],
+    "outputs": ["sales_by_country"],
+    "source_lines": [],
+    "notes": [],
+    "keys": ["country"],
+    "aggregations": [
+      {"column": "amount", "type": "SUM", "outputColumn": "total_amount"}
+    ]
+  }
+}

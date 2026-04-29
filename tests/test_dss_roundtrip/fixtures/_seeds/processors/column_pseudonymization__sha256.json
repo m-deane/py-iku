@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/column-pseudonymization.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/column-pseudonymization.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L23-L31",
+    "extracted_by": "manual",
+    "notes": "ColumnPseudoAnonymizer — doc enumerates 4 inputs: column(s), algorithm (SHA-256/SHA-512/MD5), pepper (static), salt column.",
+    "expected_xfail": "Catalog param drift (finding #2 in _findings.md) — lib only declares 'column' + 'method'; 'algorithm', 'pepper', 'saltColumn' all missing. Round-trip preserves whatever params come in (params is a free-form dict), so this PASSES on the (de)serializer side; the drift is in the catalog, not the wire layer. Kept as a regression sentinel."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "ColumnPseudoAnonymizer",
+    "disabled": false,
+    "params": {
+      "column": "ssn",
+      "algorithm": "SHA-256",
+      "pepper": "spice42",
+      "saltColumn": "user_id"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/email-split.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/email-split.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L9-L17",
+    "extracted_by": "manual",
+    "notes": "Canonical DSS email-split processor 'EmailSplitter' — emits BOTH local part and domain.",
+    "expected_xfail": "Catalog drift / invented entry (finding #3 in _findings.md). Lib has 'EmailDomainExtractor' (domain-only); the canonical DSS processor name is 'EmailSplitter' and is unknown to ProcessorType — from_dict will raise ValueError."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "EmailSplitter",
+    "disabled": false,
+    "params": {
+      "column": "email",
+      "outputLocalPartColumn": "email_local",
+      "outputDomainColumn": "email_domain"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/fill-empty-with-computed-value.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/fill-empty-with-computed-value.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L25",
+    "extracted_by": "manual",
+    "notes": "FillEmptyWithComputedValue — impute with the mean of the column. Doc enumerates mean / median / mode."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "FillEmptyWithComputedValue",
+    "disabled": false,
+    "params": {
+      "column": "amount",
+      "mode": "MEAN"
+    }
+  }
+}

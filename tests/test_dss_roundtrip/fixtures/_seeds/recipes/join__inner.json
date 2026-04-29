@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/join.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/join.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L51",
+    "extracted_by": "manual",
+    "notes": "INNER join on a single key pair."
+  },
+  "payload": {
+    "name": "join_orders_customers",
+    "type": "join",
+    "inputs": ["orders", "customers"],
+    "outputs": ["orders_with_customer"],
+    "source_lines": [],
+    "notes": [],
+    "join_type": "INNER",
+    "join_keys": [
+      {
+        "left": {"column": "customer_id"},
+        "right": {"column": "id"},
+        "matchType": "EXACT"
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/settings/reshaping.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/fold-columns-by-name.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L60",
+    "extracted_by": "manual",
+    "notes": "FoldMultipleColumns — pandas df.melt() canonical mapping (per CLAUDE.md non-obvious mappings)."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "FoldMultipleColumns",
+    "disabled": false,
+    "params": {
+      "columns": ["q1", "q2", "q3", "q4"],
+      "varColumnOutput": "quarter",
+      "valColumnOutput": "amount"
+    }
+  }
+}

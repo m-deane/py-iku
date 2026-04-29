@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/round.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/round.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L22-L37",
+    "extracted_by": "manual",
+    "notes": "Round processor — doc enumerates BOTH significantDigits and decimalPlaces (separate fields).",
+    "expected_xfail": "Param-name drift (finding #section ‘Param-name drift’) — lib catalog collapses both to a single 'precision' field."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "Round",
+    "disabled": false,
+    "params": {
+      "column": "price",
+      "mode": "ROUND",
+      "decimalPlaces": 2,
+      "significantDigits": 4
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/filter-on-range.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-range.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L30",
+    "extracted_by": "manual",
+    "notes": "FilterOnNumericRange — keep rows whose price is in [10, 100]."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "FilterOnNumericRange",
+    "disabled": false,
+    "params": {
+      "column": "price",
+      "min": 10,
+      "max": 100,
+      "action": "KEEP_ROW"
+    }
+  }
+}

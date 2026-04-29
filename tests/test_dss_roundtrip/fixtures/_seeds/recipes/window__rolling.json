@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/window.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/window.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L80",
+    "extracted_by": "manual",
+    "notes": "WINDOW recipe partitioned by user, ordered by event_date, with a rolling sum."
+  },
+  "payload": {
+    "name": "rolling_user_revenue",
+    "type": "window",
+    "inputs": ["events"],
+    "outputs": ["events_with_rolling"],
+    "source_lines": [],
+    "notes": [],
+    "partition_columns": ["user_id"],
+    "order_columns": ["event_date"],
+    "window_aggregations": [
+      {"column": "amount", "function": "SUM", "outputColumn": "rolling_sum"}
+    ]
+  }
+}

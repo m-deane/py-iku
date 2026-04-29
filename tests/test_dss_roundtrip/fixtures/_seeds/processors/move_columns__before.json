@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/move-columns.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/move-columns.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L9-L25",
+    "extracted_by": "manual",
+    "notes": "MoveColumns — relative reorder (move 'amount' before 'order_date').",
+    "expected_xfail": "Missing processor (finding #4 in _findings.md). The lib only ships 'ColumnReorder' (full reorder, not relative move). 'MoveColumns' is unknown to ProcessorType — from_dict raises ValueError."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "MoveColumns",
+    "disabled": false,
+    "params": {
+      "columns": ["amount"],
+      "target": "order_date",
+      "position": "BEFORE"
+    }
+  }
+}

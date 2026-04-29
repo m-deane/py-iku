@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/pivot.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/pivot.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L48-L96",
+    "extracted_by": "manual",
+    "notes": "PIVOT recipe — rows by region, columns by quarter, summing amount.",
+    "expected_xfail": "Settings drift in PivotSettings (finding #10 in _findings.md) — modality controls not modelled."
+  },
+  "payload": {
+    "name": "pivot_revenue",
+    "type": "pivot",
+    "inputs": ["sales"],
+    "outputs": ["sales_pivot"],
+    "source_lines": [],
+    "notes": [],
+    "row_columns": ["region"],
+    "column_column": "quarter",
+    "value_column": "amount",
+    "aggregation": "SUM",
+    "modality_mode": "most_frequent",
+    "modality_limit": 50,
+    "name_simplification": "soft_slugification",
+    "recompute_modalities_each_run": false
+  }
+}

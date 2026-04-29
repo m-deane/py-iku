@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/split.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/split.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L40",
+    "extracted_by": "manual",
+    "notes": "SPLIT recipe with a single rule producing two outputs (matched / unmatched)."
+  },
+  "payload": {
+    "name": "split_by_country",
+    "type": "split",
+    "inputs": ["orders"],
+    "outputs": ["us_orders", "non_us_orders"],
+    "source_lines": [],
+    "notes": [],
+    "split_condition": "country == 'US'"
+  }
+}

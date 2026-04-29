@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/columns-concat.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/columns-concat.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L25",
+    "extracted_by": "manual",
+    "notes": "ColumnsConcat — concatenate two columns into one with a separator."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "ColumnsConcat",
+    "disabled": false,
+    "params": {
+      "columns": ["first_name", "last_name"],
+      "outputColumn": "full_name",
+      "separator": " "
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/topn.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/topn.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L30",
+    "extracted_by": "manual",
+    "notes": "TOP_N recipe — top 10 rows by amount."
+  },
+  "payload": {
+    "name": "top_10_orders",
+    "type": "topn",
+    "inputs": ["orders"],
+    "outputs": ["top_orders"],
+    "source_lines": [],
+    "notes": [],
+    "top_n": 10,
+    "ranking_column": "amount"
+  }
+}

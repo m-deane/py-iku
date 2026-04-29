@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "kind": "recipe",
+    "source_md": "docs/dataiku-reference/recipes/distinct.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/other_recipes/distinct.html",
+    "category": "recipes",
+    "seed": true,
+    "doc_lines": "L1-L25",
+    "extracted_by": "manual",
+    "notes": "DISTINCT recipe with a subset of dedup keys."
+  },
+  "payload": {
+    "name": "dedup_customers",
+    "type": "distinct",
+    "inputs": ["customers_raw"],
+    "outputs": ["customers_dedup"],
+    "source_lines": [],
+    "notes": []
+  }
+}

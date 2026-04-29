@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/binner.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/binner.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L18-L31",
+    "extracted_by": "manual",
+    "notes": "Binner — fixed-size intervals from min..max, in steps of binWidth.",
+    "expected_xfail": "Param drift (finding #section ‘Param-name drift’) — lib catalog has 'bins' / 'labels' (likely synthetic); doc enumerates binWidth / minimumValue / maximumValue."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "Binner",
+    "disabled": false,
+    "params": {
+      "column": "age",
+      "mode": "FIXED_BINS",
+      "binWidth": 10,
+      "minimumValue": 0,
+      "maximumValue": 100,
+      "outputColumn": "age_bin"
+    }
+  }
+}

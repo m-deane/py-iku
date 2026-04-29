@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "kind": "processor",
+    "source_md": "docs/dataiku-reference/processors/filter-on-formula.md",
+    "source_url": "https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-formula.html",
+    "category": "processors",
+    "seed": true,
+    "doc_lines": "L1-L25",
+    "extracted_by": "manual",
+    "notes": "FilterOnFormula — keep rows where a GREL expression evaluates truthy."
+  },
+  "payload": {
+    "metaType": "PROCESSOR",
+    "type": "FilterOnFormula",
+    "disabled": false,
+    "params": {
+      "expression": "price > 5 && country == \"US\"",
+      "action": "KEEP_ROW"
+    }
+  }
+}
