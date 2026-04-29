@@ -1,10 +1,18 @@
 {
   "id": "12_window_rolling",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["window"],
-  "expected_dataset_count": 2,
-  "expected_outputs": ["prices_with_rolling"],
-  "must_not_contain": ["python"],
+  "expected_recipe_types": [
+    "sort",
+    "window"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "prices_rolling_mean_5d",
+    "prices_sorted"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "groupby + rolling().mean() → WINDOW recipe with partition + rolling aggregation."
+  "notes": "groupby + rolling().mean() \u2192 WINDOW recipe with partition + rolling aggregation."
 }

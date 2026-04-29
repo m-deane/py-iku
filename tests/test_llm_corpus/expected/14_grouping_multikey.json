@@ -1,10 +1,16 @@
 {
   "id": "14_grouping_multikey",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["grouping"],
+  "expected_recipe_types": [
+    "grouping"
+  ],
   "expected_dataset_count": 2,
-  "expected_outputs": ["trades_grouped"],
-  "must_not_contain": ["python"],
+  "expected_outputs": [
+    "agg"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "Multi-key groupby + 3 named aggregations → single GROUPING recipe."
+  "notes": "Multi-key groupby + 3 named aggregations \u2192 single GROUPING recipe."
 }

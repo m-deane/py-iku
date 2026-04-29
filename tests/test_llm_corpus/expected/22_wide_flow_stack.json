@@ -1,10 +1,16 @@
 {
   "id": "22_wide_flow_stack",
   "category": "stress_edge",
-  "expected_recipe_types": ["stack"],
+  "expected_recipe_types": [
+    "stack"
+  ],
   "expected_dataset_count": 9,
-  "expected_outputs": ["trades_all_venues"],
-  "must_not_contain": ["python"],
+  "expected_outputs": [
+    "all_trades"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "8-input pd.concat → single STACK recipe with 8 inputs, 1 output."
+  "notes": "8-input pd.concat \u2192 single STACK recipe with 8 inputs, 1 output."
 }

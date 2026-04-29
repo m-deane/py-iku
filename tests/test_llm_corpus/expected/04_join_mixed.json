@@ -1,10 +1,20 @@
 {
   "id": "04_join_mixed",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["join", "join", "join"],
-  "expected_dataset_count": 5,
-  "expected_outputs": ["trades_enriched"],
-  "must_not_contain": ["python"],
+  "expected_recipe_types": [
+    "join",
+    "join",
+    "join"
+  ],
+  "expected_dataset_count": 7,
+  "expected_outputs": [
+    "enriched",
+    "enriched_step_2",
+    "enriched_step_2_step_2"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
   "notes": "Three sequential JOIN recipes (inner, left, outer)."
 }

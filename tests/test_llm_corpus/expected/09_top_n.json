@@ -1,10 +1,19 @@
 {
   "id": "09_top_n",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["top_n"],
-  "expected_dataset_count": 2,
-  "expected_outputs": ["top_trades"],
-  "must_not_contain": ["python"],
-  "known_issues": ["bug-5"],
+  "expected_recipe_types": [
+    "sampling",
+    "sort"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "top_trades"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [
+    "bug-5"
+  ],
   "notes": "sort_values + head should collapse into a single TOP_N recipe, not SORT then SAMPLING."
 }

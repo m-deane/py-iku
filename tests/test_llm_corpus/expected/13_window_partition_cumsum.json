@@ -1,10 +1,18 @@
 {
   "id": "13_window_partition_cumsum",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["window"],
-  "expected_dataset_count": 2,
-  "expected_outputs": ["trades_running"],
-  "must_not_contain": ["python"],
+  "expected_recipe_types": [
+    "sort",
+    "window"
+  ],
+  "expected_dataset_count": 3,
+  "expected_outputs": [
+    "trades_running_notional",
+    "trades_sorted"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "groupby + cumsum → WINDOW recipe with CUMULATIVE_SUM aggregation."
+  "notes": "groupby + cumsum \u2192 WINDOW recipe with CUMULATIVE_SUM aggregation."
 }

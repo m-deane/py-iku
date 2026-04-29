@@ -1,10 +1,21 @@
 {
   "id": "16_trade_blotter",
   "category": "trading_domain",
-  "expected_recipe_types": ["prepare"],
-  "expected_dataset_count": 2,
-  "expected_outputs": ["trade_blotter_clean"],
-  "must_not_contain": ["python"],
+  "expected_recipe_types": [
+    "prepare",
+    "python",
+    "python",
+    "split"
+  ],
+  "expected_dataset_count": 4,
+  "expected_outputs": [
+    "raw",
+    "raw_notional",
+    "raw_price"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "Full ingestion + validation chain — should fold into one PREPARE recipe with multiple processors."
+  "notes": "Full ingestion + validation chain \u2014 should fold into one PREPARE recipe with multiple processors."
 }

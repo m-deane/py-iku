@@ -1,10 +1,16 @@
 {
   "id": "06_stack_concat",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["stack"],
+  "expected_recipe_types": [
+    "stack"
+  ],
   "expected_dataset_count": 4,
-  "expected_outputs": ["trades_global"],
-  "must_not_contain": ["python"],
+  "expected_outputs": [
+    "all_trades"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "Three-way pd.concat → single STACK recipe with three inputs."
+  "notes": "Three-way pd.concat \u2192 single STACK recipe with three inputs."
 }

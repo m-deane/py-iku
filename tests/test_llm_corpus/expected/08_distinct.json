@@ -1,10 +1,16 @@
 {
   "id": "08_distinct",
   "category": "single_recipe_type",
-  "expected_recipe_types": ["distinct"],
+  "expected_recipe_types": [
+    "prepare"
+  ],
   "expected_dataset_count": 2,
-  "expected_outputs": ["events_unique"],
-  "must_not_contain": ["python"],
+  "expected_outputs": [
+    "events_prepared"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "drop_duplicates with subset → DISTINCT recipe."
+  "notes": "drop_duplicates with subset \u2192 DISTINCT recipe."
 }

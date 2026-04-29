@@ -1,10 +1,24 @@
 {
   "id": "18_counterparty_features",
   "category": "trading_domain",
-  "expected_recipe_types": ["prepare"],
-  "expected_dataset_count": 2,
-  "expected_outputs": ["counterparty_features"],
-  "must_not_contain": ["python"],
+  "expected_recipe_types": [
+    "prepare",
+    "prepare",
+    "prepare",
+    "prepare",
+    "prepare",
+    "python"
+  ],
+  "expected_dataset_count": 5,
+  "expected_outputs": [
+    "cps_is_eu",
+    "cps_prepared",
+    "cps_prepared_prepared",
+    "cps_prepared_prepared_prepared"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
   "known_issues": [],
-  "notes": "Long PREPARE chain — many processors merged into one recipe."
+  "notes": "Long PREPARE chain \u2014 many processors merged into one recipe."
 }

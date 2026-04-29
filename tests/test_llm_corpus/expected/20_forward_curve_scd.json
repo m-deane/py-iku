@@ -1,10 +1,21 @@
 {
   "id": "20_forward_curve_scd",
   "category": "trading_domain",
-  "expected_recipe_types": ["split"],
-  "expected_dataset_count": 3,
-  "expected_outputs": ["forward_curve_current", "forward_curve_historical"],
-  "must_not_contain": ["python"],
-  "known_issues": ["bug-3"],
-  "notes": "Date-based current vs historical complementary split — must consolidate to ONE SPLIT recipe."
+  "expected_recipe_types": [
+    "python",
+    "split"
+  ],
+  "expected_dataset_count": 4,
+  "expected_outputs": [
+    "current_curve",
+    "historical_curves",
+    "latest"
+  ],
+  "must_not_contain": [
+    "python"
+  ],
+  "known_issues": [
+    "bug-3"
+  ],
+  "notes": "Date-based current vs historical complementary split \u2014 must consolidate to ONE SPLIT recipe."
 }
