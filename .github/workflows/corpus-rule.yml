@@ -1,0 +1,68 @@
+name: LLM Corpus (rule mode)
+
+# Runs the 25-script corpus in rule mode against a freshly-booted
+# /convert API. This catches structural regressions in the rule
+# analyzer (silent formula drops, self-loop recipes, orphan datasets,
+# bad recipe-type dispatch) on every PR. LLM mode is NOT run here —
+# it costs money per call and is gated to a nightly job in
+# llm-smoke.yml.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  corpus-rule:
+    name: Corpus regression (rule mode, 25 scripts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install py-iku core + studio API
+        run: |
+          pip install -e ".[dev]"
+          pip install -e "apps/api"
+
+      - name: Boot uvicorn in the background
+        env:
+          # Disable the LLM key resolution chain for this job — only
+          # rule mode is exercised here, so the API never needs a key.
+          ANTHROPIC_API_KEY: ""
+        run: |
+          uvicorn app.main:app \
+            --app-dir apps/api \
+            --host 127.0.0.1 \
+            --port 8000 \
+            --log-level warning &
+          # Poll until the API is responsive (max 30s).
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -m 1 http://127.0.0.1:8000/health; then
+              echo "API up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed to boot within 30s" >&2
+          exit 1
+
+      - name: Run the 25-script corpus in rule mode
+        run: |
+          python tests/test_llm_corpus/harness/run_corpus.py \
+            --mode rule \
+            --runs 1 \
+            --timeout 30 \
+            --results-dir /tmp/corpus-results
+
+      - name: Upload corpus results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-rule-results
+          path: /tmp/corpus-results
+          retention-days: 7

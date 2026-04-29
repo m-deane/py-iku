@@ -325,14 +325,65 @@ def convert_sync(req: ConvertRequest) -> ConvertResponse:
             "Resolved LLM key", extra={"provider": provider, "source": source}
         )
 
-        flow = convert_with_llm(
-            req.code,
-            provider=provider,
-            api_key=api_key,
-            model=model,
-            optimize=optimize,
-            temperature=temperature,
-        )
+        try:
+            flow = convert_with_llm(
+                req.code,
+                provider=provider,
+                api_key=api_key,
+                model=model,
+                optimize=optimize,
+                temperature=temperature,
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Anthropic and OpenAI raise SDK-specific exceptions for
+            # quota / rate-limit / auth errors. We catch the broad set
+            # and translate to a structured 4xx so the UI banner /
+            # CLI consumers don't see an opaque 500.
+            msg = str(exc)
+            from fastapi import HTTPException
+
+            low = msg.lower()
+            if "usage limit" in low or "spend limit" in low or "quota" in low:
+                raise HTTPException(
+                    status_code=402,
+                    detail={
+                        "type": "/errors/llm-quota-exceeded",
+                        "title": "LLM provider usage limit reached",
+                        "status": 402,
+                        "detail": msg,
+                        "suggestion": (
+                            "Wait for the quota window to reset, raise the "
+                            "spend cap on your provider account, or switch "
+                            "to mode='rule' for offline conversion."
+                        ),
+                    },
+                ) from exc
+            if "rate limit" in low or "429" in low:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "type": "/errors/llm-rate-limited",
+                        "title": "LLM provider rate limited",
+                        "status": 429,
+                        "detail": msg,
+                    },
+                ) from exc
+            if "authentication" in low or "401" in low or "invalid api key" in low:
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "type": "/errors/llm-auth",
+                        "title": "LLM provider authentication failed",
+                        "status": 401,
+                        "detail": msg,
+                        "suggestion": (
+                            "Re-enter the API key in Settings -> LLM "
+                            "Provider, or verify the key in the provider "
+                            "dashboard."
+                        ),
+                    },
+                ) from exc
+            raise
 
     flow_dict = flow.to_dict()
     extra_warnings = _sanitize_flow_dict(flow_dict)
