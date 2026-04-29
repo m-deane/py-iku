@@ -1,0 +1,2540 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Convert Python data processing code to Dataiku DSS recipes and flows">
+      
+      
+      
+        <link rel="canonical" href="https://m-deane.github.io/py-iku/dataiku-reference/_findings/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Cross-check findings: py-iku ↔ Dataiku public docs (2026-04-29) - py-iku</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cross-check-findings-py-iku-dataiku-public-docs-2026-04-29" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="py-iku" class="md-header__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            py-iku
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Cross-check findings: py-iku ↔ Dataiku public docs (2026-04-29)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../notebooks/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Notebooks & Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../textbook/" class="md-tabs__link">
+          
+  
+  
+  Textbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  
+  Auto-generated API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../future-dss-writeback/" class="md-tabs__link">
+          
+  
+  
+  Future Work
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="py-iku" class="md-nav__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    py-iku
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notebooks & Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Textbook
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Textbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foreword
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/01-why-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Why py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/02-five-second-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. The five-second tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/03-anatomy-of-a-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Anatomy of a flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/04-pandas-to-dss-grammar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Pandas to DSS grammar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/05-prepare-recipes-deep-dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Prepare recipes deep dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/06-recipe-types-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Recipe types tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/07-the-llm-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    7. The LLM path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/08-filters-and-predicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    8. Filters and predicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/09-advanced-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    9. Advanced patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/10-optimization-and-dag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10. Optimization and the DAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/11-production-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11. Production usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/12-extending-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. Extending py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/13-visual-aids-and-inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13. Visual Aids & Inspection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/examples-01-trade-capture-and-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples I: Trade Capture and Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/examples-02-position-and-pnl-analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples II: Position and P&L Analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/examples-03-counterparty-and-curves/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples III: Counterparty and Curves
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/examples-04-power-hubs-and-trade-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples IV: Power Hubs and Trade Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/appendix-a-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/appendix-b-troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix B: Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../textbook/appendix-c-cheatsheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix C: Cheatsheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/py2dataiku-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Py2Dataiku Class
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enums
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/llm-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/visualizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualizers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/exporters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/exceptions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/recipe-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/scenarios-metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/mlops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-generated API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auto-generated API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    py2dataiku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Work
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Future Work
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../future-dss-writeback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Write-back
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#headline-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Headline counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-10-prioritized-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top 10 prioritized findings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#by-category" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        By category
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="By category">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pandas-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pandas mappings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aggregations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aggregations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verdict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verdict
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suggested-fixes-mapped-to-specific-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Suggested fixes (mapped to specific files)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cross-check-findings-py-iku-dataiku-public-docs-2026-04-29">Cross-check findings: py-iku ↔ Dataiku public docs (2026-04-29)<a class="headerlink" href="#cross-check-findings-py-iku-dataiku-public-docs-2026-04-29" title="Permanent link">&para;</a></h1>
+<p>Snapshot: <code>docs/dataiku-reference/</code> (14 recipes, 95 processors, 7 settings) vs
+inventory: <code>docs/dataiku-reference/_inventory.json</code> (37 RecipeTypes, 100 canonical
+ProcessorTypes / 122 with aliases / 101 catalog entries, 12 RecipeSettings,
+21 canonical AggregationFunctions, 16 PROCESSOR_MAPPINGS, 21 RECIPE_MAPPINGS).</p>
+<h2 id="headline-counts">Headline counts<a class="headerlink" href="#headline-counts" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Recipes covered (doc ↔ lib enum match): <strong>14 / 14</strong> (all 14 doc snapshots map cleanly to a <code>RecipeType</code>)</li>
+<li>Recipes lacking a dedicated <code>RecipeSettings</code> subclass (despite a doc page that
+  enumerates real per-recipe knobs): <strong>4</strong> — <code>SYNC</code>, <code>FUZZY_JOIN</code>, <code>GEO_JOIN</code>,
+  <code>GENERATE_STATISTICS</code>. (Confirms Agent B's flag.)</li>
+<li>Processors covered (doc ↔ lib catalog, by concept): <strong>56 / 95</strong>. 39 doc
+  processors have <strong>no</strong> library catalog entry (~41 % gap).</li>
+<li>Library catalog entries with <strong>no</strong> matching doc snapshot: <strong>44 / 100</strong> —
+  many of these are real DSS processors with non-public-doc names, but several
+  appear to be invented (notably <code>FilterOnCustomCondition</code>,
+  <code>FilterOnGeoZone</code>, <code>DateRangeClassifier</code>, <code>TimezoneConverter</code>,
+  <code>TimestampExtractor</code> reverse direction, <code>ImputeWithML</code>, several Geo*
+  variants, <code>LemmatizeText</code> / <code>StemText</code>, <code>SentimentAnalyzer</code>, <code>LanguageDetector</code>).</li>
+<li>Settings drift instances (settings doc page enumerates a knob the matching
+  <code>RecipeSettings</code> does not carry): <strong>3</strong> — see by-category section.</li>
+<li>Pandas-mapping inconsistencies / suspect dispatches: <strong>2</strong> (low — mappings
+  are largely sane).</li>
+<li>Aggregation-function drift: <strong>0</strong> (the 21 canonical + 4 phantom alias
+  members in the inventory exactly match the doc-implied pandas → DSS shape,
+  which is documented obliquely in the GROUPING recipe page).</li>
+</ul>
+<h2 id="top-10-prioritized-findings">Top 10 prioritized findings<a class="headerlink" href="#top-10-prioritized-findings" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>[blocker] <code>unixtimestamp-parser</code> direction mismatch.</strong> The DSS doc
+   (<code>docs/dataiku-reference/processors/unixtimestamp-parser.md:7-15</code>) describes
+   a UNIX-timestamp → ISO-8601 string converter. The library exposes
+   <code>TIMESTAMP_EXTRACTOR</code> (<code>py2dataiku/models/prepare_step.py:96</code>,
+   catalog <code>TimestampExtractor</code> at
+   <code>py2dataiku/mappings/processor_catalog.py:442-449</code>) which goes the OTHER
+   direction (date → unix ms). The actual DSS <code>UnixTimestampParser</code> processor
+   is missing from the lib. Fix: add a new <code>UNIX_TIMESTAMP_PARSER</code> enum +
+   catalog entry; keep <code>TimestampExtractor</code> (it is also a real DSS processor,
+   but addresses the inverse problem).</p>
+</li>
+<li>
+<p><strong>[blocker] <code>column-pseudonymization</code> parameter set incomplete.</strong> Doc
+   (<code>docs/dataiku-reference/processors/column-pseudonymization.md:23-31</code>)
+   enumerates 4 inputs: column(s), hashing algorithm (<code>SHA-256</code>/<code>SHA-512</code>/<code>MD5</code>),
+   pepper (static), salt column. Lib catalog
+   (<code>py2dataiku/mappings/processor_catalog.py</code> <code>ColumnPseudoAnonymizer</code>
+   block, ~line 600, inventory line 1581-1588) only declares
+   <code>column</code> (req) + <code>method</code> (opt). Both <code>pepper</code> and <code>salt</code>/<code>saltColumn</code>
+   are missing, and the param is named <code>method</code> rather than something
+   matching the DSS UI (<code>algorithm</code>). Fix: add <code>algorithm</code>, <code>pepper</code>,
+   <code>saltColumn</code> params; verify camelCase against an exported DSS recipe JSON.</p>
+</li>
+<li>
+<p><strong>[blocker] <code>email-split</code> modeled as domain-only extractor.</strong> Doc
+   (<code>docs/dataiku-reference/processors/email-split.md:9-17</code>) splits the input
+   into BOTH local part and domain (two output columns). Lib has
+   <code>EMAIL_DOMAIN_EXTRACTOR</code> (<code>prepare_step.py:55</code>, catalog at
+   inventory line 843-857) which only emits the domain. The actual DSS
+   processor is <code>EmailSplitter</code>. Fix: rename canonical to <code>EmailSplitter</code>
+   with <code>outputLocalPartColumn</code> and <code>outputDomainColumn</code> params (the existing
+   <code>EMAIL_DOMAIN_EXTRACTOR</code> enum can stay as a phantom alias for back-compat).</p>
+</li>
+<li>
+<p><strong>[important] <code>move-columns</code> is not the same as <code>ColumnReorder</code>.</strong> Doc
+   (<code>docs/dataiku-reference/processors/move-columns.md:9</code>) describes
+   relative move (before/after a column, or to begin/end). Lib's
+   <code>COLUMN_REORDER</code> (<code>prepare_step.py</code>, catalog inventory line 417-428)
+   takes only a <code>columns</code> list — i.e. it implements full reorder, not
+   relative move. This is a real DSS processor missing from the lib. Fix:
+   add <code>MoveColumns</code> to the catalog with params
+   <code>columns</code> (req), <code>target</code> (column ref or <code>BEGIN</code>/<code>END</code>), <code>position</code>
+   (<code>BEFORE</code> / <code>AFTER</code>).</p>
+</li>
+<li>
+<p><strong>[important] <code>RemoveDuplicates</code> row-level processor exists in lib but
+   the doc page documents only the <code>DISTINCT</code> recipe.</strong> Inventory line
+   1457-1469 lists <code>RemoveDuplicates</code> as a Prepare processor (catalog
+   includes it), <code>prepare_step.py:117</code>. There is no matching doc snapshot
+   under <code>processors/</code>, only the recipe doc
+   (<code>docs/dataiku-reference/recipes/distinct.md</code>). DSS does not actually
+   ship a row-level "remove duplicates" Prepare processor — duplicate
+   removal is a recipe. This catalog entry is likely spurious (and
+   misleading for the LLM path). Either delete from catalog or document it
+   as DSS-internal and unlikely to round-trip.</p>
+</li>
+<li>
+<p><strong>[important] Doc-only processors (39 missing from lib).</strong> Group A
+   (popular, high-impact, should be added first):
+   <code>currency-converter</code>, <code>currency-splitter</code>, <code>extract-numbers</code>,
+   <code>count-matches</code>, <code>negate</code>, <code>mean</code> (line-by-line arithmetic mean),
+   <code>move-columns</code> (also #4), <code>pivot</code> (processor-level), <code>numerical-format-convert</code>,
+   <code>numerical-combinations</code>, <code>querystring-split</code>, <code>grok</code>,
+   <code>unixtimestamp-parser</code> (also #1), <code>visitor-id</code>, <code>zip-arrays</code>,
+   <code>triggered-unfold</code>, <code>split-fold</code>, <code>split-unfold</code>, <code>split-into-chunks</code>,
+   <code>fold-columns-by-pattern</code>, <code>fold-object</code>, <code>object-nest</code>, <code>change-crs</code>,
+   <code>geopoint-buffer</code>, <code>geopoint-extract</code>, <code>geo-info-extractor</code>,
+   <code>filter-on-meaning</code>, <code>flag-on-meaning</code>, <code>meaning-translate</code>,
+   <code>invalid-split</code>, <code>long-tail</code> (vs the existing <code>merge-long-tail-values</code>),
+   <code>enrich-french-departement</code>, <code>enrich-french-postcode</code>,
+   <code>enrich-with-build-context</code>, <code>enrich-with-record-context</code>,
+   <code>generate-big-data</code>, <code>fuzzy-join</code> (processor; deprecated),
+   <code>geo-join</code> (processor; deprecated), <code>join</code> (processor; deprecated).
+   Of these, the deprecated and <code>enrich-french-*</code> family can be skipped; the
+   ML/RAG/timestamp/currency/numerical group is the meaningful gap.</p>
+</li>
+<li>
+<p><strong>[important] Lib-only catalog entries with no DSS doc page.</strong> 44 entries
+   (see "By category &gt; Processors" below). Specifically suspicious
+   (could be invented / misnamed): <code>FilterOnGeoZone</code>, <code>FilterOnCustomCondition</code>,
+   <code>FilterOnNullNumeric</code>, <code>DateRangeClassifier</code>, <code>TimezoneConverter</code> (DSS
+   formula territory), <code>LemmatizeText</code>/<code>StemText</code>/<code>SentimentAnalyzer</code>/
+   <code>LanguageDetector</code> (these are typically in the NLP plugin, not core),
+   <code>PhoneFormatter</code>, <code>CountryNormalizer</code>, <code>HashComputer</code> (vs the documented
+   <code>column-pseudonymization</code>), <code>ImputeWithML</code>, <code>JSONExtractor</code> (vs the doc'd
+   <code>jsonpath</code>/<code>object-unnest-json</code>), <code>XMLExtractor</code>, <code>NestedProcessor</code>,
+   <code>ProcessorGroup</code>, <code>UUIDGenerator</code>, <code>ReverseGeocoder</code> (the doc has only a
+   prose section, not a processor name). Recommendation: audit each against
+   an exported DSS recipe JSON; remove or label clearly as
+   "non-canonical / SDK-only" so the LLM does not emit them by default.</p>
+</li>
+<li>
+<p><strong>[important] Settings drift in <code>SortSettings</code> / null-value placement.</strong>
+   The Sort recipe doc
+   (<code>docs/dataiku-reference/recipes/sort.md:15-17</code>) explicitly enumerates
+   null-value placement (asc → nulls first, desc → nulls last; configurable
+   per DSS 4.1+). Lib <code>SortSettings</code> (<code>recipe_settings.py:333-336</code>) carries
+   only <code>sort_columns: list[dict[str, str]]</code> — there is no <code>nulls_first</code> /
+   <code>nulls_last</code> toggle. Fix: extend the per-column dict shape (or add a
+   top-level <code>null_handling</code> field).</p>
+</li>
+<li>
+<p><strong>[important] Settings drift in <code>JoinSettings</code> / unmatched-rows outputs.</strong>
+   Join recipe doc
+   (<code>docs/dataiku-reference/recipes/join.md:37-41</code>) describes per-join
+   "Send unmatched rows to other output dataset(s)" plus <code>LEFT_ANTI</code> /
+   <code>RIGHT_ANTI</code> join types and per-join "Post-join computed columns"
+   (<code>join.md:51</code>). Lib <code>JoinSettings</code>
+   (<code>recipe_settings.py:162-167</code>) carries <code>join_type</code>, <code>join_keys</code>,
+   <code>selected_columns</code> only. The lib does correctly enumerate
+   <code>LEFT_ANTI</code>/<code>RIGHT_ANTI</code>/<code>ADVANCED</code> in <code>JoinType</code> (<code>dataiku_recipe.py:73-83</code>)
+   so the enum side is fine; the settings shape is what is missing
+   (no <code>unmatched_outputs</code> field, no <code>post_join_computed_columns</code>).</p>
+</li>
+<li>
+<p><strong>[important] Settings drift in <code>PivotSettings</code> / modality controls.</strong>
+    Pivot recipe doc
+    (<code>docs/dataiku-reference/recipes/pivot.md:48-74</code>) enumerates several
+    real configuration knobs: modality computation mode
+    (<code>most_frequent</code> / <code>min_occurrence_count</code> / <code>explicit</code>), modality
+    cleaning (<code>soft_slugification</code> / <code>hard_slugification</code> / <code>numbering</code> /
+    <code>truncation</code>), <code>recompute_at_each_run</code>, plus per-row aggregates
+    (the "Other columns" section). Lib <code>PivotSettings</code>
+    (<code>recipe_settings.py:463-469</code>) only carries <code>row_columns</code>,
+    <code>column_column</code>, <code>value_column</code>, <code>aggregation</code>. None of the modality
+    controls are modelled.</p>
+</li>
+</ol>
+<h2 id="by-category">By category<a class="headerlink" href="#by-category" title="Permanent link">&para;</a></h2>
+<h3 id="recipes">Recipes<a class="headerlink" href="#recipes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>✓ Match (14): <code>prepare</code>, <code>sync</code>, <code>grouping</code>, <code>window</code>, <code>join</code>, <code>fuzzy-join</code>,
+  <code>geojoin</code>, <code>stack</code>, <code>split</code>, <code>sort</code>, <code>distinct</code>, <code>topn</code>, <code>pivot</code>, <code>sampling</code>.</li>
+<li>⚠ Settings drift (4 — settings class missing entirely though doc enumerates
+  knobs):<ul>
+<li><code>SYNC</code> (<code>recipes/sync.md:39-62</code>): doc enumerates engine choice
+  (DSS streaming / Spark / SQL / Hive / Impala / fast-paths), schema
+  handling, partition handling. Lib <code>RecipeType.SYNC</code>
+  (<code>dataiku_recipe.py:21</code>) has <code>settings_class: null</code>.</li>
+<li><code>FUZZY_JOIN</code> (<code>recipes/fuzzy-join.md:33-72</code>): doc enumerates distance
+  metric (Damerau-Levenshtein / Hamming / Jaccard / Cosine / Euclidean /
+  Geospatial / strict equality), threshold (absolute / relative %), text
+  normalization options, output-matching-details + debug-mode toggles.
+  No settings class exists.</li>
+<li><code>GEO_JOIN</code> (<code>recipes/geojoin.md:64-77</code>): doc enumerates 8 spatial
+  operators (Contains, IsContained, WithinDistance, BeyondDistance,
+  Intersects, Touches, Disjoint, StrictEquality) plus the distance unit
+  (Meter, Km, Foot, Yard, Mile, NauticalMile). No settings class.</li>
+<li><code>GENERATE_STATISTICS</code>: no doc snapshot was captured (it isn't
+  under the public <code>other_recipes/</code> index), but the recipe is referenced
+  from <code>pandas_mappings</code> indirectly (via <code>df.describe()</code> / <code>df.info()</code>
+  per CLAUDE.md). Lib has no settings class.</li>
+</ul>
+</li>
+<li>✗ Missing in lib (recipes with doc page but no enum): <strong>0</strong>.</li>
+<li>➕ Extra in lib with no doc page (likely intentional code recipes or
+  SDK-internal): <code>PYTHON</code>, <code>R</code>, <code>SQL</code>, <code>HIVE</code>, <code>IMPALA</code>, <code>SPARKSQL</code>, <code>PYSPARK</code>,
+  <code>SPARK_SCALA</code>, <code>SPARKR</code>, <code>SHELL</code>, <code>DOWNLOAD</code>, <code>GENERATE_FEATURES</code>,
+  <code>GENERATE_STATISTICS</code>, <code>PUSH_TO_EDITABLE</code>, <code>LIST_FOLDER_CONTENTS</code>,
+  <code>DYNAMIC_REPEAT</code>, <code>EXTRACT_FAILED_ROWS</code>, <code>UPSERT</code>, <code>LIST_ACCESS</code>,
+  <code>PREDICTION_SCORING</code>, <code>CLUSTERING_SCORING</code>, <code>EVALUATION</code>,
+  <code>AI_ASSISTANT_GENERATE</code>. All 23 of these are real DSS recipe values
+  (verified by <code>value=</code> strings looking like DSS internals); not drift.</li>
+</ul>
+<h3 id="processors">Processors<a class="headerlink" href="#processors" title="Permanent link">&para;</a></h3>
+<ul>
+<li>✓ Match (~56): every catalog key whose <code>canonical_name</code> corresponds to a
+  doc slug, including the heavily-used filter/flag family
+  (<code>FilterOnValue</code> ↔ <code>filter-on-value</code>,
+  <code>FilterOnNumericRange</code> ↔ <code>filter-on-range</code>,
+  <code>FilterOnDateRange</code> ↔ <code>filter-on-date</code>,
+  <code>FilterOnFormula</code> ↔ <code>filter-on-formula</code>,
+  same flag pairs), <code>FoldMultipleColumns</code> ↔ <code>fold-columns-by-name</code>,
+  <code>Round</code>, <code>Binner</code>, <code>ColumnRenamer</code>, <code>ColumnsSelector</code>,
+  <code>Coalesce</code>, <code>IfThenElse</code>, <code>SwitchCase</code>, etc.</li>
+<li>⚠ Param-name drift (≥70 % confidence):<ul>
+<li><code>FilterOnValue</code> (catalog <code>matchingMode</code> example value <code>"EQUALS"</code> in
+  <code>processor_catalog.py:451-463</code>) — DSS doc
+  <code>processors/filter-on-value.md:39-50</code> enumerates the real values:
+  <code>Complete value</code> / <code>Substring</code> / <code>Regular expression</code> (and a
+  separate <code>Normalization mode</code>: <code>Exact</code> / <code>Lowercase</code> / <code>Normalize</code>).
+  The likely canonical wire values are <code>FULL_STRING</code> / <code>SUBSTRING</code> /
+  <code>PATTERN</code>, <strong>not</strong> <code>EQUALS</code>. Inventory example
+  <code>"matchingMode": "EQUALS"</code> (line 1197) is almost certainly wrong —
+  <code>EQUALS</code> isn't on the doc-enumerated set. Also the <code>matchingMode</code>
+  field doesn't capture normalization mode — that's a separate param
+  (probably <code>normalizationMode</code>) which is missing entirely.</li>
+<li><code>FindReplace</code> / <code>MultiColumnFindReplace</code> (catalog: <code>matchMode</code>
+  with example <code>"LITERAL"</code> at <code>processor_catalog.py:141-146</code> and
+  inventory line 602; also for <code>MultiColumnFindReplace</code> at
+  inventory line 659). Doc
+  (<code>processors/find-replace.md:32-49</code>) enumerates <code>Matching mode</code> =
+  <code>Complete value</code> / <code>Substring</code> / <code>Regular expression</code> plus a
+  separate <code>Normalization mode</code>. (a) field name is probably
+  <code>matchingMode</code> (consistent with the rest of the family), not
+  <code>matchMode</code>; (b) <code>LITERAL</code> is not on the doc's enumerated set.
+  Also <code>FlagOnValue.matchMode</code> (inventory line 1366) shares the same
+  typo pattern. Fix: rename <code>matchMode</code> → <code>matchingMode</code> and align
+  example values with <code>FULL_STRING</code>/<code>SUBSTRING</code>/<code>PATTERN</code>.</li>
+<li><code>Round</code> (catalog params <code>column</code>, <code>precision</code>, <code>mode</code> at
+  <code>processor_catalog.py:318-325</code>; inventory line 939-948). Doc
+  (<code>processors/round.md:22-37</code>) enumerates two distinct numeric
+  controls: <code>significantDigits</code> and <code>decimalPlaces</code> (and a <code>mode</code>
+  = round/floor/ceil). The lib collapses both to a single
+  <code>precision</code>. Fix: split into <code>significantDigits</code> and <code>decimalPlaces</code>
+  (or document which one <code>precision</code> represents).</li>
+<li><code>Binner</code> (inventory line 980-985 has params <code>column</code>, <code>mode</code>,
+  <code>bins</code>, <code>labels</code> with <code>mode</code> example <code>'FIXED_BINS'</code>). Doc
+  (<code>processors/binner.md:18-31</code>) enumerates <code>Fixed size intervals</code>
+  (with <code>bin width</code>, <code>Minimum value</code>, <code>Maximum value</code>) vs <code>Custom,
+  use raw values</code>. The doc mentions no <code>labels</code> field. Likely
+  fields the lib is missing: <code>binWidth</code>, <code>minimumValue</code>,
+  <code>maximumValue</code>, <code>outputColumn</code>. The <code>labels</code> field is plausibly
+  synthetic.</li>
+<li><code>Tokenizer</code> (inventory line 562-571 has <code>column</code>, <code>operation</code>,
+  <code>pattern</code> with <code>operation</code> example <code>'SPLIT_WHITESPACE'</code>). Doc
+  doesn't directly enumerate this <code>operation</code> value (the snapshot
+  describes "tokenize a text column into array, one token per row,
+  or one token per column with simplification options" — three
+  output modes, not splitting strategies). Field name and value-set
+  are likely off.</li>
+<li><code>FillEmptyWithComputedValue</code> (inventory line 510-517 has <code>column</code>,
+  <code>mode</code> with <code>mode='MEAN'</code>). Doc
+  (<code>processors/fill-empty-with-computed-value.md:9</code>) enumerates
+  <code>mean / median / mode</code>. The wire value is plausibly an enum
+  string, but the field could be named <code>imputationMode</code> or just
+  <code>method</code> (consistent with <code>ColumnPseudoAnonymizer.method</code> and
+  <code>ImputeWithML.method</code>). Worth verifying against an exported
+  recipe JSON.</li>
+</ul>
+</li>
+<li>✗ Missing in lib (top concrete gaps — see #6 above for full list of 39).</li>
+<li>➕ Extra in lib with no doc page (44 — see #7 above). Subset
+  audit-priority: <code>FilterOnGeoZone</code>, <code>FilterOnCustomCondition</code>,
+  <code>FilterOnNullNumeric</code>, <code>DateRangeClassifier</code>, <code>TimezoneConverter</code>,
+  <code>ImputeWithML</code>, <code>JSONExtractor</code>, <code>XMLExtractor</code>, <code>NestedProcessor</code>,
+  <code>ProcessorGroup</code>, <code>HashComputer</code>, <code>LemmatizeText</code>, <code>StemText</code>,
+  <code>SentimentAnalyzer</code>, <code>LanguageDetector</code>, <code>PhoneFormatter</code>,
+  <code>CountryNormalizer</code>, <code>UUIDGenerator</code>, <code>ReverseGeocoder</code>,
+  <code>MultiColumnFindReplace</code>, <code>MultiColumnFormula</code>. Many are likely real
+  but should be flagged in the catalog as "no public DSS doc page —
+  verify before emitting from LLM".</li>
+</ul>
+<h3 id="pandas-mappings">Pandas mappings<a class="headerlink" href="#pandas-mappings" title="Permanent link">&para;</a></h3>
+<ul>
+<li>✓ Sane mappings: 19 of 21 entries in <code>RECIPE_MAPPINGS</code>
+  (<code>pandas_mappings.py:22-44</code>) and 16 / 16 in <code>PROCESSOR_MAPPINGS</code>
+  (<code>pandas_mappings.py:47-67</code>) target a recipe / processor that exists in
+  the doc set. The non-obvious mappings called out in <code>CLAUDE.md</code> (melt
+  → PREPARE+FOLD_MULTIPLE_COLUMNS, df.abs() → CREATE_COLUMN_WITH_GREL,
+  cumsum/diff/shift → WINDOW, nlargest → TOP_N, fillna → FILL_EMPTY_WITH_VALUE,
+  to_datetime → DATE_PARSER) all check out against the snapshot.</li>
+<li>⚠ Suspect mappings (low-confidence, worth verifying):<ul>
+<li><code>"map" → TRANSLATE_VALUES</code> (<code>pandas_mappings.py:58</code>): pandas
+  <code>Series.map(dict)</code> does map values, but the doc-confirmed
+  <code>TranslateValues</code> (inventory line 1849-1864) takes a list of
+  <code>{from, to}</code> pairs. Behaviourally OK for a literal-dict mapping,
+  but <code>df["x"].map(some_function)</code> cannot be expressed; the lib
+  likely silently drops the function case — flag for the rule-based
+  handler tests.</li>
+<li><code>"explode" → UNFOLD</code> (<code>pandas_mappings.py:59</code>): pandas
+  <code>df.explode(col)</code> produces one row per array element. DSS <code>Unfold</code>
+  (inventory line 1934-1945) per the snapshot
+  (<code>processors/unfold.md</code>) is the dummification ("transform values
+  of a column into binary columns") processor — not at all the
+  same operation. The semantically correct target is <code>ARRAY_UNFOLD</code>
+  (<code>processors/unfold-array.md</code> ≈ DSS <code>ArrayUnfold</code>, inventory line
+  2034-2047) or possibly <code>ARRAY_FOLD</code>. This is a real bug.</li>
+</ul>
+</li>
+</ul>
+<h3 id="aggregations">Aggregations<a class="headerlink" href="#aggregations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>✓ Match: the 21 canonical members in <code>AggregationFunction</code>
+  (<code>dataiku_recipe.py:114-144</code>) cover all the aggregations a typical
+  GROUPING / WINDOW recipe needs (SUM, AVG, COUNT, COUNTD, MIN, MAX,
+  FIRST, LAST, STDDEV, VAR, MEDIAN, MODE, percentiles 25/50/75/90/95/99,
+  CONCAT, COLLECT_LIST, COLLECT_SET). The 4 phantom aliases
+  (MEAN→AVG, NUNIQUE→COUNTD, STD→STDDEV, VARIANCE→VAR) are intentional
+  pandas-compat — not drift.</li>
+<li>⚠ Drift: none with ≥70 % confidence. The grouping recipe doc
+  (<code>recipes/grouping.md</code>) does not enumerate the aggregation list
+  explicitly (it just says "any aggregation"), so no contradictory
+  evidence either way.</li>
+</ul>
+<h2 id="verdict">Verdict<a class="headerlink" href="#verdict" title="Permanent link">&para;</a></h2>
+<p>The library is <strong>broadly accurate</strong> at the recipe level — every public DSS
+recipe doc maps cleanly to a <code>RecipeType</code> enum member, and most pandas →
+recipe routing decisions are sound. The accuracy story degrades on two
+axes: (a) <strong>processor catalog completeness and naming</strong> — about 40 % of
+public DSS processors aren't in the catalog at all, while ~25 of the
+catalog's "extra" entries don't appear in any public doc and may be
+invented; (b) <strong><code>RecipeSettings</code> shape coverage</strong> — only 12 / 37 recipe
+types have a settings class, and even where one exists (Pivot, Sort,
+Join), it doesn't model documented configuration knobs (modality
+controls, null-placement, unmatched-row outputs). Filter-family wire
+values (<code>matchingMode: "EQUALS"</code>) and the <code>unixtimestamp-parser</code> /
+<code>email-split</code> direction errors are likely to produce broken DSS JSON
+on a real round-trip and should be the first fix wave.</p>
+<p>The highest-impact follow-up is a catalog audit driven by an exported
+real-DSS recipe JSON — that would simultaneously fix the param-name
+drift (#1, #2, #3 in the top 10), validate the 44 lib-only entries
+(#7), and surface the missing 39 doc-only processors (#6).</p>
+<h2 id="suggested-fixes-mapped-to-specific-files">Suggested fixes (mapped to specific files)<a class="headerlink" href="#suggested-fixes-mapped-to-specific-files" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>py2dataiku/models/prepare_step.py:96</code> — split <code>TIMESTAMP_EXTRACTOR</code>
+  (date→unix) from a new <code>UNIX_TIMESTAMP_PARSER</code> enum (unix→date).
+  Add catalog entry per <code>docs/dataiku-reference/processors/unixtimestamp-parser.md:7-15</code>.</li>
+<li><code>py2dataiku/mappings/processor_catalog.py</code> <code>ColumnPseudoAnonymizer</code>
+  block — add <code>algorithm</code> (req, enum SHA-256/SHA-512/MD5), <code>pepper</code>
+  (opt str), <code>saltColumn</code> (opt str column ref) per
+  <code>docs/dataiku-reference/processors/column-pseudonymization.md:23-31</code>.</li>
+<li><code>py2dataiku/models/prepare_step.py:55</code> and corresponding catalog —
+  rename <code>EmailDomainExtractor</code> to <code>EmailSplitter</code>; add
+  <code>outputLocalPartColumn</code> + <code>outputDomainColumn</code> outputs per
+  <code>docs/dataiku-reference/processors/email-split.md:9-17</code>.</li>
+<li><code>py2dataiku/mappings/processor_catalog.py:451-463</code> (<code>FilterOnValue</code>)
+  — change <code>matchingMode</code> example from <code>"EQUALS"</code> to <code>"FULL_STRING"</code>
+  (or canonical DSS value); add a separate <code>normalizationMode</code> param
+  per <code>docs/dataiku-reference/processors/filter-on-value.md:39-58</code>.</li>
+<li><code>py2dataiku/mappings/processor_catalog.py:136-146</code> (<code>FindReplace</code>)
+  — rename <code>matchMode</code> → <code>matchingMode</code>; align example value to one of
+  <code>FULL_STRING</code>/<code>SUBSTRING</code>/<code>PATTERN</code> per
+  <code>docs/dataiku-reference/processors/find-replace.md:32-49</code>. Apply same
+  rename to <code>MultiColumnFindReplace</code> and <code>FlagOnValue</code>.</li>
+<li><code>py2dataiku/mappings/processor_catalog.py:318-325</code> (<code>Round</code>) — replace
+  the single <code>precision</code> param with <code>significantDigits</code> and
+  <code>decimalPlaces</code> per
+  <code>docs/dataiku-reference/processors/round.md:22-37</code>.</li>
+<li><code>py2dataiku/models/recipe_settings.py:333</code> — extend <code>SortSettings</code>
+  with <code>null_handling</code> field (or per-column <code>nulls</code> flag) per
+  <code>docs/dataiku-reference/recipes/sort.md:15-17</code>.</li>
+<li><code>py2dataiku/models/recipe_settings.py:162-167</code> — extend <code>JoinSettings</code>
+  with <code>unmatched_outputs: list[str]</code> and
+  <code>post_join_computed_columns: list[dict]</code> per
+  <code>docs/dataiku-reference/recipes/join.md:37-51</code>.</li>
+<li><code>py2dataiku/models/recipe_settings.py:463-469</code> — extend <code>PivotSettings</code>
+  with <code>modality_mode</code>, <code>modality_limit</code>, <code>name_simplification</code>,
+  <code>recompute_modalities_each_run</code>, <code>marginal_aggregates</code> per
+  <code>docs/dataiku-reference/recipes/pivot.md:48-96</code>.</li>
+<li><code>py2dataiku/models/recipe_settings.py</code> — add new
+  <code>SyncSettings(engine, schema_resync, partition_dependency)</code>,
+  <code>FuzzyJoinSettings(distance_metric, threshold, threshold_relative,
+  text_normalization, output_meta, debug_mode)</code>,
+  <code>GeoJoinSettings(spatial_operator, distance_value, distance_unit)</code>,
+  <code>GenerateStatisticsSettings(...)</code> per the corresponding
+  <code>docs/dataiku-reference/recipes/{sync,fuzzy-join,geojoin}.md</code> pages.</li>
+<li><code>py2dataiku/mappings/pandas_mappings.py:59</code> — <code>"explode" →
+  ARRAY_UNFOLD</code> (not <code>UNFOLD</code>) per
+  <code>docs/dataiku-reference/processors/unfold-array.md</code> vs
+  <code>docs/dataiku-reference/processors/unfold.md</code>. Pandas explode is
+  array → rows, which matches DSS <code>ArrayFold</code> more than either
+  <code>Unfold</code>/<code>ArrayUnfold</code> — verify against an exported recipe.</li>
+<li><code>py2dataiku/mappings/processor_catalog.py</code> (whole-file audit) — for
+  each of the 44 lib-only entries listed in finding #7, either remove
+  if invented or annotate <code>description="… (no public DSS doc page)"</code>
+  so the LLM prompt and tests can deprioritize them.</li>
+<li><code>py2dataiku/mappings/processor_catalog.py</code> — add catalog entries for
+  the 15-ish high-priority doc-only processors per finding #6
+  (<code>CurrencyConverter</code>, <code>CurrencySplitter</code>, <code>NumbersExtractor</code>,
+  <code>CountMatches</code>, <code>Negator</code>, <code>LineByLineMean</code>, <code>MoveColumns</code>,
+  <code>PivotProcessor</code>, <code>NumericalFormatConverter</code>, <code>NumericalCombinations</code>,
+  <code>QueryStringSplitter</code>, <code>Grok</code>, <code>UnixTimestampParser</code>, <code>VisitorIdGenerator</code>,
+  <code>ZipArrays</code>, <code>TriggeredUnfold</code>, <code>SplitAndFold</code>, <code>SplitAndUnfold</code>,
+  <code>TextSplitter</code>, <code>FoldMultipleColumnsByPattern</code>, <code>FoldObject</code>,
+  <code>ObjectNest</code>, <code>ChangeCRS</code>, <code>GeoPointBuffer</code>, <code>GeoPointExtract</code>,
+  <code>GeoInfoExtractor</code>, <code>FilterOnBadMeaning</code>, <code>FlagOnBadMeaning</code>,
+  <code>MeaningTranslate</code>, <code>InvalidValuesSplitter</code>, <code>LongTailFilter</code>).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/m-deane/py-iku" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

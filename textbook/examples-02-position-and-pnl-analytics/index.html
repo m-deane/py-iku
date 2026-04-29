@@ -1,0 +1,2976 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Convert Python data processing code to Dataiku DSS recipes and flows">
+      
+      
+      
+        <link rel="canonical" href="https://m-deane.github.io/py-iku/textbook/examples-02-position-and-pnl-analytics/">
+      
+      
+        <link rel="prev" href="../examples-01-trade-capture-and-validation/">
+      
+      
+        <link rel="next" href="../examples-03-counterparty-and-curves/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Worked Examples II: Position and P&L Analytics - py-iku</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#worked-examples-ii-position-and-pl-analytics" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="py-iku" class="md-header__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            py-iku
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Worked Examples II: Position and P&L Analytics
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../notebooks/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Notebooks & Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Textbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  
+  Auto-generated API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../future-dss-writeback/" class="md-tabs__link">
+          
+  
+  
+  Future Work
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="py-iku" class="md-nav__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    py-iku
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notebooks & Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Textbook
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Textbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foreword
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-why-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Why py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-five-second-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. The five-second tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-anatomy-of-a-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Anatomy of a flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-pandas-to-dss-grammar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Pandas to DSS grammar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-prepare-recipes-deep-dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Prepare recipes deep dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-recipe-types-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Recipe types tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-the-llm-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    7. The LLM path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-filters-and-predicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    8. Filters and predicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-advanced-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    9. Advanced patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-optimization-and-dag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10. Optimization and the DAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-production-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11. Production usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-extending-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. Extending py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-visual-aids-and-inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13. Visual Aids & Inspection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-01-trade-capture-and-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples I: Trade Capture and Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples II: Position and P&L Analytics
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples II: Position and P&L Analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-youll-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you'll learn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schemas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-1-cross-commodity-position-mtm-and-exposure-aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1 — Cross-commodity position MtM and exposure aggregation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 1 — Cross-commodity position MtM and exposure aggregation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-the-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting the flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-routing-on-the-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter routing on the SPLIT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-recipes-contain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the recipes contain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualizations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-2-real-time-pjm-lmp-tick-analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2 — Real-time PJM LMP tick analytics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 2 — Real-time PJM LMP tick analytics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversion_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-the-flow_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting the flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-window-partitionorder-gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The WINDOW partition/order gap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intraday_pnl-the-dropped-grel-derivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        intraday_pnl: the dropped GREL derivation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predecessors-and-the-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predecessors and the graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizations_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualizations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes-carried-over" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes carried over
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-03-counterparty-and-curves/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples III: Counterparty and Curves
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-04-power-hubs-and-trade-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples IV: Power Hubs and Trade Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix-a-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix-b-troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix B: Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix-c-cheatsheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix C: Cheatsheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/py2dataiku-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Py2Dataiku Class
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enums
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/llm-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/visualizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualizers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/exporters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/exceptions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/recipe-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/scenarios-metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/mlops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-generated API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auto-generated API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    py2dataiku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Work
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Future Work
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../future-dss-writeback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Write-back
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-youll-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you'll learn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schemas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-1-cross-commodity-position-mtm-and-exposure-aggregation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 1 — Cross-commodity position MtM and exposure aggregation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 1 — Cross-commodity position MtM and exposure aggregation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-the-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting the flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filter-routing-on-the-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter routing on the SPLIT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-recipes-contain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the recipes contain
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualizations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-2-real-time-pjm-lmp-tick-analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example 2 — Real-time PJM LMP tick analytics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example 2 — Real-time PJM LMP tick analytics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conversion_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conversion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-the-flow_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting the flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-window-partitionorder-gap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The WINDOW partition/order gap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intraday_pnl-the-dropped-grel-derivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        intraday_pnl: the dropped GREL derivation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predecessors-and-the-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predecessors and the graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizations_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualizations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes-carried-over" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes carried over
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="worked-examples-ii-position-and-pl-analytics">Worked Examples II — Position and P&amp;L Analytics<a class="headerlink" href="#worked-examples-ii-position-and-pl-analytics" title="Permanent link">&para;</a></h1>
+<h2 id="what-youll-learn">What you'll learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">&para;</a></h2>
+<p>This chapter walks two end-to-end pandas-script-to-<code>DataikuFlow</code> conversions drawn from front-office commodity trading. The first builds a cross-commodity position-and-mark-to-market pipeline: a date filter, a curve <a href="../appendix-a-glossary/#join">JOIN</a>, a GROUPING <a href="../appendix-a-glossary/#aggregation">aggregation</a> over <code>(book, commodity, tenor)</code>, a 30-day rolling P&amp;L <a href="../appendix-a-glossary/#window">WINDOW</a>, and a TOP_N ranking — exercising filter routing, <a href="../appendix-a-glossary/#grel">GREL</a> split conditions, and the full <code>get_summary</code> → <code>recipes</code> → <code>graph</code> inspection sweep. The second is a real-time PJM LMP tick analytic that exercises WINDOW <a href="../appendix-a-glossary/#partition">partition</a>-and-order semantics, exposes a known rule-based-<a href="../appendix-a-glossary/#dss">parser</a> gap on chained <code>groupby(...).rolling(...)</code> idioms, and shows the manual-settings workaround. Each example renders in three formats so a reader can pick the visualization shape that fits their tooling.</p>
+<h2 id="schemas">Schemas<a class="headerlink" href="#schemas" title="Permanent link">&para;</a></h2>
+<p>The two examples share three CSV schemas. The first example reads <code>trades.csv</code> (booking-system extract) and <code>curves.csv</code> (mark-to-market reference). The second reads <code>pjm_lmps.csv</code> (5-minute power LMP ticks).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>trades.csv
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  trade_id, trader_id, trade_date, value_date, settlement_date,
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  counterparty_id, instrument, commodity, product_type,
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  notional, unit, price, currency,
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  buy_sell, book, portfolio, region, delivery_location, booked_at
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>curves.csv
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  as_of_date, commodity, tenor, delivery_location, currency,
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  mid_price, bid, ask, forward_date
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>pjm_lmps.csv
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  iso, node_id, node_name, zone, timestamp,
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  lmp, congestion, losses, energy_component
+</code></pre></div>
+<p><code>commodity</code> is one of <code>CRUDE</code>, <code>NATGAS</code>, or <code>POWER</code>; <code>tenor</code> follows DSS forward-curve conventions (<code>M+1</code>, <code>Q1</code>, <code>CAL26</code>); <code>node_id</code> is a PJM pricing-node identifier; <code>zone</code> is a PJM zone like <code>WESTERN HUB</code>, <code>AEP</code>, or <code>DOM</code>. Both examples use only canonical front-office venues — PJM for power, Henry Hub / TTF for gas, WTI for crude.</p>
+<h2 id="example-1-cross-commodity-position-mtm-and-exposure-aggregation">Example 1 — Cross-commodity position MtM and exposure aggregation<a class="headerlink" href="#example-1-cross-commodity-position-mtm-and-exposure-aggregation" title="Permanent link">&para;</a></h2>
+<p>The pipeline takes a booking-system trade extract, restricts it to current-year activity, joins each trade against the latest mark-to-market curve, derives a per-trade MtM value, aggregates exposure by <code>(book, commodity, tenor)</code>, computes a 30-day rolling P&amp;L per book, and keeps the 50 books with the largest absolute exposure. Twelve effective pandas assignments compile into six DSS <a href="../appendix-a-glossary/#recipe">recipes</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">trades</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;trades.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">recent</span> <span class="o">=</span> <span class="n">trades</span><span class="p">[</span><span class="n">trades</span><span class="p">[</span><span class="s2">&quot;trade_date&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="s2">&quot;2024-01-01&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">curves</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;curves.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">priced</span> <span class="o">=</span> <span class="n">recent</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">curves</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;commodity&quot;</span><span class="p">,</span> <span class="s2">&quot;tenor&quot;</span><span class="p">,</span> <span class="s2">&quot;delivery_location&quot;</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">priced</span><span class="p">[</span><span class="s2">&quot;mtm_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">priced</span><span class="p">[</span><span class="s2">&quot;mid_price&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">priced</span><span class="p">[</span><span class="s2">&quot;price&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">priced</span><span class="p">[</span><span class="s2">&quot;notional&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">exposures</span> <span class="o">=</span> <span class="n">priced</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;book&quot;</span><span class="p">,</span> <span class="s2">&quot;commodity&quot;</span><span class="p">,</span> <span class="s2">&quot;tenor&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">total_notional</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;notional&quot;</span><span class="p">,</span> <span class="s2">&quot;sum&quot;</span><span class="p">),</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">total_mtm</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;mtm_value&quot;</span><span class="p">,</span> <span class="s2">&quot;sum&quot;</span><span class="p">),</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">avg_price</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">),</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="n">n_trades</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;trade_id&quot;</span><span class="p">,</span> <span class="s2">&quot;nunique&quot;</span><span class="p">),</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">exposures_sorted</span> <span class="o">=</span> <span class="n">exposures</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;book&quot;</span><span class="p">,</span> <span class="s2">&quot;trade_date&quot;</span><span class="p">])</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="n">rolling_pnl</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">exposures_sorted</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;book&quot;</span><span class="p">)[</span><span class="s2">&quot;total_mtm&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="s2">&quot;30D&quot;</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;trade_date&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;total_mtm&quot;</span><span class="p">:</span> <span class="s2">&quot;rolling_30d_pnl&quot;</span><span class="p">})</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="p">)</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">top_books</span> <span class="o">=</span> <span class="n">rolling_pnl</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s2">&quot;rolling_30d_pnl&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>The script touches every primitive the DSS visual flow exposes for a desk-level P&amp;L view: filter, multi-key join, multi-aggregation grouping, partitioned rolling window, and a row-reducing top-N rank.</p>
+<h3 id="conversion">Conversion<a class="headerlink" href="#conversion" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">source</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="s2">import pandas as pd</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s2">trades = pd.read_csv(</span><span class="se">\&quot;</span><span class="s2">trades.csv</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="s2">recent = trades[trades[</span><span class="se">\&quot;</span><span class="s2">trade_date</span><span class="se">\&quot;</span><span class="s2">] &gt;= </span><span class="se">\&quot;</span><span class="s2">2024-01-01</span><span class="se">\&quot;</span><span class="s2">]</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="s2">curves = pd.read_csv(</span><span class="se">\&quot;</span><span class="s2">curves.csv</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="s2">priced = recent.merge(curves, on=[</span><span class="se">\&quot;</span><span class="s2">commodity</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">tenor</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">delivery_location</span><span class="se">\&quot;</span><span class="s2">], how=</span><span class="se">\&quot;</span><span class="s2">left</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="s2">priced[</span><span class="se">\&quot;</span><span class="s2">mtm_value</span><span class="se">\&quot;</span><span class="s2">] = (priced[</span><span class="se">\&quot;</span><span class="s2">mid_price</span><span class="se">\&quot;</span><span class="s2">] - priced[</span><span class="se">\&quot;</span><span class="s2">price</span><span class="se">\&quot;</span><span class="s2">]) * priced[</span><span class="se">\&quot;</span><span class="s2">notional</span><span class="se">\&quot;</span><span class="s2">]</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="s2">exposures = priced.groupby([</span><span class="se">\&quot;</span><span class="s2">book</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">commodity</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">tenor</span><span class="se">\&quot;</span><span class="s2">]).agg(</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="s2">    total_notional=(</span><span class="se">\&quot;</span><span class="s2">notional</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">sum</span><span class="se">\&quot;</span><span class="s2">),</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="s2">    total_mtm=(</span><span class="se">\&quot;</span><span class="s2">mtm_value</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">sum</span><span class="se">\&quot;</span><span class="s2">),</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="s2">    avg_price=(</span><span class="se">\&quot;</span><span class="s2">price</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">mean</span><span class="se">\&quot;</span><span class="s2">),</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="s2">    n_trades=(</span><span class="se">\&quot;</span><span class="s2">trade_id</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">nunique</span><span class="se">\&quot;</span><span class="s2">),</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="s2">).reset_index()</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="s2">exposures_sorted = exposures.sort_values([</span><span class="se">\&quot;</span><span class="s2">book</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">trade_date</span><span class="se">\&quot;</span><span class="s2">])</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="s2">rolling_pnl = (</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="s2">    exposures_sorted.groupby(</span><span class="se">\&quot;</span><span class="s2">book</span><span class="se">\&quot;</span><span class="s2">)[</span><span class="se">\&quot;</span><span class="s2">total_mtm</span><span class="se">\&quot;</span><span class="s2">]</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="s2">    .rolling(</span><span class="se">\&quot;</span><span class="s2">30D</span><span class="se">\&quot;</span><span class="s2">, on=</span><span class="se">\&quot;</span><span class="s2">trade_date</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="s2">    .sum()</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="s2">    .reset_index()</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="s2">    .rename(columns={</span><span class="se">\&quot;</span><span class="s2">total_mtm</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">rolling_30d_pnl</span><span class="se">\&quot;</span><span class="s2">})</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="s2">)</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="s2">top_books = rolling_pnl.nlargest(50, </span><span class="se">\&quot;</span><span class="s2">rolling_30d_pnl</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="n">flow</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+</code></pre></div>
+<p><code>convert(...)</code> is the rule-based entry point — same call shape Chapters 2 and 6 use.</p>
+<h3 id="inspecting-the-flow">Inspecting the flow<a class="headerlink" href="#inspecting-the-flow" title="Permanent link">&para;</a></h3>
+<p><code>flow.get_summary()</code> returns the count-by-type rollup:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">get_summary</span><span class="p">())</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Flow: converted_flow
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Source: unknown
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>Generated: 2026-04-26T22:22:08.772859
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>Datasets: 9
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  - Input: 3
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  - Intermediate: 6
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  - Output: 0
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>Recipes: 6
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>  - grouping: 1
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>  - join: 1
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>  - sort: 1
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>  - split: 1
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>  - topn: 1
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>  - window: 1
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>Optimization Notes:
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>  - split: 1 recipe(s)
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>  - join: 1 recipe(s)
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>  - grouping: 1 recipe(s)
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>  - sort: 1 recipe(s)
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>  - window: 1 recipe(s)
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>  - topn: 1 recipe(s)
+</code></pre></div>
+<p>Six recipes for the twelve-line script. The breakdown maps cleanly onto the source: the <code>&gt;=</code> boolean indexing on <code>trade_date</code> becomes a SPLIT, the multi-key <code>merge(...)</code> becomes a JOIN, the <code>groupby(...).agg(...)</code> becomes a GROUPING, the <code>sort_values(...)</code> becomes a SORT, the chained <code>groupby(...).rolling(...).sum()</code> becomes a WINDOW, and <code>nlargest(...)</code> becomes a TOP_N.</p>
+<p>The <code>mtm_value</code> derivation does not appear in the recipe count. The line <code>priced["mtm_value"] = (priced["mid_price"] - priced["price"]) * priced["notional"]</code> is silently dropped on the rule-based path: derived-column assignments whose right-hand-side is a multi-column arithmetic expression on a JOINed dataset do not currently emit a PREPARE step. The LLM path in Chapter 7 captures it as a <code>CreateColumnWithGREL</code> step. For this rule-based shape the <code>mtm_value</code> column is referenced downstream by the GROUPING (<code>total_mtm=("mtm_value", "sum")</code>), so the produced flow imports cleanly into <a href="../appendix-a-glossary/#dss">DSS</a> but the reader of the flow has to add the MtM derivation as a single-step PREPARE between the JOIN and the GROUPING manually.</p>
+<p>The recipe-type list reads off the same shape, in source-script order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">))</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">print</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>6
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>[&#39;split&#39;, &#39;join&#39;, &#39;grouping&#39;, &#39;sort&#39;, &#39;window&#39;, &#39;topn&#39;]
+</code></pre></div>
+<p><code>flow.graph.recipe_nodes</code> returns the recipe nodes in topological order, wrapped as <code>FlowNode</code> instances:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">print</span><span class="p">([</span><span class="n">n</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">recipe_nodes</span><span class="p">])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>[&#39;recipe:split_1&#39;, &#39;recipe:join_2&#39;, &#39;recipe:grouping_3&#39;, &#39;recipe:sort_4&#39;, &#39;recipe:window_5&#39;, &#39;recipe:topn_6&#39;]
+</code></pre></div>
+<h3 id="filter-routing-on-the-split">Filter routing on the SPLIT<a class="headerlink" href="#filter-routing-on-the-split" title="Permanent link">&para;</a></h3>
+<p><code>recent = trades[trades["trade_date"] &gt;= "2024-01-01"]</code> is a single-comparison boolean filter. Chapter 8 covers the routing rule: a numeric or date <code>&gt;=</code> predicate becomes a SPLIT recipe with a GREL <code>split_condition</code>, not a <code>FilterOnNumericRange</code> processor inside a PREPARE. The rule-based parser emits SPLIT for any comparison whose left side is a column and whose right side is a literal — the result lives on <code>recipe.split_condition</code> as a <a href="../appendix-a-glossary/#grel">GREL</a> expression:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">split</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;split&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">split</span><span class="o">.</span><span class="n">split_condition</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>val(&quot;trade_date&quot;) &gt;= &quot;2024-01-01&quot;
+</code></pre></div>
+<p>The GREL form <code>val("col") &gt;= literal</code> is what DSS evaluates at flow-run time. Compound conditions (e.g. <code>df[(a &gt; 5) &amp; (b &lt; 10)]</code>) route to a <code>FilterOnFormula</code> processor inside a PREPARE; equality on a string column routes to <code>FilterOnValue</code>; this single-comparison form is the SPLIT case.</p>
+<h3 id="what-the-recipes-contain">What the recipes contain<a class="headerlink" href="#what-the-recipes-contain" title="Permanent link">&para;</a></h3>
+<p>The JOIN carries the join type and the three-key join condition:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;join&quot;</span><span class="p">:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;join_type:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">join_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  join_keys:&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="n">k</span><span class="o">.</span><span class="n">left_column</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">right_column</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">join_keys</span><span class="p">])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>join_2 join_type: LEFT
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  join_keys: [(&#39;commodity&#39;, &#39;commodity&#39;), (&#39;tenor&#39;, &#39;tenor&#39;), (&#39;delivery_location&#39;, &#39;delivery_location&#39;)]
+</code></pre></div>
+<p><code>how="left"</code> translates to <code>JoinType.LEFT</code>; <code>on=[...]</code> produces three <code>JoinKey</code> instances with identical left and right columns. The DSS-canonical wire format stores joins as a list of <code>{table1, table2, conditionsMode, joinType, conditions, outerJoinOnTheLeft}</code> blocks (see <a href="https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py">dataiku-api-client-python: recipe.py</a> for the canonical creator class).</p>
+<p>The GROUPING carries the group keys but not the aggregation list on the rule-based path:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;grouping&quot;</span><span class="p">:</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;group_keys:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">group_keys</span><span class="p">)</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  aggregations:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">aggregations</span><span class="p">)</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  settings:    &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">settings</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>grouping_3 group_keys: [&#39;book&#39;, &#39;commodity&#39;, &#39;tenor&#39;]
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>  aggregations: []
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>  settings:     None
+</code></pre></div>
+<p><code>group_keys</code> comes through cleanly; <code>aggregations</code> is empty because the rule-based parser detects the keys from the <code>groupby(...)</code> argument list but does not parse the <code>.agg(...)</code> keyword-tuple form into individual <code>Aggregation</code> entries. <code>recipe.settings</code> is <code>None</code> for the same reason — the typed <code>GroupingSettings</code> subclass is populated only when the analyzer can lift every aggregation into a structured form. The LLM path in Chapter 7 emits the full aggregation list with each <code>Aggregation(column=..., function=..., alias=...)</code> populated.</p>
+<p>The WINDOW captures the rolling aggregation but not the partition or order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">:</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;window&quot;</span><span class="p">:</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  partition_columns:  &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">partition_columns</span><span class="p">)</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  order_columns:     &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">order_columns</span><span class="p">)</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  window_aggregations:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">window_aggregations</span><span class="p">)</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  settings:          &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">settings</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>window_5
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>  partition_columns:   []
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>  order_columns:      []
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>  window_aggregations: [{&#39;column&#39;: &#39;total_mtm&#39;, &#39;type&#39;: &#39;SUM&#39;, &#39;windowSize&#39;: &#39;30D&#39;}]
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>  settings:            None
+</code></pre></div>
+<p>The aggregation entry — <code>SUM</code> over <code>total_mtm</code> with <code>windowSize='30D'</code> — is captured. The partition (<code>book</code>) and the order (<code>trade_date</code>) are implicit in the chained <code>groupby("book")["total_mtm"].rolling("30D", on="trade_date")</code> expression and are not promoted onto the typed settings fields. This is the same gap that drives the WINDOW manual-fix in Example 2; the file:line reference is the same. <code>WindowSettings</code> (typed) is not populated for the same reason.</p>
+<p>The TOP_N is the cleanest of the six:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">:</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;topn&quot;</span><span class="p">:</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;top_n:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">top_n</span><span class="p">,</span> <span class="s2">&quot;ranking_column:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">ranking_column</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>topn_6 top_n: 50 ranking_column: rolling_30d_pnl
+</code></pre></div>
+<p><code>nlargest(50, "rolling_30d_pnl")</code> maps to TOP_N with <code>top_n=50</code> and <code>ranking_column="rolling_30d_pnl"</code>. TOP_N is the row-reducing dual of SORT (Chapter 6).</p>
+<p><code>flow.optimization_notes</code> records the per-type recipe counts; no merges fired on this flow because there is only one recipe of each type after the SPLIT:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">optimization_notes</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>[&#39;split: 1 recipe(s)&#39;, &#39;join: 1 recipe(s)&#39;, &#39;grouping: 1 recipe(s)&#39;,
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a> &#39;sort: 1 recipe(s)&#39;, &#39;window: 1 recipe(s)&#39;, &#39;topn: 1 recipe(s)&#39;]
+</code></pre></div>
+<h3 id="visualizations">Visualizations<a class="headerlink" href="#visualizations" title="Permanent link">&para;</a></h3>
+<p>The ASCII renderer fits in a terminal — 103 lines for this flow, with one block per recipe. The header is a banner line, then each input dataset appears in a box, the recipe nodes follow as labelled cards, and arrows connect them top-to-bottom. The trailing legend line is suppressed in the chapter excerpt because it contains rendering glyphs the textbook style does not allow inline; consumers who want the full art pipe <code>flow.visualize(format="ascii")</code> to a terminal directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;ascii&quot;</span><span class="p">))</span>
+</code></pre></div>
+<p>The Mermaid renderer gives the same DAG with explicit fan-in and fan-out, suitable for committing to GitHub or rendering in Notion:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mermaid&quot;</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>flowchart TD
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    subgraph inputs[Input Datasets]
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>        D0[(trades)]
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>        D2[(curves)]
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>        D6[()]
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>    end
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>    D1[(recent)]
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>    D3[(priced)]
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    D4[(exposures)]
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>    D5[(exposures_sorted)]
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>    D7[(rolling_pnl)]
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>    D8[(top_books)]
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>    R0{Split}
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>    R1{Join\n(LEFT)}
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a>    R2{Grouping\n(0 aggs)}
+<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>    R3{Sort}
+<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a>    R4{Window}
+<a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a>    R5{Topn}
+<a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a>    D0 --&gt; R0
+<a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>    R0 --&gt; D1
+<a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a>    D1 --&gt; R1
+<a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a>    D2 --&gt; R1
+<a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a>    R1 --&gt; D3
+<a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a>    D3 --&gt; R2
+<a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a>    R2 --&gt; D4
+<a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a>    D4 --&gt; R3
+<a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a>    R3 --&gt; D5
+<a id="__codelineno-23-28" name="__codelineno-23-28" href="#__codelineno-23-28"></a>    D6 --&gt; R4
+<a id="__codelineno-23-29" name="__codelineno-23-29" href="#__codelineno-23-29"></a>    R4 --&gt; D7
+<a id="__codelineno-23-30" name="__codelineno-23-30" href="#__codelineno-23-30"></a>    D7 --&gt; R5
+<a id="__codelineno-23-31" name="__codelineno-23-31" href="#__codelineno-23-31"></a>    R5 --&gt; D8
+</code></pre></div>
+<p><code>D6</code> is the empty-name placeholder dataset that the rule-based analyzer registers when it cannot resolve the input dataset for a chained pandas expression — the WINDOW (<code>R4</code>) consumes <code>D6</code> rather than <code>exposures_sorted</code> because the <code>.groupby(...).rolling(...).sum().reset_index().rename(...)</code> chain is too long for the variable-name lineage tracker to follow. The LLM path closes the gap by tracking logical lineage instead of variable names.</p>
+<p>The SVG renderer produces a Dataiku-style diagram suitable for documentation exports:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="n">svg</span> <span class="o">=</span> <span class="n">flow</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;svg&quot;</span><span class="p">)</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;position-pnl-1.svg&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">svg</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="Position and MtM flow, SVG" src="../assets/position-pnl-1.svg" /></p>
+<p>The rendered SVG colours dataset nodes by role (blue for inputs, grey for intermediates) and recipe nodes by recipe type. Reading top-to-bottom recovers the script's structural shape — and exposes the same WINDOW disconnect Mermaid surfaces: the WINDOW node has no upstream edge from <code>exposures_sorted</code>.</p>
+<h2 id="example-2-real-time-pjm-lmp-tick-analytics">Example 2 — Real-time PJM LMP tick analytics<a class="headerlink" href="#example-2-real-time-pjm-lmp-tick-analytics" title="Permanent link">&para;</a></h2>
+<p>The second example is a 5-minute LMP tick analytic, the kind of flow a power-trading desk runs against the PJM real-time feed for intraday signal generation. The script sorts ticks by <code>(node_id, timestamp)</code>, computes a 6-tick (30-minute) volume-weighted-average-price proxy per node, computes a 12-tick (1-hour) rolling volatility per node, and derives an <code>intraday_pnl</code> column relating the latest LMP to the 30-minute VWAP. Each computation is a per-node window function with the same partition (<code>node_id</code>) and the same order (<code>timestamp</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="n">ticks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;pjm_lmps.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="n">ticks_sorted</span> <span class="o">=</span> <span class="n">ticks</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;node_id&quot;</span><span class="p">,</span> <span class="s2">&quot;timestamp&quot;</span><span class="p">])</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="n">ticks_vwap</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>    <span class="n">ticks_sorted</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;node_id&quot;</span><span class="p">)[</span><span class="s2">&quot;lmp&quot;</span><span class="p">]</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>    <span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;timestamp&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>    <span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>    <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lmp&quot;</span><span class="p">:</span> <span class="s2">&quot;vwap_30min&quot;</span><span class="p">})</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="p">)</span>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="n">ticks_vol</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>    <span class="n">ticks_sorted</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;node_id&quot;</span><span class="p">)[</span><span class="s2">&quot;lmp&quot;</span><span class="p">]</span>
+<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>    <span class="o">.</span><span class="n">rolling</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;timestamp&quot;</span><span class="p">)</span>
+<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a>    <span class="o">.</span><span class="n">std</span><span class="p">()</span>
+<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a>    <span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>    <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lmp&quot;</span><span class="p">:</span> <span class="s2">&quot;rolling_vol&quot;</span><span class="p">})</span>
+<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a><span class="p">)</span>
+</code></pre></div>
+<p>Two windowed derivations on the same input. Both partition by <code>node_id</code>, both order by <code>timestamp</code>, both produce a derived column whose value depends on the window. The <code>intraday_pnl = lmp - vwap_30min</code> derivation is a pure element-wise GREL formula that lives in a single-step PREPARE — see the gap-handling note below.</p>
+<h3 id="conversion_1">Conversion<a class="headerlink" href="#conversion_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="n">source</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="s2">import pandas as pd</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="s2">ticks = pd.read_csv(</span><span class="se">\&quot;</span><span class="s2">pjm_lmps.csv</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="s2">ticks_sorted = ticks.sort_values([</span><span class="se">\&quot;</span><span class="s2">node_id</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">timestamp</span><span class="se">\&quot;</span><span class="s2">])</span>
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="s2">ticks_vwap = (</span>
+<a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="s2">    ticks_sorted.groupby(</span><span class="se">\&quot;</span><span class="s2">node_id</span><span class="se">\&quot;</span><span class="s2">)[</span><span class="se">\&quot;</span><span class="s2">lmp</span><span class="se">\&quot;</span><span class="s2">]</span>
+<a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a><span class="s2">    .rolling(6, on=</span><span class="se">\&quot;</span><span class="s2">timestamp</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a><span class="s2">    .mean()</span>
+<a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a><span class="s2">    .reset_index()</span>
+<a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a><span class="s2">    .rename(columns={</span><span class="se">\&quot;</span><span class="s2">lmp</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">vwap_30min</span><span class="se">\&quot;</span><span class="s2">})</span>
+<a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a><span class="s2">)</span>
+<a id="__codelineno-26-15" name="__codelineno-26-15" href="#__codelineno-26-15"></a><span class="s2">ticks_vol = (</span>
+<a id="__codelineno-26-16" name="__codelineno-26-16" href="#__codelineno-26-16"></a><span class="s2">    ticks_sorted.groupby(</span><span class="se">\&quot;</span><span class="s2">node_id</span><span class="se">\&quot;</span><span class="s2">)[</span><span class="se">\&quot;</span><span class="s2">lmp</span><span class="se">\&quot;</span><span class="s2">]</span>
+<a id="__codelineno-26-17" name="__codelineno-26-17" href="#__codelineno-26-17"></a><span class="s2">    .rolling(12, on=</span><span class="se">\&quot;</span><span class="s2">timestamp</span><span class="se">\&quot;</span><span class="s2">)</span>
+<a id="__codelineno-26-18" name="__codelineno-26-18" href="#__codelineno-26-18"></a><span class="s2">    .std()</span>
+<a id="__codelineno-26-19" name="__codelineno-26-19" href="#__codelineno-26-19"></a><span class="s2">    .reset_index()</span>
+<a id="__codelineno-26-20" name="__codelineno-26-20" href="#__codelineno-26-20"></a><span class="s2">    .rename(columns={</span><span class="se">\&quot;</span><span class="s2">lmp</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">rolling_vol</span><span class="se">\&quot;</span><span class="s2">})</span>
+<a id="__codelineno-26-21" name="__codelineno-26-21" href="#__codelineno-26-21"></a><span class="s2">)</span>
+<a id="__codelineno-26-22" name="__codelineno-26-22" href="#__codelineno-26-22"></a><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-26-23" name="__codelineno-26-23" href="#__codelineno-26-23"></a>
+<a id="__codelineno-26-24" name="__codelineno-26-24" href="#__codelineno-26-24"></a><span class="n">flow</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="inspecting-the-flow_1">Inspecting the flow<a class="headerlink" href="#inspecting-the-flow_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">get_summary</span><span class="p">())</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>Flow: converted_flow
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>Source: unknown
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>Generated: 2026-04-26T22:23:11.691915
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>Datasets: 4
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>  - Input: 2
+<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>  - Intermediate: 2
+<a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>  - Output: 0
+<a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>
+<a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>Recipes: 2
+<a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a>  - sort: 1
+<a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a>  - window: 1
+<a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a>
+<a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a>Optimization Notes:
+<a id="__codelineno-28-15" name="__codelineno-28-15" href="#__codelineno-28-15"></a>  - Merged WINDOW &#39;window_2&#39; + &#39;window_3&#39; -&gt; &#39;window_merged_window_2&#39;
+<a id="__codelineno-28-16" name="__codelineno-28-16" href="#__codelineno-28-16"></a>  - Removed orphaned intermediate dataset &#39;ticks_vwap&#39;
+<a id="__codelineno-28-17" name="__codelineno-28-17" href="#__codelineno-28-17"></a>  - sort: 1 recipe(s)
+<a id="__codelineno-28-18" name="__codelineno-28-18" href="#__codelineno-28-18"></a>  - window: 1 recipe(s)
+</code></pre></div>
+<p>Two recipes for the four-line script. The <a href="../appendix-a-glossary/#optimizer">optimizer</a> merged the two adjacent WINDOW recipes — one for <code>mean(6)</code>, one for <code>std(12)</code> — into <code>window_merged_window_2</code>, because both are WINDOWs reading the same input dataset; Chapter 10 covers the merge rule. The orphan-removal note shows the by-product: <code>ticks_vwap</code> becomes unreachable once the second WINDOW supersedes the first, and the optimizer prunes it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">:</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">  in=</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">inputs</span><span class="si">}</span><span class="s2">  out=</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">outputs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>  sort_1: sort  in=[&#39;ticks&#39;]  out=[&#39;ticks_sorted&#39;]
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>  window_merged_window_2: window  in=[&#39;&#39;]  out=[&#39;ticks_vol&#39;]
+</code></pre></div>
+<p>The SORT consumes <code>ticks</code> and produces <code>ticks_sorted</code>. The merged WINDOW lists an empty-string input — the same lineage gap Example 1 surfaced — and produces <code>ticks_vol</code> (the variable name of the second windowed assignment, kept by the optimizer's orphan-pruning step).</p>
+<h3 id="the-window-partitionorder-gap">The WINDOW partition/order gap<a class="headerlink" href="#the-window-partitionorder-gap" title="Permanent link">&para;</a></h3>
+<p>Inspect the WINDOW recipe deeply:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">:</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;window&quot;</span><span class="p">:</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  partition_columns:  &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">partition_columns</span><span class="p">)</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  order_columns:     &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">order_columns</span><span class="p">)</span>
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  window_aggregations:&quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">window_aggregations</span><span class="p">)</span>
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  settings:          &quot;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">settings</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>window_merged_window_2
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>  partition_columns:   []
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>  order_columns:      []
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>  window_aggregations: [{&#39;column&#39;: &#39;lmp&#39;, &#39;type&#39;: &#39;MEAN&#39;, &#39;windowSize&#39;: 6}, {&#39;column&#39;: &#39;lmp&#39;, &#39;type&#39;: &#39;STD&#39;, &#39;windowSize&#39;: 12}]
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>  settings:            None
+</code></pre></div>
+<p><code>window_aggregations</code> captures both rolling computations. <code>partition_columns</code> and <code>order_columns</code> are empty — the chained <code>groupby("node_id")[...].rolling(N, on="timestamp")</code> form is the trigger, but the rule-based analyzer emits the WINDOW <a href="../appendix-a-glossary/#transformation"><code>Transformation</code></a> without lifting the partition key or the <code>on=</code> order column onto its parameters. The downstream flow generator faithfully forwards what it receives:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>py2dataiku/parser/ast_analyzer.py:483-502   builds the ROLLING transformation;
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>                                            parameters dict carries
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>                                            {method, window_function, window, column}
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>                                            but never partition_columns / order_columns.
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>py2dataiku/generators/flow_generator.py:714-715
+<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>                                            reads partition_columns / order_columns
+<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>                                            from trans.parameters with default [],
+<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>                                            so the WINDOW recipe receives both as [].
+</code></pre></div>
+<p>The produced flow runs in DSS — the WINDOW recipe accepts an empty <code>partition_columns</code> and treats every row as one big partition, which is wrong for the per-node analytic. The export imports cleanly but the desk-trader needs to set the partition manually in the DSS UI. Three options for handling this in py-iku today:</p>
+<ol>
+<li>Use <code>convert_with_llm</code> (Chapter 7) — the LLM analyzer reads the <code>groupby("node_id")</code> chain and promotes <code>node_id</code> onto <code>partition_columns</code> directly.</li>
+<li>Edit the produced flow in Python before exporting it (shown below).</li>
+<li>Restructure the source so the partition appears as an explicit <code>df.groupby("node_id").transform(...)</code> call, which the rule-based pattern matcher does pick up — but this only works for fixed-size windows, not <code>rolling(...)</code>.</li>
+</ol>
+<p>The post-conversion Python fix uses the typed <code>WindowSettings</code> subclass directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku.models.recipe_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">WindowSettings</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="n">window</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;window&quot;</span><span class="p">)</span>
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="n">window</span><span class="o">.</span><span class="n">partition_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node_id&quot;</span><span class="p">]</span>
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="n">window</span><span class="o">.</span><span class="n">order_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span>
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="n">window</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">WindowSettings</span><span class="p">(</span>
+<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>    <span class="n">partition_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;node_id&quot;</span><span class="p">],</span>
+<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>    <span class="n">order_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">],</span>
+<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>    <span class="n">aggregations</span><span class="o">=</span><span class="n">window</span><span class="o">.</span><span class="n">window_aggregations</span><span class="p">,</span>
+<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a><span class="p">)</span>
+<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;partition_columns:&quot;</span><span class="p">,</span> <span class="n">window</span><span class="o">.</span><span class="n">partition_columns</span><span class="p">)</span>
+<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;order_columns:   &quot;</span><span class="p">,</span> <span class="n">window</span><span class="o">.</span><span class="n">order_columns</span><span class="p">)</span>
+<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;settings:        &quot;</span><span class="p">,</span> <span class="n">window</span><span class="o">.</span><span class="n">settings</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>partition_columns: [&#39;node_id&#39;]
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>order_columns:    [&#39;timestamp&#39;]
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>settings:         WindowSettings(partition_columns=[&#39;node_id&#39;], order_columns=[&#39;timestamp&#39;], aggregations=[{&#39;column&#39;: &#39;lmp&#39;, &#39;type&#39;: &#39;MEAN&#39;, &#39;windowSize&#39;: 6}, {&#39;column&#39;: &#39;lmp&#39;, &#39;type&#39;: &#39;STD&#39;, &#39;windowSize&#39;: 12}])
+</code></pre></div>
+<p>Setting <code>recipe.partition_columns</code>, <code>recipe.order_columns</code>, and <code>recipe.settings</code> directly on the <code>DataikuRecipe</code> instance is supported public API — both attributes are dataclass fields exposed on the model. The exporters in <code>py2dataiku.exporters</code> honour both the bare list fields and the typed settings object on serialization.</p>
+<h3 id="intraday_pnl-the-dropped-grel-derivation">intraday_pnl: the dropped GREL derivation<a class="headerlink" href="#intraday_pnl-the-dropped-grel-derivation" title="Permanent link">&para;</a></h3>
+<p>The script's final intent is <code>intraday_pnl = lmp - vwap_30min</code>. Two options:</p>
+<ol>
+<li>Append the derivation as a downstream pandas line <em>after</em> the WINDOW assignments. On the rule-based path the assignment is silently dropped — the same gap Example 1 surfaced for <code>mtm_value</code>.</li>
+<li>Add the PREPARE step manually after conversion, mirroring the manual fix above.</li>
+</ol>
+<p>A minimal manual addition:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataikuRecipe</span><span class="p">,</span> <span class="n">RecipeType</span><span class="p">,</span> <span class="n">ProcessorType</span><span class="p">,</span> <span class="n">PrepareStep</span>
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="n">pnl_step</span> <span class="o">=</span> <span class="n">PrepareStep</span><span class="p">(</span>
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>    <span class="n">processor_type</span><span class="o">=</span><span class="n">ProcessorType</span><span class="o">.</span><span class="n">CREATE_COLUMN_WITH_GREL</span><span class="p">,</span>
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;column&quot;</span><span class="p">:</span> <span class="s2">&quot;intraday_pnl&quot;</span><span class="p">,</span> <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s1">&#39;val(&quot;lmp&quot;) - val(&quot;vwap_30min&quot;)&#39;</span><span class="p">},</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="p">)</span>
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="n">pnl_recipe</span> <span class="o">=</span> <span class="n">DataikuRecipe</span><span class="p">(</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;prepare_intraday_pnl&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>    <span class="n">recipe_type</span><span class="o">=</span><span class="n">RecipeType</span><span class="o">.</span><span class="n">PREPARE</span><span class="p">,</span>
+<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a>    <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ticks_vol&quot;</span><span class="p">],</span>
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>    <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ticks_pnl&quot;</span><span class="p">],</span>
+<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a>    <span class="n">steps</span><span class="o">=</span><span class="p">[</span><span class="n">pnl_step</span><span class="p">],</span>
+<a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a><span class="p">)</span>
+<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a><span class="n">flow</span><span class="o">.</span><span class="n">add_recipe</span><span class="p">(</span><span class="n">pnl_recipe</span><span class="p">)</span>
+<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a><span class="nb">print</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">recipe_type</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">recipes</span><span class="p">])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>[&#39;sort&#39;, &#39;window&#39;, &#39;prepare&#39;]
+</code></pre></div>
+<p>The added PREPARE carries one <code>CreateColumnWithGREL</code> step whose expression references the WINDOW's output column directly. The flow now serializes as a three-recipe chain with the GREL derivation explicit on the wire.</p>
+<h3 id="predecessors-and-the-graph">Predecessors and the graph<a class="headerlink" href="#predecessors-and-the-graph" title="Permanent link">&para;</a></h3>
+<p><code>flow.graph.get_predecessors(...)</code> resolves the upstream dependency for each recipe node:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">recipe_nodes</span><span class="p">:</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">n</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">flow</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_predecessors</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>  recipe:sort_1: [&#39;ticks&#39;]
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>  recipe:window_merged_window_2: [&#39;&#39;]
+</code></pre></div>
+<p>The SORT consumes <code>ticks</code>. The WINDOW's predecessor is the empty-name placeholder — the same lineage gap surfaced by the recipe-level inspection. After the manual <code>window.inputs = ["ticks_sorted"]</code> fix and a re-render, <code>flow.graph.get_predecessors("recipe:window_merged_window_2")</code> returns <code>['ticks_sorted']</code> and the DAG closes cleanly.</p>
+<h3 id="visualizations_1">Visualizations<a class="headerlink" href="#visualizations_1" title="Permanent link">&para;</a></h3>
+<p>The ASCII renderer reads top-to-bottom: a banner line, the <code>ticks</code> input dataset boxed at the top, an arrow into the SORT card, the <code>ticks_sorted</code> intermediate dataset boxed below, an arrow into the merged WINDOW card, and the <code>ticks_vol</code> output dataset at the bottom. The renderer does not include the empty-name placeholder dataset in the layout — it appears only in the Mermaid and PlantUML outputs. Pipe <code>flow.visualize(format="ascii")</code> directly to a terminal for the full art (the trailing legend line includes glyphs the textbook style does not reproduce inline).</p>
+<p>The PlantUML renderer outputs a documentation-friendly diagram. The empty-name placeholder dataset is the source of an invalid <code>as</code> alias clause in PlantUML, so the cleanup step removes it before rendering:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="n">flow</span><span class="o">.</span><span class="n">datasets</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">datasets</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;plantuml&quot;</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>@startuml
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>!theme plain
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>skinparam backgroundColor #FAFAFA
+<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a>skinparam defaultFontName Arial
+<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>skinparam defaultFontSize 12
+<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a>
+<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a>&#39; Dataset styles
+<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>skinparam rectangle {
+<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a>  BackgroundColor&lt;&lt;input&gt;&gt; #E3F2FD
+<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a>  BorderColor&lt;&lt;input&gt;&gt; #4A90D9
+<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a>  FontColor&lt;&lt;input&gt;&gt; #1565C0
+<a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a>  BackgroundColor&lt;&lt;output&gt;&gt; #E8F5E9
+<a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a>  BorderColor&lt;&lt;output&gt;&gt; #43A047
+<a id="__codelineno-41-14" name="__codelineno-41-14" href="#__codelineno-41-14"></a>  FontColor&lt;&lt;output&gt;&gt; #2E7D32
+<a id="__codelineno-41-15" name="__codelineno-41-15" href="#__codelineno-41-15"></a>  BackgroundColor&lt;&lt;intermediate&gt;&gt; #ECEFF1
+<a id="__codelineno-41-16" name="__codelineno-41-16" href="#__codelineno-41-16"></a>  BorderColor&lt;&lt;intermediate&gt;&gt; #78909C
+<a id="__codelineno-41-17" name="__codelineno-41-17" href="#__codelineno-41-17"></a>  FontColor&lt;&lt;intermediate&gt;&gt; #455A64
+<a id="__codelineno-41-18" name="__codelineno-41-18" href="#__codelineno-41-18"></a>}
+<a id="__codelineno-41-19" name="__codelineno-41-19" href="#__codelineno-41-19"></a>
+<a id="__codelineno-41-20" name="__codelineno-41-20" href="#__codelineno-41-20"></a>&#39; Datasets
+<a id="__codelineno-41-21" name="__codelineno-41-21" href="#__codelineno-41-21"></a>rectangle &quot;ticks&quot; &lt;&lt;input&gt;&gt; as ticks
+<a id="__codelineno-41-22" name="__codelineno-41-22" href="#__codelineno-41-22"></a>rectangle &quot;ticks_sorted&quot; &lt;&lt;intermediate&gt;&gt; as ticks_sorted
+<a id="__codelineno-41-23" name="__codelineno-41-23" href="#__codelineno-41-23"></a>rectangle &quot;ticks_vol&quot; &lt;&lt;intermediate&gt;&gt; as ticks_vol
+<a id="__codelineno-41-24" name="__codelineno-41-24" href="#__codelineno-41-24"></a>
+<a id="__codelineno-41-25" name="__codelineno-41-25" href="#__codelineno-41-25"></a>&#39; Recipes
+<a id="__codelineno-41-26" name="__codelineno-41-26" href="#__codelineno-41-26"></a>card &quot;Sort&quot; &lt;&lt;sort&gt;&gt; as recipe_0
+<a id="__codelineno-41-27" name="__codelineno-41-27" href="#__codelineno-41-27"></a>card &quot;Window&quot; &lt;&lt;window&gt;&gt; as recipe_1
+<a id="__codelineno-41-28" name="__codelineno-41-28" href="#__codelineno-41-28"></a>
+<a id="__codelineno-41-29" name="__codelineno-41-29" href="#__codelineno-41-29"></a>&#39; Connections
+<a id="__codelineno-41-30" name="__codelineno-41-30" href="#__codelineno-41-30"></a>ticks --&gt; recipe_0
+<a id="__codelineno-41-31" name="__codelineno-41-31" href="#__codelineno-41-31"></a>recipe_0 --&gt; ticks_sorted
+<a id="__codelineno-41-32" name="__codelineno-41-32" href="#__codelineno-41-32"></a>ticks_sorted --&gt; recipe_1
+<a id="__codelineno-41-33" name="__codelineno-41-33" href="#__codelineno-41-33"></a>recipe_1 --&gt; ticks_vol
+<a id="__codelineno-41-34" name="__codelineno-41-34" href="#__codelineno-41-34"></a>
+<a id="__codelineno-41-35" name="__codelineno-41-35" href="#__codelineno-41-35"></a>@enduml
+</code></pre></div>
+<p>The dataset-name cleanup plus the manual <code>window.inputs = ["ticks_sorted"]</code> fix produces the diagram above; without them PlantUML emits an empty alias (<code>as</code>) for the placeholder and refuses to render. The <code>&lt;&lt;input&gt;&gt;</code>, <code>&lt;&lt;intermediate&gt;&gt;</code>, <code>&lt;&lt;output&gt;&gt;</code> stereotypes drive node colouring at render time. (The skinparam blocks for recipe colours are abbreviated above for readability; the full output includes them.)</p>
+<p>For an interactive view, the HTML renderer produces a self-contained page with the SVG embedded plus collapsible recipe-detail panels. The full HTML is checked in at <a href="../assets/position-pnl-2.html"><code>assets/position-pnl-2.html</code></a>. It is the format desk teams typically point browsers at when reviewing an LMP analytic before committing the recipe configs to DSS:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="n">html</span> <span class="o">=</span> <span class="n">flow</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s2">&quot;html&quot;</span><span class="p">)</span>
+<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;position-pnl-2.html&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="notes-carried-over">Notes carried over<a class="headerlink" href="#notes-carried-over" title="Permanent link">&para;</a></h2>
+<p>The two examples expose two complementary points about analyzer choice on front-office flows. The position example produces a six-recipe shape from a plausible end-of-day P&amp;L script; the recipe-by-recipe inspection cleanly recovers the join keys, the group keys, the rolling-window aggregation, and the top-N parameters. It also exposes two known gaps — the dropped MtM derivation, and the WINDOW input lineage — that the LLM path closes. The PJM tick example exposes the WINDOW partition/order gap directly and shows the manual-settings workaround end-to-end; partition columns and <code>order_columns</code> need either the semantic awareness the LLM analyzer brings or a post-conversion <code>WindowSettings</code> patch.</p>
+<p>Both examples illustrate a property worth carrying: the produced flow's <em>structural</em> shape (recipe count, recipe types, edge set) is stable across runs and across analyzer paths — six recipes for the position script, two for the LMP script after the optimizer's WINDOW merge. The deep settings (<code>partition_columns</code>, aggregation lists, GREL expressions, derived-column PREPAREs) are where analyzer choice and pandas idiom matter, and the inspection sweep — <code>get_summary</code> → <code>recipes</code> → <code>graph</code> → typed settings — is the path to seeing exactly what was captured and what needs filling in.</p>
+<h2 id="further-reading">Further reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../appendix-a-glossary/">Glossary</a> — definitions for DSS, recipe, processor, dataset, JOIN, WINDOW, GREL, aggregation, partition, optimizer, lineage.</li>
+<li><a href="../appendix-c-cheatsheet/">Appendix C: Cheatsheet</a> — one-page mapping reference covering <code>groupby + agg → GROUPING</code>, <code>groupby + rolling → WINDOW</code>, <code>nlargest → TOP_N</code>, the GREL fall-through, and SPLIT vs <code>FilterOn*</code> routing.</li>
+<li><a href="../06-recipe-types-tour/">Chapter 6: Recipe types tour</a> — the running-example walk through GROUPING, JOIN, WINDOW, SORT, SPLIT, and TOP_N as algebraic primitives.</li>
+<li><a href="../08-filters-and-predicates/">Chapter 8: Filters and predicates</a> — when a <code>df[cond]</code> becomes a SPLIT recipe versus a <code>FilterOn*</code> processor; Example 1's <code>&gt;= "2024-01-01"</code> filter is the canonical SPLIT case.</li>
+<li><a href="../10-optimization-and-dag/">Chapter 10: Optimization and the DAG</a> — the WINDOW-merge rule that fires on Example 2 and the orphan-pruning step that follows.</li>
+<li><a href="https://github.com/m-deane/py-iku/blob/main/notebooks/02_intermediate.ipynb">Notebook 02 — Intermediate</a> — runnable analytics conversions parallel to the examples in this chapter.</li>
+</ul>
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
+<p>Chapter 3's anatomy walkthrough and Chapter 7's LLM-path tour together show how to close the partition/order gap and the dropped-derivation gap surfaced here.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/m-deane/py-iku" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

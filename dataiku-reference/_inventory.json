@@ -1,0 +1,3014 @@
+{
+  "aggregation_functions": [
+    {
+      "aliases": [],
+      "enum_name": "SUM",
+      "is_alias_of": null,
+      "value": "SUM"
+    },
+    {
+      "aliases": [
+        "MEAN"
+      ],
+      "enum_name": "AVG",
+      "is_alias_of": null,
+      "value": "AVG"
+    },
+    {
+      "aliases": [],
+      "enum_name": "COUNT",
+      "is_alias_of": null,
+      "value": "COUNT"
+    },
+    {
+      "aliases": [
+        "NUNIQUE"
+      ],
+      "enum_name": "COUNTD",
+      "is_alias_of": null,
+      "value": "COUNTD"
+    },
+    {
+      "aliases": [],
+      "enum_name": "MIN",
+      "is_alias_of": null,
+      "value": "MIN"
+    },
+    {
+      "aliases": [],
+      "enum_name": "MAX",
+      "is_alias_of": null,
+      "value": "MAX"
+    },
+    {
+      "aliases": [],
+      "enum_name": "FIRST",
+      "is_alias_of": null,
+      "value": "FIRST"
+    },
+    {
+      "aliases": [],
+      "enum_name": "LAST",
+      "is_alias_of": null,
+      "value": "LAST"
+    },
+    {
+      "aliases": [
+        "STD"
+      ],
+      "enum_name": "STDDEV",
+      "is_alias_of": null,
+      "value": "STDDEV"
+    },
+    {
+      "aliases": [
+        "VARIANCE"
+      ],
+      "enum_name": "VAR",
+      "is_alias_of": null,
+      "value": "VAR"
+    },
+    {
+      "aliases": [],
+      "enum_name": "MEDIAN",
+      "is_alias_of": null,
+      "value": "MEDIAN"
+    },
+    {
+      "aliases": [],
+      "enum_name": "MODE",
+      "is_alias_of": null,
+      "value": "MODE"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PERCENTILE_25",
+      "is_alias_of": null,
+      "value": "PERCENTILE_25"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PERCENTILE_50",
+      "is_alias_of": null,
+      "value": "PERCENTILE_50"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PERCENTILE_75",
+      "is_alias_of": null,
+      "value": "PERCENTILE_75"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PERCENTILE_90",
+      "is_alias_of": null,
+      "value": "PERCENTILE_90"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PERCENTILE_95",
+      "is_alias_of": null,
+      "value": "PERCENTILE_95"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PERCENTILE_99",
+      "is_alias_of": null,
+      "value": "PERCENTILE_99"
+    },
+    {
+      "aliases": [],
+      "enum_name": "CONCAT",
+      "is_alias_of": null,
+      "value": "CONCAT"
+    },
+    {
+      "aliases": [],
+      "enum_name": "COLLECT_LIST",
+      "is_alias_of": null,
+      "value": "COLLECT_LIST"
+    },
+    {
+      "aliases": [],
+      "enum_name": "COLLECT_SET",
+      "is_alias_of": null,
+      "value": "COLLECT_SET"
+    },
+    {
+      "aliases": [],
+      "enum_name": "MEAN",
+      "is_alias_of": "AVG",
+      "value": "AVG"
+    },
+    {
+      "aliases": [],
+      "enum_name": "NUNIQUE",
+      "is_alias_of": "COUNTD",
+      "value": "COUNTD"
+    },
+    {
+      "aliases": [],
+      "enum_name": "STD",
+      "is_alias_of": "STDDEV",
+      "value": "STDDEV"
+    },
+    {
+      "aliases": [],
+      "enum_name": "VARIANCE",
+      "is_alias_of": "VAR",
+      "value": "VAR"
+    }
+  ],
+  "catalog_orphans": [
+    {
+      "canonical_name": "ColumnsSelector",
+      "catalog_key": "ColumnsSelector_delete",
+      "category": "Column Manipulation",
+      "note": "secondary catalog key sharing canonical name",
+      "params": [
+        "columns"
+      ]
+    }
+  ],
+  "pandas_mappings": {
+    "agg_mappings": {
+      "average": "AVG",
+      "avg": "AVG",
+      "count": "COUNT",
+      "first": "FIRST",
+      "last": "LAST",
+      "max": "MAX",
+      "mean": "AVG",
+      "median": "MEDIAN",
+      "min": "MIN",
+      "nunique": "COUNTD",
+      "size": "COUNT",
+      "std": "STDDEV",
+      "sum": "SUM",
+      "var": "VAR"
+    },
+    "join_mappings": {
+      "cross": "CROSS",
+      "inner": "INNER",
+      "left": "LEFT",
+      "outer": "OUTER",
+      "right": "RIGHT"
+    },
+    "method_handler_dispatch": {
+      "abs": "_handle_abs",
+      "assign": "_handle_assign",
+      "astype": "_handle_astype",
+      "clip": "_handle_clip",
+      "combine_first": "_handle_combine_first",
+      "cummax": "_handle_cummax",
+      "cummin": "_handle_cummin",
+      "cumprod": "_handle_cumprod",
+      "cumsum": "_handle_cumsum",
+      "describe": "_handle_describe",
+      "diff": "_handle_diff",
+      "drop": "_handle_drop",
+      "drop_duplicates": "_handle_drop_duplicates",
+      "dropna": "_handle_dropna",
+      "explode": "_handle_explode",
+      "fillna": "_handle_fillna",
+      "groupby": "_handle_groupby",
+      "head": "_handle_head",
+      "info": "_handle_info",
+      "interpolate": "_handle_interpolate",
+      "isin": "_handle_isin",
+      "join": "_handle_join",
+      "map": "_handle_map",
+      "mask": "_handle_mask",
+      "melt": "_handle_melt",
+      "merge": "_handle_merge",
+      "nlargest": "_handle_nlargest",
+      "nsmallest": "_handle_nsmallest",
+      "nunique": "_handle_nunique",
+      "pivot": "_handle_pivot",
+      "pivot_table": "_handle_pivot",
+      "query": "_handle_query",
+      "rank": "_handle_rank",
+      "rename": "_handle_rename",
+      "replace": "_handle_replace",
+      "rolling": "_handle_rolling",
+      "round": "_handle_round",
+      "sample": "_handle_sample",
+      "shift": "_handle_shift",
+      "sort_values": "_handle_sort",
+      "str": "_handle_str_accessor",
+      "tail": "_handle_tail",
+      "to_datetime": "_handle_to_datetime",
+      "to_numeric": "_handle_to_numeric",
+      "where": "_handle_where"
+    },
+    "method_handlers": [
+      "_handle_abs",
+      "_handle_assign",
+      "_handle_astype",
+      "_handle_clip",
+      "_handle_combine_first",
+      "_handle_cummax",
+      "_handle_cummin",
+      "_handle_cumprod",
+      "_handle_cumsum",
+      "_handle_describe",
+      "_handle_diff",
+      "_handle_drop",
+      "_handle_drop_duplicates",
+      "_handle_dropna",
+      "_handle_explode",
+      "_handle_fillna",
+      "_handle_groupby",
+      "_handle_head",
+      "_handle_info",
+      "_handle_interpolate",
+      "_handle_isin",
+      "_handle_join",
+      "_handle_map",
+      "_handle_mask",
+      "_handle_melt",
+      "_handle_merge",
+      "_handle_nlargest",
+      "_handle_nsmallest",
+      "_handle_nunique",
+      "_handle_pivot",
+      "_handle_query",
+      "_handle_rank",
+      "_handle_rename",
+      "_handle_replace",
+      "_handle_rolling",
+      "_handle_round",
+      "_handle_sample",
+      "_handle_shift",
+      "_handle_sort",
+      "_handle_str_accessor",
+      "_handle_tail",
+      "_handle_to_datetime",
+      "_handle_to_numeric",
+      "_handle_where"
+    ],
+    "numpy_binner_mappings": {
+      "percentile": "QUANTILE",
+      "quantile": "QUANTILE"
+    },
+    "numpy_processor_mappings": {
+      "digitize": "BINNER",
+      "select": "SWITCH_CASE"
+    },
+    "numpy_window_mappings": {
+      "cumprod": "RUNNING_PRODUCT",
+      "cumsum": "RUNNING_SUM",
+      "diff": "LAG_DIFF"
+    },
+    "processor_mappings": {
+      "abs": "CREATE_COLUMN_WITH_GREL",
+      "astype": "TYPE_SETTER",
+      "clip": "CLIP_COLUMN",
+      "combine_first": "COALESCE",
+      "cut": "BINNER",
+      "drop": "COLUMNS_SELECTOR",
+      "dropna": "REMOVE_ROWS_ON_EMPTY",
+      "explode": "UNFOLD",
+      "fillna": "FILL_EMPTY_WITH_VALUE",
+      "get_dummies": "CATEGORICAL_ENCODER",
+      "interpolate": "FILL_EMPTY_WITH_PREVIOUS_NEXT",
+      "map": "TRANSLATE_VALUES",
+      "qcut": "BINNER",
+      "rename": "COLUMN_RENAMER",
+      "round": "ROUND_COLUMN",
+      "to_datetime": "DATE_PARSER"
+    },
+    "recipe_mappings": {
+      "concat": "STACK",
+      "cummax": "WINDOW",
+      "cummin": "WINDOW",
+      "cumprod": "WINDOW",
+      "cumsum": "WINDOW",
+      "diff": "WINDOW",
+      "drop_duplicates": "DISTINCT",
+      "groupby": "GROUPING",
+      "head": "TOP_N",
+      "join": "JOIN",
+      "melt": "PREPARE",
+      "merge": "JOIN",
+      "nlargest": "TOP_N",
+      "nsmallest": "TOP_N",
+      "nunique": "GROUPING",
+      "pivot": "PIVOT",
+      "pivot_table": "PIVOT",
+      "rank": "WINDOW",
+      "sample": "SAMPLING",
+      "shift": "WINDOW",
+      "sort_values": "SORT"
+    },
+    "string_mappings": {
+      "capitalize": "TITLECASE",
+      "lower": "LOWERCASE",
+      "lstrip": "TRIM_LEFT",
+      "rstrip": "TRIM_RIGHT",
+      "strip": "TRIM",
+      "title": "TITLECASE",
+      "upper": "UPPERCASE"
+    },
+    "window_mappings": {
+      "cummax": "RUNNING_MAX",
+      "cummin": "RUNNING_MIN",
+      "cumprod": "RUNNING_PRODUCT",
+      "cumsum": "RUNNING_SUM",
+      "diff": "LAG_DIFF",
+      "rank": "RANK",
+      "shift": "LAG"
+    }
+  },
+  "processors": [
+    {
+      "aliases": [],
+      "canonical_name": "ColumnRenamer",
+      "catalog_key": "ColumnRenamer",
+      "category": "Column Manipulation",
+      "enum_name": "COLUMN_RENAMER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "renamings": "required; example=[{'from': 'old_name', 'to': 'new_name'}]"
+      },
+      "params": [
+        "renamings"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ColumnCopier",
+      "catalog_key": "ColumnCopier",
+      "category": "Column Manipulation",
+      "enum_name": "COLUMN_COPIER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "inputColumn": "required; example='source_col'",
+        "outputColumn": "required; example='target_col'"
+      },
+      "params": [
+        "inputColumn",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [
+        "COLUMN_DELETER"
+      ],
+      "canonical_name": "ColumnsSelector",
+      "catalog_key": "ColumnsSelector",
+      "category": "Column Manipulation",
+      "enum_name": "COLUMNS_SELECTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['col1', 'col2']",
+        "keep": "optional; example=True"
+      },
+      "params": [
+        "columns",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ColumnReorder",
+      "catalog_key": "ColumnReorder",
+      "category": "Column Manipulation",
+      "enum_name": "COLUMN_REORDER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['id', 'name', 'date', 'value']"
+      },
+      "params": [
+        "columns"
+      ]
+    },
+    {
+      "aliases": [
+        "CONCAT_COLUMNS"
+      ],
+      "canonical_name": "ColumnsConcat",
+      "catalog_key": "ColumnsConcat",
+      "category": "Column Manipulation",
+      "enum_name": "COLUMNS_CONCATENATOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['first_name', 'last_name']",
+        "outputColumn": "required; example='full_name'",
+        "separator": "optional; example=' '"
+      },
+      "params": [
+        "columns",
+        "outputColumn",
+        "separator"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FillEmptyWithValue",
+      "catalog_key": "FillEmptyWithValue",
+      "category": "Missing Values",
+      "enum_name": "FILL_EMPTY_WITH_VALUE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='my_col'",
+        "value": "required; example='0'"
+      },
+      "params": [
+        "column",
+        "value"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "RemoveRowsOnEmpty",
+      "catalog_key": "RemoveRowsOnEmpty",
+      "category": "Missing Values",
+      "enum_name": "REMOVE_ROWS_ON_EMPTY",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['col1']",
+        "keep": "optional; example=False"
+      },
+      "params": [
+        "columns",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "UpDownFill",
+      "catalog_key": "UpDownFill",
+      "category": "Missing Values",
+      "enum_name": "FILL_EMPTY_WITH_PREVIOUS_NEXT",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='my_col'",
+        "direction": "required; example='PREVIOUS'"
+      },
+      "params": [
+        "column",
+        "direction"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FillEmptyWithComputedValue",
+      "catalog_key": "FillEmptyWithComputedValue",
+      "category": "Missing Values",
+      "enum_name": "FILL_EMPTY_WITH_COMPUTED_VALUE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='score'",
+        "mode": "required; example='MEAN'"
+      },
+      "params": [
+        "column",
+        "mode"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ImputeWithML",
+      "catalog_key": "ImputeWithML",
+      "category": "Missing Values",
+      "enum_name": "IMPUTE_WITH_ML",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='income'",
+        "method": "optional; example='KNN'"
+      },
+      "params": [
+        "column",
+        "method"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "StringTransformer",
+      "catalog_key": "StringTransformer",
+      "category": "String Operations",
+      "enum_name": "STRING_TRANSFORMER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='name'",
+        "mode": "required; example='TO_LOWER'"
+      },
+      "params": [
+        "column",
+        "mode"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Tokenizer",
+      "catalog_key": "Tokenizer",
+      "category": "String Operations",
+      "enum_name": "TOKENIZER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "operation": "required; example='SPLIT_WHITESPACE'",
+        "pattern": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "operation",
+        "pattern"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "PatternExtract",
+      "catalog_key": "PatternExtract",
+      "category": "String Operations",
+      "enum_name": "REGEXP_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "outputColumns": "optional; example=['extracted']",
+        "pattern": "required; example='(\\\\d+)'"
+      },
+      "params": [
+        "column",
+        "pattern",
+        "outputColumns"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FindReplace",
+      "catalog_key": "FindReplace",
+      "category": "String Operations",
+      "enum_name": "FIND_REPLACE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "find": "required; example='old'",
+        "matchMode": "optional; example='LITERAL'",
+        "replace": "required; example='new'"
+      },
+      "params": [
+        "column",
+        "find",
+        "replace",
+        "matchMode"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ColumnsSplitter",
+      "catalog_key": "ColumnsSplitter",
+      "category": "String Operations",
+      "enum_name": "SPLIT_COLUMN",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='full_name'",
+        "limit": "optional; example=None",
+        "outputColumns": "optional; example=None",
+        "separator": "required; example=' '"
+      },
+      "params": [
+        "column",
+        "separator",
+        "limit",
+        "outputColumns"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "HtmlStripper",
+      "catalog_key": "HtmlStripper",
+      "category": "String Operations",
+      "enum_name": "HTML_STRIPPER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='html_content'"
+      },
+      "params": [
+        "column"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "MultiColumnFindReplace",
+      "catalog_key": "MultiColumnFindReplace",
+      "category": "String Operations",
+      "enum_name": "MULTI_COLUMN_FIND_REPLACE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['col1', 'col2']",
+        "find": "required; example='old'",
+        "matchMode": "optional; example=None",
+        "replace": "required; example='new'"
+      },
+      "params": [
+        "columns",
+        "find",
+        "replace",
+        "matchMode"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Ngrammer",
+      "catalog_key": "Ngrammer",
+      "category": "String Operations",
+      "enum_name": "NGRAMMER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "n": "required; example=2",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "n",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "SimplifyText",
+      "catalog_key": "SimplifyText",
+      "category": "String Operations",
+      "enum_name": "TEXT_SIMPLIFIER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'"
+      },
+      "params": [
+        "column"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "StemText",
+      "catalog_key": "StemText",
+      "category": "String Operations",
+      "enum_name": "STEM_TEXT",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "language": "optional; example='english'"
+      },
+      "params": [
+        "column",
+        "language"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "LemmatizeText",
+      "catalog_key": "LemmatizeText",
+      "category": "String Operations",
+      "enum_name": "LEMMATIZE_TEXT",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "language": "optional; example='english'"
+      },
+      "params": [
+        "column",
+        "language"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "LanguageDetector",
+      "catalog_key": "LanguageDetector",
+      "category": "String Operations",
+      "enum_name": "LANGUAGE_DETECTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "outputColumn": "optional; example='language'"
+      },
+      "params": [
+        "column",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "SentimentAnalyzer",
+      "catalog_key": "SentimentAnalyzer",
+      "category": "String Operations",
+      "enum_name": "SENTIMENT_ANALYZER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='review'",
+        "outputColumn": "optional; example='sentiment'"
+      },
+      "params": [
+        "column",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TextHasher",
+      "catalog_key": "TextHasher",
+      "category": "String Operations",
+      "enum_name": "TEXT_HASHER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "algorithm": "optional; example='MD5'",
+        "column": "required; example='text'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "algorithm",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "UnicodeNormalizer",
+      "catalog_key": "UnicodeNormalizer",
+      "category": "String Operations",
+      "enum_name": "UNICODE_NORMALIZER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='text'",
+        "form": "optional; example='NFC'"
+      },
+      "params": [
+        "column",
+        "form"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "URLParser",
+      "catalog_key": "URLParser",
+      "category": "String Operations",
+      "enum_name": "URL_PARSER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='url'",
+        "extractComponents": "optional; example=['host', 'path']"
+      },
+      "params": [
+        "column",
+        "extractComponents"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "IPAddressParser",
+      "catalog_key": "IPAddressParser",
+      "category": "String Operations",
+      "enum_name": "IP_ADDRESS_PARSER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='ip_address'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "EmailDomainExtractor",
+      "catalog_key": "EmailDomainExtractor",
+      "category": "String Operations",
+      "enum_name": "EMAIL_DOMAIN_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='email'",
+        "outputColumn": "optional; example='domain'"
+      },
+      "params": [
+        "column",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "PhoneFormatter",
+      "catalog_key": "PhoneFormatter",
+      "category": "String Operations",
+      "enum_name": "PHONE_FORMATTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='phone'",
+        "country": "optional; example='US'"
+      },
+      "params": [
+        "column",
+        "country"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CountryNormalizer",
+      "catalog_key": "CountryNormalizer",
+      "category": "String Operations",
+      "enum_name": "COUNTRY_NORMALIZER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='country'",
+        "outputFormat": "optional; example='ISO_3166_1'"
+      },
+      "params": [
+        "column",
+        "outputFormat"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "UserAgentParser",
+      "catalog_key": "UserAgentParser",
+      "category": "String Operations",
+      "enum_name": "USER_AGENT_PARSER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='user_agent'"
+      },
+      "params": [
+        "column"
+      ]
+    },
+    {
+      "aliases": [
+        "BOX_COX_TRANSFORMER",
+        "LOG_TRANSFORMER",
+        "POWER_TRANSFORMER",
+        "QUANTILE_TRANSFORMER"
+      ],
+      "canonical_name": "NumericalTransformer",
+      "catalog_key": "NumericalTransformer",
+      "category": "Numeric Operations",
+      "enum_name": "NUMERICAL_TRANSFORMER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='amount'",
+        "mode": "required; example='MULTIPLY'",
+        "value": "optional; example=100"
+      },
+      "params": [
+        "column",
+        "mode",
+        "value"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Round",
+      "catalog_key": "Round",
+      "category": "Numeric Operations",
+      "enum_name": "ROUND_COLUMN",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='price'",
+        "mode": "optional; example=None",
+        "precision": "optional; example=2"
+      },
+      "params": [
+        "column",
+        "precision",
+        "mode"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "NumberClipping",
+      "catalog_key": "NumberClipping",
+      "category": "Numeric Operations",
+      "enum_name": "CLIP_COLUMN",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='score'",
+        "max": "optional; example=100",
+        "min": "optional; example=0"
+      },
+      "params": [
+        "column",
+        "min",
+        "max"
+      ]
+    },
+    {
+      "aliases": [
+        "DISCRETIZER"
+      ],
+      "canonical_name": "Binner",
+      "catalog_key": "Binner",
+      "category": "Numeric Operations",
+      "enum_name": "BINNER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "bins": "optional; example=[0, 18, 35, 50, 100]",
+        "column": "required; example='age'",
+        "labels": "optional; example=None",
+        "mode": "required; example='FIXED_BINS'"
+      },
+      "params": [
+        "column",
+        "mode",
+        "bins",
+        "labels"
+      ]
+    },
+    {
+      "aliases": [
+        "MIN_MAX_SCALER",
+        "ROBUST_SCALER",
+        "STANDARD_SCALER"
+      ],
+      "canonical_name": "MeasureNormalize",
+      "catalog_key": "MeasureNormalize",
+      "category": "Numeric Operations",
+      "enum_name": "NORMALIZER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='value'",
+        "mode": "required; example='ZSCORE'"
+      },
+      "params": [
+        "column",
+        "mode"
+      ]
+    },
+    {
+      "aliases": [
+        "BOOLEAN_CONVERTER",
+        "NUMBER_TO_STRING",
+        "STRING_TO_NUMBER"
+      ],
+      "canonical_name": "TypeSetter",
+      "catalog_key": "TypeSetter",
+      "category": "Type Conversion",
+      "enum_name": "TYPE_SETTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='id'",
+        "type": "required; example='bigint'"
+      },
+      "params": [
+        "column",
+        "type"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "DateParser",
+      "catalog_key": "DateParser",
+      "category": "Type Conversion",
+      "enum_name": "DATE_PARSER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date_str'",
+        "formats": "optional; example=['yyyy-MM-dd']",
+        "timezone": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "formats",
+        "timezone"
+      ]
+    },
+    {
+      "aliases": [
+        "DATETIME_FORMATTER"
+      ],
+      "canonical_name": "DateFormatter",
+      "catalog_key": "DateFormatter",
+      "category": "Type Conversion",
+      "enum_name": "DATE_FORMATTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "format": "required; example='yyyy-MM-dd'"
+      },
+      "params": [
+        "column",
+        "format"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "DateComponentExtractor",
+      "catalog_key": "DateComponentExtractor",
+      "category": "Date/Time",
+      "enum_name": "DATE_COMPONENTS_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "components": "required; example=['YEAR', 'MONTH', 'DAY']"
+      },
+      "params": [
+        "column",
+        "components"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "DateDifference",
+      "catalog_key": "DateDifference",
+      "category": "Date/Time",
+      "enum_name": "DATE_DIFF_CALCULATOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column1": "required; example='start_date'",
+        "column2": "required; example='end_date'",
+        "outputColumn": "optional; example='duration_days'",
+        "unit": "optional; example='DAYS'"
+      },
+      "params": [
+        "column1",
+        "column2",
+        "unit",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "HolidaysComputer",
+      "catalog_key": "HolidaysComputer",
+      "category": "Date/Time",
+      "enum_name": "HOLIDAYS_COMPUTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "country": "optional; example='US'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "country",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TimezoneConverter",
+      "catalog_key": "TimezoneConverter",
+      "category": "Date/Time",
+      "enum_name": "TIMEZONE_CONVERTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='event_time'",
+        "fromTimezone": "required; example='UTC'",
+        "toTimezone": "required; example='America/New_York'"
+      },
+      "params": [
+        "column",
+        "fromTimezone",
+        "toTimezone"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "DateRangeClassifier",
+      "catalog_key": "DateRangeClassifier",
+      "category": "Date/Time",
+      "enum_name": "DATE_RANGE_CLASSIFIER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "outputColumn": "optional; example='date_bucket'",
+        "ranges": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "ranges",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TimestampExtractor",
+      "catalog_key": "TimestampExtractor",
+      "category": "Date/Time",
+      "enum_name": "TIMESTAMP_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "outputColumn": "optional; example='timestamp_ms'",
+        "unit": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "outputColumn",
+        "unit"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnValue",
+      "catalog_key": "FilterOnValue",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_VALUE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='status'",
+        "keep": "optional; example=True",
+        "matchingMode": "required; example='EQUALS'",
+        "values": "required; example=['active']"
+      },
+      "params": [
+        "column",
+        "matchingMode",
+        "values",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnBadType",
+      "catalog_key": "FilterOnBadType",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_BAD_TYPE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='age'",
+        "expectedType": "required; example='integer'",
+        "keep": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "expectedType",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnFormula",
+      "catalog_key": "FilterOnFormula",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_FORMULA",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "formula": "required; example='age > 18'",
+        "keep": "optional; example=True"
+      },
+      "params": [
+        "formula",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnDateRange",
+      "catalog_key": "FilterOnDateRange",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_DATE_RANGE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "endDate": "optional; example='2024-12-31'",
+        "keep": "optional; example=None",
+        "startDate": "optional; example='2024-01-01'"
+      },
+      "params": [
+        "column",
+        "startDate",
+        "endDate",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnNumericRange",
+      "catalog_key": "FilterOnNumericRange",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_NUMERIC_RANGE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='price'",
+        "keep": "optional; example=None",
+        "max": "optional; example=100",
+        "min": "optional; example=0"
+      },
+      "params": [
+        "column",
+        "min",
+        "max",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnMultipleValues",
+      "catalog_key": "FilterOnMultipleValues",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_MULTIPLE_VALUES",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='status'",
+        "keep": "optional; example=None",
+        "values": "required; example=['active', 'pending']"
+      },
+      "params": [
+        "column",
+        "values",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnNullNumeric",
+      "catalog_key": "FilterOnNullNumeric",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_NULL_NUMERIC",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='score'",
+        "keep": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnGeoZone",
+      "catalog_key": "FilterOnGeoZone",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_GEO_ZONE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "geoColumn": "required; example='location'",
+        "keep": "optional; example=None",
+        "zone": "required; example='US'"
+      },
+      "params": [
+        "geoColumn",
+        "zone",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FilterOnCustomCondition",
+      "catalog_key": "FilterOnCustomCondition",
+      "category": "Filtering",
+      "enum_name": "FILTER_ON_CUSTOM_CONDITION",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "expression": "required; example=\"val(age) > 18 && val(status) == 'active'\"",
+        "keep": "optional; example=None"
+      },
+      "params": [
+        "expression",
+        "keep"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FlagOnValue",
+      "catalog_key": "FlagOnValue",
+      "category": "Flagging",
+      "enum_name": "FLAG_ON_VALUE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='status'",
+        "matchMode": "optional; example=None",
+        "outputColumn": "required; example='is_active'",
+        "values": "optional; example=['active']"
+      },
+      "params": [
+        "column",
+        "outputColumn",
+        "values",
+        "matchMode"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FlagOnFormula",
+      "catalog_key": "FlagOnFormula",
+      "category": "Flagging",
+      "enum_name": "FLAG_ON_FORMULA",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "formula": "required; example='age >= 18'",
+        "outputColumn": "required; example='is_adult'"
+      },
+      "params": [
+        "formula",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FlagOnBadType",
+      "catalog_key": "FlagOnBadType",
+      "category": "Flagging",
+      "enum_name": "FLAG_ON_BAD_TYPE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='age'",
+        "expectedType": "required; example='integer'",
+        "outputColumn": "required; example='bad_age'"
+      },
+      "params": [
+        "column",
+        "expectedType",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FlagOnDateRange",
+      "catalog_key": "FlagOnDateRange",
+      "category": "Flagging",
+      "enum_name": "FLAG_ON_DATE_RANGE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='date'",
+        "endDate": "optional; example=None",
+        "outputColumn": "required; example='in_range'",
+        "startDate": "optional; example='2024-01-01'"
+      },
+      "params": [
+        "column",
+        "outputColumn",
+        "startDate",
+        "endDate"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FlagOnNumericRange",
+      "catalog_key": "FlagOnNumericRange",
+      "category": "Flagging",
+      "enum_name": "FLAG_ON_NUMERIC_RANGE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='score'",
+        "max": "optional; example=100",
+        "min": "optional; example=0",
+        "outputColumn": "required; example='in_range'"
+      },
+      "params": [
+        "column",
+        "outputColumn",
+        "min",
+        "max"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "RemoveDuplicates",
+      "catalog_key": "RemoveDuplicates",
+      "category": "Row Operations",
+      "enum_name": "REMOVE_DUPLICATES",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "optional; example=['id']"
+      },
+      "params": [
+        "columns"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "SortRows",
+      "catalog_key": "SortRows",
+      "category": "Row Operations",
+      "enum_name": "SORT_ROWS",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=[{'column': 'date', 'order': 'DESC'}]"
+      },
+      "params": [
+        "columns"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "SampleRows",
+      "catalog_key": "SampleRows",
+      "category": "Row Operations",
+      "enum_name": "SAMPLE_ROWS",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "method": "optional; example='RANDOM'",
+        "sampleSize": "required; example=1000"
+      },
+      "params": [
+        "sampleSize",
+        "method"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ShuffleRows",
+      "catalog_key": "ShuffleRows",
+      "category": "Row Operations",
+      "enum_name": "SHUFFLE_ROWS",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "seed": "optional; example=42"
+      },
+      "params": [
+        "seed"
+      ]
+    },
+    {
+      "aliases": [
+        "ABS_COLUMN"
+      ],
+      "canonical_name": "CreateColumnWithGREL",
+      "catalog_key": "CreateColumnWithGREL",
+      "category": "Computed Columns",
+      "enum_name": "CREATE_COLUMN_WITH_GREL",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='full_name'",
+        "expression": "required; example='concat(first_name, \" \", last_name)'"
+      },
+      "params": [
+        "column",
+        "expression"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Formula",
+      "catalog_key": "Formula",
+      "category": "Computed Columns",
+      "enum_name": "FORMULA",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "expression": "required; example='price * quantity'",
+        "outputColumn": "required; example='total'"
+      },
+      "params": [
+        "outputColumn",
+        "expression"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "MultiColumnFormula",
+      "catalog_key": "MultiColumnFormula",
+      "category": "Computed Columns",
+      "enum_name": "MULTI_COLUMN_FORMULA",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['col1', 'col2']",
+        "expression": "required; example='val * 100'",
+        "outputPrefix": "optional; example=None"
+      },
+      "params": [
+        "columns",
+        "expression",
+        "outputPrefix"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ColumnPseudoAnonymizer",
+      "catalog_key": "ColumnPseudoAnonymizer",
+      "category": "Computed Columns",
+      "enum_name": "COLUMN_PSEUDO_ANONYMIZER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='email'",
+        "method": "optional; example='HASH'"
+      },
+      "params": [
+        "column",
+        "method"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "HashComputer",
+      "catalog_key": "HashComputer",
+      "category": "Computed Columns",
+      "enum_name": "HASH_COMPUTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "algorithm": "optional; example='SHA256'",
+        "column": "required; example='id'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "algorithm",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "UUIDGenerator",
+      "catalog_key": "UUIDGenerator",
+      "category": "Computed Columns",
+      "enum_name": "UUID_GENERATOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "outputColumn": "required; example='row_id'",
+        "version": "optional; example=4"
+      },
+      "params": [
+        "outputColumn",
+        "version"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "LongTailGrouper",
+      "catalog_key": "LongTailGrouper",
+      "category": "Categorical",
+      "enum_name": "MERGE_LONG_TAIL_VALUES",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='category'",
+        "replacement": "optional; example='OTHER'",
+        "threshold": "optional; example=10"
+      },
+      "params": [
+        "column",
+        "threshold",
+        "replacement"
+      ]
+    },
+    {
+      "aliases": [
+        "FEATURE_HASHER",
+        "LABEL_ENCODER",
+        "LEAVE_ONE_OUT_ENCODER",
+        "ONE_HOT_ENCODER",
+        "ORDINAL_ENCODER",
+        "TARGET_ENCODER",
+        "WOE_ENCODER"
+      ],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": "CategoricalEncoder",
+      "category": "Categorical",
+      "enum_name": "CATEGORICAL_ENCODER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='color'",
+        "encoding": "required; example='ONE_HOT'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "encoding",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "GeoPointCreator",
+      "catalog_key": "GeoPointCreator",
+      "category": "Geographic",
+      "enum_name": "GEO_POINT_CREATOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "latColumn": "required; example='latitude'",
+        "lonColumn": "required; example='longitude'",
+        "outputColumn": "optional; example='geo_point'"
+      },
+      "params": [
+        "latColumn",
+        "lonColumn",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "GeoEncoder",
+      "catalog_key": "GeoEncoder",
+      "category": "Geographic",
+      "enum_name": "GEO_ENCODER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "addressColumn": "required; example='address'",
+        "outputColumn": "optional; example=None",
+        "provider": "optional; example=None"
+      },
+      "params": [
+        "addressColumn",
+        "outputColumn",
+        "provider"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "GeoIPResolver",
+      "catalog_key": "GeoIPResolver",
+      "category": "Geographic",
+      "enum_name": "GEO_IP_RESOLVER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='ip_address'",
+        "extractComponents": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "extractComponents"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "GeoDistanceCalculator",
+      "catalog_key": "GeoDistanceCalculator",
+      "category": "Geographic",
+      "enum_name": "GEO_DISTANCE_CALCULATOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "outputColumn": "optional; example=None",
+        "point1Column": "required; example='origin'",
+        "point2Column": "required; example='destination'",
+        "unit": "optional; example='KILOMETER'"
+      },
+      "params": [
+        "point1Column",
+        "point2Column",
+        "outputColumn",
+        "unit"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "GeoPolygonMatcher",
+      "catalog_key": "GeoPolygonMatcher",
+      "category": "Geographic",
+      "enum_name": "GEO_POLYGON_MATCHER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "outputColumn": "optional; example=None",
+        "pointColumn": "required; example='location'",
+        "polygonColumn": "required; example='zone'"
+      },
+      "params": [
+        "pointColumn",
+        "polygonColumn",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "AddressParser",
+      "catalog_key": "AddressParser",
+      "category": "Geographic",
+      "enum_name": "ADDRESS_PARSER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='address'",
+        "extractComponents": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "extractComponents"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ReverseGeocoder",
+      "catalog_key": "ReverseGeocoder",
+      "category": "Geographic",
+      "enum_name": "REVERSE_GEOCODER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "latColumn": "required; example='latitude'",
+        "lonColumn": "required; example='longitude'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "latColumn",
+        "lonColumn",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "IfThenElse",
+      "catalog_key": "IfThenElse",
+      "category": "Conditional Logic",
+      "enum_name": "IF_THEN_ELSE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='age'",
+        "condition": "required; example='val >= 18'",
+        "elseValue": "required; example='minor'",
+        "outputColumn": "optional; example='age_group'",
+        "thenValue": "required; example='adult'"
+      },
+      "params": [
+        "column",
+        "condition",
+        "thenValue",
+        "elseValue",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "SwitchCase",
+      "catalog_key": "SwitchCase",
+      "category": "Conditional Logic",
+      "enum_name": "SWITCH_CASE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "cases": "required; example=[{'value': 'A', 'output': 'Active'}, {'value': 'I', 'output': 'Inactive'}]",
+        "column": "required; example='status'",
+        "defaultValue": "optional; example='Unknown'",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "cases",
+        "defaultValue",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TranslateValues",
+      "catalog_key": "TranslateValues",
+      "category": "Value Manipulation",
+      "enum_name": "TRANSLATE_VALUES",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='code'",
+        "outputColumn": "optional; example=None",
+        "translations": "required; example=[{'from': 'US', 'to': 'United States'}, {'from': 'UK', 'to': 'United Kingdom'}]"
+      },
+      "params": [
+        "column",
+        "translations",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ExtractWithJSONPath",
+      "catalog_key": "ExtractWithJSONPath",
+      "category": "Data Extraction",
+      "enum_name": "EXTRACT_WITH_JSONPATH",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='json_data'",
+        "jsonPath": "required; example='$.user.name'",
+        "outputColumn": "optional; example='user_name'"
+      },
+      "params": [
+        "column",
+        "jsonPath",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "SplitURL",
+      "catalog_key": "SplitURL",
+      "category": "Data Extraction",
+      "enum_name": "SPLIT_URL",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='url'",
+        "extractComponents": "optional; example=['scheme', 'host', 'path', 'query']"
+      },
+      "params": [
+        "column",
+        "extractComponents"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FoldMultipleColumns",
+      "catalog_key": "FoldMultipleColumns",
+      "category": "Reshaping",
+      "enum_name": "FOLD_MULTIPLE_COLUMNS",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['q1', 'q2', 'q3', 'q4']",
+        "valueName": "optional; example='revenue'",
+        "varName": "optional; example='quarter'"
+      },
+      "params": [
+        "columns",
+        "varName",
+        "valueName"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TransposeRowsToColumns",
+      "catalog_key": "TransposeRowsToColumns",
+      "category": "Reshaping",
+      "enum_name": "TRANSPOSE_ROWS_TO_COLUMNS",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Unfold",
+      "catalog_key": "Unfold",
+      "category": "Reshaping",
+      "enum_name": "UNFOLD",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='tags'"
+      },
+      "params": [
+        "column"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Coalesce",
+      "catalog_key": "Coalesce",
+      "category": "Value Manipulation",
+      "enum_name": "COALESCE",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['phone_home', 'phone_work', 'phone_mobile']",
+        "outputColumn": "optional; example='phone'"
+      },
+      "params": [
+        "columns",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "FillColumn",
+      "catalog_key": "FillColumn",
+      "category": "Value Manipulation",
+      "enum_name": "FILL_COLUMN",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='source'",
+        "value": "required; example='batch_import'"
+      },
+      "params": [
+        "column",
+        "value"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ArraySplitter",
+      "catalog_key": "ArraySplitter",
+      "category": "Array/JSON",
+      "enum_name": "ARRAY_SPLITTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='tags'",
+        "separator": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "separator"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ArrayJoiner",
+      "catalog_key": "ArrayJoiner",
+      "category": "Array/JSON",
+      "enum_name": "ARRAY_JOINER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='tags'",
+        "outputColumn": "optional; example=None",
+        "separator": "optional; example=','"
+      },
+      "params": [
+        "column",
+        "separator",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ArraySorter",
+      "catalog_key": "ArraySorter",
+      "category": "Array/JSON",
+      "enum_name": "ARRAY_SORTER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='scores'",
+        "order": "optional; example='ASC'"
+      },
+      "params": [
+        "column",
+        "order"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ArrayUnfold",
+      "catalog_key": "ArrayUnfold",
+      "category": "Array/JSON",
+      "enum_name": "ARRAY_UNFOLD",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='items'"
+      },
+      "params": [
+        "column"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ArrayFold",
+      "catalog_key": "ArrayFold",
+      "category": "Array/JSON",
+      "enum_name": "ARRAY_FOLD",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "columns": "required; example=['tag1', 'tag2', 'tag3']",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "columns",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ArrayElementExtractor",
+      "catalog_key": "ArrayElementExtractor",
+      "category": "Array/JSON",
+      "enum_name": "ARRAY_ELEMENT_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='items'",
+        "index": "required; example=0",
+        "outputColumn": "optional; example=None"
+      },
+      "params": [
+        "column",
+        "index",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "JSONFlattener",
+      "catalog_key": "JSONFlattener",
+      "category": "Array/JSON",
+      "enum_name": "JSON_FLATTENER",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='json_data'",
+        "depth": "optional; example=None",
+        "separator": "optional; example='_'"
+      },
+      "params": [
+        "column",
+        "depth",
+        "separator"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "JSONExtractor",
+      "catalog_key": "JSONExtractor",
+      "category": "Array/JSON",
+      "enum_name": "JSON_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='json_data'",
+        "keys": "required; example=['name', 'email']"
+      },
+      "params": [
+        "column",
+        "keys"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "XMLExtractor",
+      "catalog_key": "XMLExtractor",
+      "category": "Array/JSON",
+      "enum_name": "XML_EXTRACTOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "column": "required; example='xml_data'",
+        "outputColumn": "optional; example=None",
+        "xpath": "required; example='//name/text()'"
+      },
+      "params": [
+        "column",
+        "xpath",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "NestedProcessor",
+      "catalog_key": "NestedProcessor",
+      "category": "Advanced",
+      "enum_name": "NESTED_PROCESSOR",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "groupColumn": "optional; example='category'",
+        "processor": "required; example='StringTransformer'"
+      },
+      "params": [
+        "processor",
+        "groupColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ProcessorGroup",
+      "catalog_key": "ProcessorGroup",
+      "category": "Advanced",
+      "enum_name": "PROCESSOR_GROUP",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "name": "optional; example='Cleaning group'",
+        "steps": "required; example=[]"
+      },
+      "params": [
+        "steps",
+        "name"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "PythonUDF",
+      "catalog_key": "PythonUDF",
+      "category": "Custom",
+      "enum_name": "PYTHON_UDF",
+      "in_catalog": true,
+      "is_alias_of": null,
+      "param_descriptions": {
+        "code": "required; example=\"return row['col'].upper()\"",
+        "inputColumns": "optional; example=['col']",
+        "outputColumn": "optional; example='col_upper'"
+      },
+      "params": [
+        "code",
+        "inputColumns",
+        "outputColumn"
+      ]
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ColumnsSelector",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "COLUMN_DELETER",
+      "in_catalog": false,
+      "is_alias_of": "COLUMNS_SELECTOR",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "ColumnsConcat",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "CONCAT_COLUMNS",
+      "in_catalog": false,
+      "is_alias_of": "COLUMNS_CONCATENATOR",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "Binner",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "DISCRETIZER",
+      "in_catalog": false,
+      "is_alias_of": "BINNER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "NumericalTransformer",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "QUANTILE_TRANSFORMER",
+      "in_catalog": false,
+      "is_alias_of": "NUMERICAL_TRANSFORMER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "MeasureNormalize",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "ROBUST_SCALER",
+      "in_catalog": false,
+      "is_alias_of": "NORMALIZER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "MeasureNormalize",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "MIN_MAX_SCALER",
+      "in_catalog": false,
+      "is_alias_of": "NORMALIZER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "MeasureNormalize",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "STANDARD_SCALER",
+      "in_catalog": false,
+      "is_alias_of": "NORMALIZER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "NumericalTransformer",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "LOG_TRANSFORMER",
+      "in_catalog": false,
+      "is_alias_of": "NUMERICAL_TRANSFORMER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "NumericalTransformer",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "POWER_TRANSFORMER",
+      "in_catalog": false,
+      "is_alias_of": "NUMERICAL_TRANSFORMER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "NumericalTransformer",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "BOX_COX_TRANSFORMER",
+      "in_catalog": false,
+      "is_alias_of": "NUMERICAL_TRANSFORMER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TypeSetter",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "BOOLEAN_CONVERTER",
+      "in_catalog": false,
+      "is_alias_of": "TYPE_SETTER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TypeSetter",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "NUMBER_TO_STRING",
+      "in_catalog": false,
+      "is_alias_of": "TYPE_SETTER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "TypeSetter",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "STRING_TO_NUMBER",
+      "in_catalog": false,
+      "is_alias_of": "TYPE_SETTER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "DateFormatter",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "DATETIME_FORMATTER",
+      "in_catalog": false,
+      "is_alias_of": "DATE_FORMATTER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CreateColumnWithGREL",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "ABS_COLUMN",
+      "in_catalog": false,
+      "is_alias_of": "CREATE_COLUMN_WITH_GREL",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "ONE_HOT_ENCODER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "LABEL_ENCODER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "ORDINAL_ENCODER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "TARGET_ENCODER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "LEAVE_ONE_OUT_ENCODER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "WOE_ENCODER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    },
+    {
+      "aliases": [],
+      "canonical_name": "CategoricalEncoder",
+      "catalog_key": null,
+      "category": null,
+      "enum_name": "FEATURE_HASHER",
+      "in_catalog": false,
+      "is_alias_of": "CATEGORICAL_ENCODER",
+      "param_descriptions": {},
+      "params": []
+    }
+  ],
+  "py_iku_commit": "c83ed9be8fcd218bc566a1a87377e0d88e668080",
+  "recipe_types": [
+    {
+      "aliases": [],
+      "enum_name": "PREPARE",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "PrepareSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "prepare"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SYNC",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "sync"
+    },
+    {
+      "aliases": [],
+      "enum_name": "GROUPING",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "GroupingSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "grouping"
+    },
+    {
+      "aliases": [],
+      "enum_name": "WINDOW",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "WindowSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "window"
+    },
+    {
+      "aliases": [],
+      "enum_name": "JOIN",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "JoinSettings",
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": 1,
+      "value": "join"
+    },
+    {
+      "aliases": [],
+      "enum_name": "FUZZY_JOIN",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": 1,
+      "value": "fuzzyjoin"
+    },
+    {
+      "aliases": [],
+      "enum_name": "GEO_JOIN",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": 1,
+      "value": "geojoin"
+    },
+    {
+      "aliases": [],
+      "enum_name": "STACK",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "StackSettings",
+      "supports_inputs": [
+        2,
+        "n"
+      ],
+      "supports_outputs": 1,
+      "value": "stack"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SPLIT",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "SplitSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": "n",
+      "value": "split"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SORT",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "SortSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "sort"
+    },
+    {
+      "aliases": [],
+      "enum_name": "DISTINCT",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "DistinctSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "distinct"
+    },
+    {
+      "aliases": [],
+      "enum_name": "TOP_N",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "TopNSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "topn"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PIVOT",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "PivotSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "pivot"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SAMPLING",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": "SamplingSettings",
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "sampling"
+    },
+    {
+      "aliases": [],
+      "enum_name": "DOWNLOAD",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        0,
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "download"
+    },
+    {
+      "aliases": [],
+      "enum_name": "GENERATE_FEATURES",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "generate_features"
+    },
+    {
+      "aliases": [],
+      "enum_name": "GENERATE_STATISTICS",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "generate_statistics"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PUSH_TO_EDITABLE",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "push_to_editable"
+    },
+    {
+      "aliases": [],
+      "enum_name": "LIST_FOLDER_CONTENTS",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "list_folder_contents"
+    },
+    {
+      "aliases": [],
+      "enum_name": "DYNAMIC_REPEAT",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": "n",
+      "value": "dynamic_repeat"
+    },
+    {
+      "aliases": [],
+      "enum_name": "EXTRACT_FAILED_ROWS",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "extract_failed_rows"
+    },
+    {
+      "aliases": [],
+      "enum_name": "UPSERT",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": 1,
+      "value": "upsert"
+    },
+    {
+      "aliases": [],
+      "enum_name": "LIST_ACCESS",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        1
+      ],
+      "supports_outputs": 1,
+      "value": "list_access"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PYTHON",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": "PythonSettings",
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "python"
+    },
+    {
+      "aliases": [],
+      "enum_name": "R",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "r"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SQL",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "sql_script"
+    },
+    {
+      "aliases": [],
+      "enum_name": "HIVE",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "hive"
+    },
+    {
+      "aliases": [],
+      "enum_name": "IMPALA",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "impala"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SPARKSQL",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "spark_sql_query"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PYSPARK",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "pyspark"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SPARK_SCALA",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "spark_scala"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SPARKR",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "sparkr"
+    },
+    {
+      "aliases": [],
+      "enum_name": "SHELL",
+      "is_alias_of": null,
+      "is_code_recipe": true,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "shell"
+    },
+    {
+      "aliases": [],
+      "enum_name": "PREDICTION_SCORING",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": 1,
+      "value": "prediction_scoring"
+    },
+    {
+      "aliases": [],
+      "enum_name": "CLUSTERING_SCORING",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": 1,
+      "value": "clustering_scoring"
+    },
+    {
+      "aliases": [],
+      "enum_name": "EVALUATION",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": [
+        2
+      ],
+      "supports_outputs": "n",
+      "value": "standalone_evaluation"
+    },
+    {
+      "aliases": [],
+      "enum_name": "AI_ASSISTANT_GENERATE",
+      "is_alias_of": null,
+      "is_code_recipe": false,
+      "settings_class": null,
+      "supports_inputs": "n",
+      "supports_outputs": "n",
+      "value": "ai_assistant_generate"
+    }
+  ],
+  "settings_classes": [
+    {
+      "class_name": "DistinctSettings",
+      "field_types": {
+        "compute_count": "<class 'bool'>"
+      },
+      "fields": [
+        "compute_count"
+      ]
+    },
+    {
+      "class_name": "GroupingSettings",
+      "field_types": {
+        "aggregations": "list[typing.Any]",
+        "global_count": "<class 'bool'>",
+        "keys": "list[str]"
+      },
+      "fields": [
+        "keys",
+        "aggregations",
+        "global_count"
+      ]
+    },
+    {
+      "class_name": "JoinSettings",
+      "field_types": {
+        "join_keys": "list[typing.Any]",
+        "join_type": "<class 'str'>",
+        "selected_columns": "typing.Optional[dict[str, list[str]]]"
+      },
+      "fields": [
+        "join_type",
+        "join_keys",
+        "selected_columns"
+      ]
+    },
+    {
+      "class_name": "PivotSettings",
+      "field_types": {
+        "aggregation": "<class 'str'>",
+        "column_column": "<class 'str'>",
+        "row_columns": "list[str]",
+        "value_column": "<class 'str'>"
+      },
+      "fields": [
+        "row_columns",
+        "column_column",
+        "value_column",
+        "aggregation"
+      ]
+    },
+    {
+      "class_name": "PrepareSettings",
+      "field_types": {
+        "mode": "<class 'str'>",
+        "steps": "list[py2dataiku.models.prepare_step.PrepareStep]"
+      },
+      "fields": [
+        "steps",
+        "mode"
+      ]
+    },
+    {
+      "class_name": "PythonSettings",
+      "field_types": {
+        "code": "<class 'str'>"
+      },
+      "fields": [
+        "code"
+      ]
+    },
+    {
+      "class_name": "SamplingSettings",
+      "field_types": {
+        "sample_size": "typing.Optional[int]",
+        "sampling_method": "<class 'str'>"
+      },
+      "fields": [
+        "sampling_method",
+        "sample_size"
+      ]
+    },
+    {
+      "class_name": "SortSettings",
+      "field_types": {
+        "sort_columns": "list[dict[str, str]]"
+      },
+      "fields": [
+        "sort_columns"
+      ]
+    },
+    {
+      "class_name": "SplitSettings",
+      "field_types": {
+        "condition": "<class 'str'>",
+        "split_mode": "<class 'str'>"
+      },
+      "fields": [
+        "split_mode",
+        "condition"
+      ]
+    },
+    {
+      "class_name": "StackSettings",
+      "field_types": {
+        "mode": "<class 'str'>"
+      },
+      "fields": [
+        "mode"
+      ]
+    },
+    {
+      "class_name": "TopNSettings",
+      "field_types": {
+        "ranking_column": "typing.Optional[str]",
+        "top_n": "<class 'int'>"
+      },
+      "fields": [
+        "top_n",
+        "ranking_column"
+      ]
+    },
+    {
+      "class_name": "WindowSettings",
+      "field_types": {
+        "aggregations": "list[dict[str, typing.Any]]",
+        "order_columns": "list[str]",
+        "partition_columns": "list[str]"
+      },
+      "fields": [
+        "partition_columns",
+        "order_columns",
+        "aggregations"
+      ]
+    }
+  ],
+  "snapshot_date": "2026-04-29",
+  "totals": {
+    "aggregation_functions_canonical": 21,
+    "aggregation_functions_with_aliases": 25,
+    "pandas_method_handler_dispatch_keys": 45,
+    "pandas_method_handlers_unique": 44,
+    "pandas_processor_mappings": 16,
+    "pandas_recipe_mappings": 21,
+    "processors_canonical": 100,
+    "processors_in_catalog": 101,
+    "processors_with_aliases": 122,
+    "recipe_types_canonical": 37,
+    "recipe_types_with_aliases": 37,
+    "settings_classes": 12
+  }
+}

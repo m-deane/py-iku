@@ -1,0 +1,2604 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Convert Python data processing code to Dataiku DSS recipes and flows">
+      
+      
+      
+        <link rel="canonical" href="https://m-deane.github.io/py-iku/textbook/08-filters-and-predicates/">
+      
+      
+        <link rel="prev" href="../07-the-llm-path/">
+      
+      
+        <link rel="next" href="../09-advanced-patterns/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>8. Filters and predicates - py-iku</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapter-8-filters-and-predicates" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="py-iku" class="md-header__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            py-iku
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              8. Filters and predicates
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../notebooks/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Notebooks & Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Textbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  
+  Auto-generated API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../future-dss-writeback/" class="md-tabs__link">
+          
+  
+  
+  Future Work
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="py-iku" class="md-nav__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    py-iku
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notebooks & Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Textbook
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Textbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foreword
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-why-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Why py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-five-second-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. The five-second tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-anatomy-of-a-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Anatomy of a flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-pandas-to-dss-grammar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Pandas to DSS grammar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-prepare-recipes-deep-dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Prepare recipes deep dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-recipe-types-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Recipe types tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-the-llm-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    7. The LLM path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    8. Filters and predicates
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    8. Filters and predicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-youll-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you'll learn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-framing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The framing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The dispatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#four-predicates-four-processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Four predicates, four processors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Four predicates, four processors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#predicate-1-equality-on-a-string-column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 1: equality on a string column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predicate-2-numeric-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 2: numeric comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predicate-3-set-membership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 3: set membership
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predicate-4-substring-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 4: substring match
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-the-matching-mode-is-not-an-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the matching mode is not an operator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-clause-predicates-the-formula-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-clause predicates: the formula branch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-three-processors-instead-of-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why three processors instead of one
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filter-as-processor-versus-filter-as-recipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter as processor versus filter as recipe
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-py-iku-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What py-iku does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#theory-anchor-distinct-processor-types-for-distinct-operator-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theory anchor: distinct processor types for distinct operator classes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-advanced-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    9. Advanced patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10-optimization-and-dag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10. Optimization and the DAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11-production-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11. Production usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12-extending-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. Extending py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13-visual-aids-and-inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13. Visual Aids & Inspection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-01-trade-capture-and-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples I: Trade Capture and Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-02-position-and-pnl-analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples II: Position and P&L Analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-03-counterparty-and-curves/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples III: Counterparty and Curves
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples-04-power-hubs-and-trade-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples IV: Power Hubs and Trade Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix-a-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix-b-troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix B: Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../appendix-c-cheatsheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix C: Cheatsheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/py2dataiku-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Py2Dataiku Class
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enums
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/llm-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/visualizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualizers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/exporters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/exceptions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/recipe-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/scenarios-metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/mlops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-generated API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auto-generated API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    py2dataiku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Work
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Future Work
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../future-dss-writeback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Write-back
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-youll-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you'll learn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-framing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The framing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The dispatch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#four-predicates-four-processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Four predicates, four processors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Four predicates, four processors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#predicate-1-equality-on-a-string-column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 1: equality on a string column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predicate-2-numeric-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 2: numeric comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predicate-3-set-membership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 3: set membership
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predicate-4-substring-match" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Predicate 4: substring match
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-the-matching-mode-is-not-an-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the matching mode is not an operator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-clause-predicates-the-formula-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-clause predicates: the formula branch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-three-processors-instead-of-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why three processors instead of one
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filter-as-processor-versus-filter-as-recipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filter as processor versus filter as recipe
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-py-iku-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What py-iku does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#theory-anchor-distinct-processor-types-for-distinct-operator-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theory anchor: distinct processor types for distinct operator classes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Further reading
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="chapter-8-filters-and-predicates">Chapter 8 — Filters and Predicates<a class="headerlink" href="#chapter-8-filters-and-predicates" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Scope.</strong> <em>The processor mapping in this chapter applies inside any PREPARE recipe; the recipe-vs-processor routing decision (when a filter becomes a SPLIT recipe versus a PREPARE step) is covered in Chapter 9.</em></p>
+</blockquote>
+<h2 id="what-youll-learn">What you'll learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">&para;</a></h2>
+<p>This chapter explains why <a href="../appendix-a-glossary/#dss">DSS</a> provides three distinct <a href="../appendix-a-glossary/#processor">processor</a> types — <code>FilterOnValue</code>, <code>FilterOnNumericRange</code>, and <code>FilterOnFormula</code> — instead of one general-purpose filter, and how py-iku routes each pandas predicate class to the correct one. It unpacks the <code>matchingMode</code> field on <code>FilterOnValue</code> and the <a href="../appendix-a-glossary/#grel">GREL</a> escape hatch in <code>FilterOnFormula</code> that compound predicates compile to. A practical caveat up front: the rule-based analyzer today emits a <a href="../appendix-a-glossary/#split">SPLIT</a> <a href="../appendix-a-glossary/#recipe">recipe</a> (not a PREPARE+<code>FilterOn*</code> step) for any <em>standalone</em> boolean-indexing assignment. The processor-level dispatch in this chapter governs how a predicate is encoded <em>once you are inside</em> a PREPARE recipe — for example, when a custom analyzer plugin chooses the processor route, when the LLM path emits one, or when a future revision routes single-output filters back to PREPARE. The mapping itself is the load-bearing knowledge; the routing layer that decides between SPLIT and PREPARE is covered in the closing section.</p>
+<h2 id="the-framing">The framing<a class="headerlink" href="#the-framing" title="Permanent link">&para;</a></h2>
+<p>DSS does not have a single filter processor with a generic operator parameter. It has a family of filter processors, each specialised for one operator class. The three that matter most for translating pandas:</p>
+<ul>
+<li><code>FilterOnValue</code> — string-style match against a value or value list. The <code>matchingMode</code> field selects between full-string equality, substring containment, and regex pattern.</li>
+<li><code>FilterOnNumericRange</code> — numeric comparison against a <code>min</code>, a <code>max</code>, or both. Bounds are inclusive.</li>
+<li><code>FilterOnFormula</code> — a GREL expression that evaluates to a boolean per row. The escape hatch when neither of the above can express the predicate.</li>
+</ul>
+<p>The first non-obvious lesson of this chapter: <code>FilterOnValue.matchingMode</code> is <em>not</em> an operator selector. It does not accept <code>GREATER_THAN</code>, <code>LESS_THAN</code>, or <code>EQUALS</code> in the comparison-operator sense. The canonical values are <code>FULL_STRING</code>, <code>SUBSTRING</code>, and <code>PATTERN</code> — all string-match modes (see <a href="https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py">dataiku-api-client-python: recipe.py</a> and the processor catalog at <a href="https://doc.dataiku.com/dss/latest/preparation/processors/index.html">doc.dataiku.com</a>). A predicate like <code>df["amount"] &gt; 100</code> cannot be expressed on <code>FilterOnValue</code> at all; it requires <code>FilterOnNumericRange</code>.</p>
+<p>This single architectural fact — distinct processor types for distinct operator classes — drives every routing decision the analyzer makes. It is the load-bearing claim for the rest of the chapter.</p>
+<h2 id="the-dispatch">The dispatch<a class="headerlink" href="#the-dispatch" title="Permanent link">&para;</a></h2>
+<p>The predicate-to-processor routing lives in <code>pattern_matcher.match_filter</code>. The dispatch is by operator class:</p>
+<ul>
+<li><code>==</code> and equality-style operators (<code>eq</code>, <code>equals</code>, default) → <code>FILTER_ON_VALUE</code> with <code>matchingMode="FULL_STRING"</code>, <code>keep=True</code>.</li>
+<li><code>!=</code> (<code>ne</code>, <code>not_equals</code>) → <code>FILTER_ON_VALUE</code> with <code>matchingMode="FULL_STRING"</code>, <code>keep=False</code>.</li>
+<li><code>in</code> / <code>isin</code> → <code>FILTER_ON_VALUE</code> with <code>matchingMode="FULL_STRING"</code>, <code>values</code> is the list, <code>keep=True</code>.</li>
+<li><code>contains</code> / <code>substring</code> → <code>FILTER_ON_VALUE</code> with <code>matchingMode="SUBSTRING"</code>.</li>
+<li><code>regex</code> / <code>matches</code> / <code>pattern</code> → <code>FILTER_ON_VALUE</code> with <code>matchingMode="PATTERN"</code>.</li>
+<li><code>&gt;</code>, <code>&gt;=</code> (<code>gt</code>, <code>gte</code>) → <code>FILTER_ON_NUMERIC_RANGE</code> with <code>min</code> set.</li>
+<li><code>&lt;</code>, <code>&lt;=</code> (<code>lt</code>, <code>lte</code>) → <code>FILTER_ON_NUMERIC_RANGE</code> with <code>max</code> set.</li>
+<li><code>formula</code> / <code>expression</code> / <code>grel</code> → <code>FILTER_ON_FORMULA</code> with the GREL string.</li>
+</ul>
+<p>The dispatch table is exhaustive over single-clause predicates. Compound predicates (AND, OR, negation of compounds) take the formula branch. An earlier audit established the mapping by checking each <code>matchingMode</code> value against the official client's source — previous versions of the library had emitted <code>GREATER_THAN</code>, <code>LESS_THAN</code>, and <code>IN</code> strings on <code>FilterOnValue</code>, which DSS rejects on import.</p>
+<h2 id="four-predicates-four-processors">Four predicates, four processors<a class="headerlink" href="#four-predicates-four-processors" title="Permanent link">&para;</a></h2>
+<p>The cleanest way to internalise the dispatch is to walk four predicates side by side, each constructed as a step inside a PREPARE recipe via the factory helpers. The factories are the canonical way to <em>build</em> a <code>FilterOn*</code> step regardless of whether the rule-based analyzer chose to emit one for a particular pandas snippet.</p>
+<h3 id="predicate-1-equality-on-a-string-column">Predicate 1: equality on a string column<a class="headerlink" href="#predicate-1-equality-on-a-string-column" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku.models.prepare_step</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrepareStep</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">step</span> <span class="o">=</span> <span class="n">PrepareStep</span><span class="o">.</span><span class="n">filter_on_value</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="s2">&quot;tier&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;gold&quot;</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">processor_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>       <span class="c1"># &#39;FilterOnValue&#39;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;matchingMode&quot;</span><span class="p">])</span>     <span class="c1"># &#39;FULL_STRING&#39;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">])</span>           <span class="c1"># [&#39;gold&#39;]</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;keep&quot;</span><span class="p">])</span>             <span class="c1"># True</span>
+</code></pre></div>
+<p>The operator class is <code>==</code>, the operand is a string literal. The processor is <code>FilterOnValue</code>, the matching mode is <code>FULL_STRING</code> — DSS performs whole-cell equality and keeps matching rows.</p>
+<h3 id="predicate-2-numeric-comparison">Predicate 2: numeric comparison<a class="headerlink" href="#predicate-2-numeric-comparison" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku.models.prepare_step</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrepareStep</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">step</span> <span class="o">=</span> <span class="n">PrepareStep</span><span class="o">.</span><span class="n">filter_on_numeric_range</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="s2">&quot;revenue&quot;</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">processor_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>   <span class="c1"># &#39;FilterOnNumericRange&#39;</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min&quot;</span><span class="p">))</span>      <span class="c1"># 100</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">))</span>      <span class="c1"># None / not present</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;keep&quot;</span><span class="p">])</span>         <span class="c1"># True</span>
+</code></pre></div>
+<p>The operator class is <code>&gt;</code>. The processor is <em>not</em> <code>FilterOnValue</code> with some imagined <code>GREATER_THAN</code> mode — that would emit invalid DSS JSON. It is <code>FilterOnNumericRange</code> with <code>min=100</code>. The bound is inclusive at the DSS layer; the strict <code>&gt;</code> versus non-strict <code>&gt;=</code> distinction is collapsed at this level. The factory's docstring on <code>filter_on_numeric_range</code> is explicit: DSS does not natively distinguish strict vs. non-strict at the configuration layer, and a strict <code>&gt;</code> is encoded by the same <code>min</code> bound that <code>&gt;=</code> would use.</p>
+<h3 id="predicate-3-set-membership">Predicate 3: set membership<a class="headerlink" href="#predicate-3-set-membership" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku.models.prepare_step</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrepareStep</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">step</span> <span class="o">=</span> <span class="n">PrepareStep</span><span class="o">.</span><span class="n">filter_on_value</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="s2">&quot;tier&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="s2">&quot;silver&quot;</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">processor_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>      <span class="c1"># &#39;FilterOnValue&#39;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">])</span>          <span class="c1"># [&#39;gold&#39;, &#39;silver&#39;]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;matchingMode&quot;</span><span class="p">])</span>    <span class="c1"># &#39;FULL_STRING&#39;</span>
+</code></pre></div>
+<p><code>isin</code> corresponds to <code>FilterOnValue</code> with a list of values and <code>matchingMode="FULL_STRING"</code>. DSS treats the values as alternatives; a row matches if any element of <code>values</code> equals the cell. There is a separate <code>FILTER_ON_MULTIPLE_VALUES</code> processor type, but the conventional route for <code>isin</code> is the single-processor multi-value form, because it round-trips cleanly through the official client and nests inside a multi-clause filter without complication.</p>
+<h3 id="predicate-4-substring-match">Predicate 4: substring match<a class="headerlink" href="#predicate-4-substring-match" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku.models.prepare_step</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrepareStep</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">step</span> <span class="o">=</span> <span class="n">PrepareStep</span><span class="o">.</span><span class="n">filter_on_value</span><span class="p">(</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">column</span><span class="o">=</span><span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;@gmail.com&quot;</span><span class="p">],</span> <span class="n">matching_mode</span><span class="o">=</span><span class="s2">&quot;SUBSTRING&quot;</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="kc">True</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">processor_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>     <span class="c1"># &#39;FilterOnValue&#39;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;matchingMode&quot;</span><span class="p">])</span>   <span class="c1"># &#39;SUBSTRING&#39;</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">])</span>         <span class="c1"># [&#39;@gmail.com&#39;]</span>
+</code></pre></div>
+<p>The operator is the <code>.str.contains</code> method on a string column. The processor stays at <code>FilterOnValue</code> but the matching mode changes to <code>SUBSTRING</code>. A regex-style <code>.str.match</code> would route the same way with <code>matchingMode="PATTERN"</code>. The matching mode is the entire mechanism that distinguishes the three string-match cases inside one processor type.</p>
+<h2 id="why-the-matching-mode-is-not-an-operator">Why the matching mode is not an operator<a class="headerlink" href="#why-the-matching-mode-is-not-an-operator" title="Permanent link">&para;</a></h2>
+<p>The <code>FilterOnValue.matchingMode</code> field is a string-match-style selector; it is not a comparison-operator selector. Calling out the difference:</p>
+<ul>
+<li><code>FULL_STRING</code> says "treat each <code>values</code> entry as a whole-cell candidate". The cell either equals one of the candidates or it does not.</li>
+<li><code>SUBSTRING</code> says "treat each <code>values</code> entry as a needle to find inside the cell". The cell either contains one of the needles or it does not.</li>
+<li><code>PATTERN</code> says "treat each <code>values</code> entry as a regular expression". The cell either matches one of the patterns or it does not.</li>
+</ul>
+<p>None of those have a numeric ordering. There is no place in <code>FilterOnValue</code> to say "the cell is greater than 100" — that would require an ordering relation, and <code>FilterOnValue</code> deliberately does not have one. The right processor for ordered comparison is <code>FilterOnNumericRange</code>. Treating <code>matchingMode</code> as an operator selector is a category error that produces JSON DSS rejects at import.</p>
+<p>An earlier finding documented in the project's review log was exactly this: a previous version of the library used <code>matchingMode</code> as if it were an operator selector. Verification against the official client source confirmed only the three string-match values are accepted, and the dispatch was rewritten to route numeric comparisons to <code>FilterOnNumericRange</code> instead.</p>
+<h2 id="multi-clause-predicates-the-formula-branch">Multi-clause predicates: the formula branch<a class="headerlink" href="#multi-clause-predicates-the-formula-branch" title="Permanent link">&para;</a></h2>
+<p>Pandas combines predicates with <code>&amp;</code> (AND) and <code>|</code> (OR), with optional <code>~</code> for negation. None of these compose neatly inside a single <code>FilterOnValue</code> or <code>FilterOnNumericRange</code> step — the parameter shape supports either one column at a time or a single ordered range.</p>
+<p>For compound predicates, py-iku translates the AST to a GREL string. That string is the building block: it can sit on a <code>FilterOnFormula</code> step inside a PREPARE recipe, or on the <code>split_condition</code> of a SPLIT recipe — the same translator feeds both. Building a <code>FilterOnFormula</code> step directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">py2dataiku.models.prepare_step</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrepareStep</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">step</span> <span class="o">=</span> <span class="n">PrepareStep</span><span class="o">.</span><span class="n">filter_on_formula</span><span class="p">(</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">formula</span><span class="o">=</span><span class="s1">&#39;(val(&quot;revenue&quot;) &gt; 100) &amp;&amp; (val(&quot;quantity&quot;) &lt; 50)&#39;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">keep</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">processor_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>   <span class="c1"># &#39;FilterOnFormula&#39;</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">])</span>      <span class="c1"># &#39;(val(&quot;revenue&quot;) &gt; 100) &amp;&amp; (val(&quot;quantity&quot;) &lt; 50)&#39;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;keep&quot;</span><span class="p">])</span>         <span class="c1"># True</span>
+</code></pre></div>
+<p>The translator handles the cases that occur in practice:</p>
+<ul>
+<li>Comparisons: <code>==</code>, <code>!=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code> map to GREL <code>==</code>, <code>!=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>&lt;</code>, <code>&lt;=</code>.</li>
+<li>Bitwise AND/OR (pandas's <code>&amp;</code> / <code>|</code>): map to GREL <code>&amp;&amp;</code> / <code>||</code> with parenthesised operands.</li>
+<li>Unary <code>~</code> and <code>not</code>: map to GREL <code>!(...)</code>.</li>
+<li><code>.isin([...])</code>: expanded into a chain of <code>(col == "a") || (col == "b") || ...</code> clauses.</li>
+<li>Column references: <code>df["col"]</code> and <code>df.col</code> both translate to <code>val("col")</code>.</li>
+<li>String constants: escaped with backslashes and quoted.</li>
+</ul>
+<p>The GREL grammar reference is at <a href="https://doc.dataiku.com/dss/latest/formula/index.html">doc.dataiku.com</a>. The translator returns <code>None</code> on AST shapes it does not recognise; the caller treats that as a signal to leave the formula unset rather than emit a wrong one. That conservative failure mode is intentional — a wrong filter is worse than a missing one, because it silently drops rows that should have been kept.</p>
+<p>The same translator is reused by the SPLIT recipe's condition field, so a complementary filter pair like <code>df[cond]</code> / <code>df[~cond]</code> produces a SPLIT recipe whose <code>split_condition</code> is the GREL form of <code>cond</code>. Chapter 9 walks through that detection.</p>
+<h2 id="why-three-processors-instead-of-one">Why three processors instead of one<a class="headerlink" href="#why-three-processors-instead-of-one" title="Permanent link">&para;</a></h2>
+<p>A single general-purpose filter that took <code>(column, operator, value)</code> would, at first glance, be simpler. DSS chose three. Two practical consequences fall out of the choice and explain why py-iku honours it:</p>
+<ul>
+<li><strong>Configuration UI maps cleanly to processor type.</strong> <code>FilterOnValue</code> opens a "value match" UI with a <code>matchingMode</code> toggle. <code>FilterOnNumericRange</code> opens a "range" UI with min and max fields. A human reading a flow inspector sees the right widget for the predicate. A unified filter would require a runtime branch on operator class to render the right widget, which is a more brittle UI design.</li>
+<li><strong>Round-tripping is type-safe at the configuration layer.</strong> Each processor's params dict has a fixed shape with named keys. Validating a configuration is a per-processor <a href="../appendix-a-glossary/#schema">schema</a> check rather than a type-and-operator combinatoric check across one large schema. The official client classes mirror this — there is a class per processor type with typed setters.</li>
+</ul>
+<p>This chapter does <em>not</em> claim that DSS uses different <em>runtime</em> implementations for the three processors (a hash-based filter for <code>FilterOnValue</code>, a range scan for <code>FilterOnNumericRange</code>, an expression interpreter for <code>FilterOnFormula</code>). That kind of execution-internals claim would require a primary source from the DSS engine documentation, and none has been verified by the project's review log. The argument here is at the configuration layer only.</p>
+<h2 id="filter-as-processor-versus-filter-as-recipe">Filter as processor versus filter as recipe<a class="headerlink" href="#filter-as-processor-versus-filter-as-recipe" title="Permanent link">&para;</a></h2>
+<p>A small detail that frequently confuses readers new to the library: a filter inside a PREPARE recipe (<code>FILTER_ON_VALUE</code>, <code>FILTER_ON_NUMERIC_RANGE</code>, <code>FILTER_ON_FORMULA</code>) is a <em>processor</em> — a step inside a 1→1 recipe. A SPLIT recipe is also rooted in filtering, but it is a <em>recipe</em> with arity 1→N (or 1→1 with a single output, when the recipe carries only one branch). The two are not interchangeable.</p>
+<ul>
+<li>A filter step inside PREPARE is a row-filter that keeps the recipe at 1→1 over rows. Its strength is composition: adjacent element-wise transforms merge into the same prepare buffer, and one recipe node hosts the whole sequence.</li>
+<li>A SPLIT recipe is a structural filter at the recipe layer. Its strength is <a href="../appendix-a-glossary/#partition">partitioning</a>: when the same input flows into two complementary outputs, one SPLIT replaces two filters.</li>
+</ul>
+<p>How the rule-based analyzer routes today: any boolean-indexing assignment (<code>df[cond]</code>) becomes a SPLIT recipe at the recipe layer, regardless of clause count or operator class. Each <code>FilterOn*</code> processor described above is still the canonical way to express the predicate <em>inside</em> a PREPARE recipe — that is what the LLM path emits, what custom analyzer plugins emit, and what the factory helpers build for direct construction. The chapter's processor-level dispatch table is independent of which recipe layer hosts the filter; the SPLIT-vs-PREPARE choice happens one level up.</p>
+<h2 id="what-py-iku-does-not-do">What py-iku does not do<a class="headerlink" href="#what-py-iku-does-not-do" title="Permanent link">&para;</a></h2>
+<p>The translator is conservative on purpose. Three cases it deliberately punts on:</p>
+<ul>
+<li><strong>Strict vs. non-strict at the DSS layer.</strong> A predicate <code>df["x"] &gt; 5</code> and <code>df["x"] &gt;= 5</code> produce the same <code>FilterOnNumericRange</code> configuration with <code>min=5</code>. DSS's range bounds are inclusive, and emitting an "almost equal" bound on a float would be semantically suspect. The rule-based path accepts the boundary collapse; the LLM path can opt for a <code>FilterOnFormula</code> with explicit <code>&gt; 5</code> to preserve strictness.</li>
+<li><strong>Inferred complementarity from value comparisons.</strong> <code>df[df.x &gt;= 1000]</code> and <code>df[df.x &lt; 1000]</code> are mathematically complementary, but the rule-based detector currently does not collapse them — both lines are processed independently and each emits its own SPLIT recipe. The conservative choice is to not collapse: inferring complementarity from value comparisons risks false positives when the two predicates differ in subtle ways (open versus closed bounds, integer versus float comparison). The explicit <code>cond = ...; df[cond]; df[~cond]</code> form <em>is</em> recognised and produces a single SPLIT recipe with two outputs.</li>
+<li><strong>Routing single-output filters back to PREPARE.</strong> Even when a boolean-indexing assignment is the only consumer of its source DataFrame, the rule-based path emits a SPLIT recipe (with one output) rather than a PREPARE recipe with a <code>FilterOn*</code> step. The output is DSS-valid; it is simply more verbose than the PREPARE+processor form a custom analyzer or the LLM path would produce.</li>
+</ul>
+<p>All three are documented in the project's review log under "outstanding items" and are candidates for a future revision. The textbook surfaces them so users do not over-promise the library to their teams.</p>
+<h2 id="theory-anchor-distinct-processor-types-for-distinct-operator-classes">Theory anchor: distinct processor types for distinct operator classes<a class="headerlink" href="#theory-anchor-distinct-processor-types-for-distinct-operator-classes" title="Permanent link">&para;</a></h2>
+<p>The framing repeated through the chapter:</p>
+<ul>
+<li>DSS exposes a family of filter processors, each specialised for one operator class.</li>
+<li><code>FilterOnValue.matchingMode</code> is <em>not</em> an operator selector — its values (<code>FULL_STRING</code>, <code>SUBSTRING</code>, <code>PATTERN</code>) are all string-match modes.</li>
+<li>Numeric comparison is a separate processor (<code>FilterOnNumericRange</code>) with its own configuration shape.</li>
+<li>Compound predicates compile to a GREL formula on <code>FilterOnFormula</code>.</li>
+<li>Conflating the three at the configuration layer produces invalid DSS JSON.</li>
+</ul>
+<p>The translator's job is to read the AST, classify the operator, and route to the right processor type. Once the routing is in place, every predicate the library handles falls out of the dispatch table without further special cases. The three-way split is the entire abstraction.</p>
+<h2 id="further-reading">Further reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../appendix-b-troubleshooting/#filter-mis-routing-predicate-became-a-python-recipe">Troubleshooting: filter mis-routing</a></li>
+<li><a href="../appendix-a-glossary/">Glossary</a> — terminology used throughout the textbook</li>
+<li><a href="../appendix-c-cheatsheet/#filter-routing-the-non-obvious-one">Cheatsheet: filter routing table</a></li>
+<li><a href="../../api/models/">Models API reference</a></li>
+<li><a href="https://github.com/m-deane/py-iku/blob/main/notebooks/04_expert.ipynb">Notebook 04: expert filters and predicates</a></li>
+<li><a href="https://doc.dataiku.com/dss/latest/formula/index.html">Dataiku docs: GREL formula language</a></li>
+<li><a href="https://github.com/dataiku/dataiku-api-client-python/blob/master/dataikuapi/dss/recipe.py">dataiku-api-client-python: recipe.py</a></li>
+<li>Chapter 9 covers the SPLIT-vs-PREPARE routing decision and the AST-to-GREL translator.</li>
+</ul>
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
+<p>Chapter 9 picks up the SPLIT detection thread, walks through V5 of the running example, and covers the GREL formula generation that power compound-predicate flows.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/m-deane/py-iku" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

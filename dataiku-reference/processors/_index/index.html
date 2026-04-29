@@ -1,0 +1,2614 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Convert Python data processing code to Dataiku DSS recipes and flows">
+      
+      
+      
+        <link rel="canonical" href="https://m-deane.github.io/py-iku/dataiku-reference/processors/_index/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Processors Index - py-iku</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#processors-index" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="py-iku" class="md-header__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            py-iku
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Processors Index
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../notebooks/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Notebooks & Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../textbook/" class="md-tabs__link">
+          
+  
+  
+  Textbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+  Auto-generated API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../future-dss-writeback/" class="md-tabs__link">
+          
+  
+  
+  Future Work
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="py-iku" class="md-nav__button md-logo" aria-label="py-iku" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    py-iku
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/m-deane/py-iku" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    m-deane/py-iku
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notebooks & Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Textbook
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Textbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Foreword
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/01-why-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1. Why py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/02-five-second-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2. The five-second tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/03-anatomy-of-a-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3. Anatomy of a flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/04-pandas-to-dss-grammar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4. Pandas to DSS grammar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/05-prepare-recipes-deep-dive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5. Prepare recipes deep dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/06-recipe-types-tour/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6. Recipe types tour
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/07-the-llm-path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    7. The LLM path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/08-filters-and-predicates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    8. Filters and predicates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/09-advanced-patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    9. Advanced patterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/10-optimization-and-dag/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10. Optimization and the DAG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/11-production-usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    11. Production usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/12-extending-py-iku/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    12. Extending py-iku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/13-visual-aids-and-inspection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    13. Visual Aids & Inspection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/examples-01-trade-capture-and-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples I: Trade Capture and Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/examples-02-position-and-pnl-analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples II: Position and P&L Analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/examples-03-counterparty-and-curves/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples III: Counterparty and Curves
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/examples-04-power-hubs-and-trade-events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worked Examples IV: Power Hubs and Trade Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/appendix-a-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix A: Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/appendix-b-troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix B: Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../textbook/appendix-c-cheatsheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Appendix C: Cheatsheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/core-functions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/py2dataiku-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Py2Dataiku Class
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enums
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/llm-providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Providers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/visualizers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visualizers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/exporters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugin System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/exceptions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exceptions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/recipe-settings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recipe Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/scenarios-metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scenarios & Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/mlops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto-generated API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Auto-generated API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    py2dataiku
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Work
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Future Work
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../future-dss-writeback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSS Write-back
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="processors-index">Processors Index<a class="headerlink" href="#processors-index" title="Permanent link">&para;</a></h1>
+<table>
+<thead>
+<tr>
+<th>Slug</th>
+<th>Category</th>
+<th>URL</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../array-extract/">array-extract</a></td>
+<td>Arrays / JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/array-extract.html</td>
+<td>Extract an element or sub-array from a JSON array column.</td>
+</tr>
+<tr>
+<td><a href="../array-fold/">array-fold</a></td>
+<td>Arrays / Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/array-fold.html</td>
+<td>Fold a JSON array column into several rows, one value per row.</td>
+</tr>
+<tr>
+<td><a href="../array-sort/">array-sort</a></td>
+<td>Arrays / JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/array-sort.html</td>
+<td>Sort an array (written in JSON).</td>
+</tr>
+<tr>
+<td><a href="../arrays-concat/">arrays-concat</a></td>
+<td>Arrays / JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/arrays-concat.html</td>
+<td>Concatenate N JSON-array columns into a single JSON array.</td>
+</tr>
+<tr>
+<td><a href="../binner/">binner</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/binner.html</td>
+<td>Discretize (bin) numerical values into fixed-width or custom intervals.</td>
+</tr>
+<tr>
+<td><a href="../change-crs/">change-crs</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/change-crs.html</td>
+<td>Change the Coordinate Reference System of a geometry/geopoint column (project to WGS84/EPSG:4326).</td>
+</tr>
+<tr>
+<td><a href="../coalesce/">coalesce</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/coalesce.html</td>
+<td>Return the first non-null and non-empty value across several input columns.</td>
+</tr>
+<tr>
+<td><a href="../column-copy/">column-copy</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/column-copy.html</td>
+<td>Duplicate the content of one column into another.</td>
+</tr>
+<tr>
+<td><a href="../column-pseudonymization/">column-pseudonymization</a></td>
+<td>Privacy</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/column-pseudonymization.html</td>
+<td>Pseudonymize column values via SHA-256/SHA-512/MD5 hashing with optional pepper and salt column.</td>
+</tr>
+<tr>
+<td><a href="../column-rename/">column-rename</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/column-rename.html</td>
+<td>Rename one or more columns; supports raw text bulk edit.</td>
+</tr>
+<tr>
+<td><a href="../columns-concat/">columns-concat</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/columns-concat.html</td>
+<td>Concatenate values across columns using a delimiter into a single output column.</td>
+</tr>
+<tr>
+<td><a href="../columns-select/">columns-select</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/columns-select.html</td>
+<td>Delete or keep columns by name (single, list, regex, or all).</td>
+</tr>
+<tr>
+<td><a href="../count-matches/">count-matches</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/count-matches.html</td>
+<td>Count occurrences of a pattern (complete value, substring, or regex) in a column.</td>
+</tr>
+<tr>
+<td><a href="../create-if-then-else/">create-if-then-else</a></td>
+<td>Logic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/create-if-then-else.html</td>
+<td>Compute a column from conditional if/then/else rules with simple, conjunction, or nested groups.</td>
+</tr>
+<tr>
+<td><a href="../currency-converter/">currency-converter</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/currency-converter.html</td>
+<td>Convert monetary columns between currencies using historical reference rates.</td>
+</tr>
+<tr>
+<td><a href="../currency-splitter/">currency-splitter</a></td>
+<td>Strings / Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/currency-splitter.html</td>
+<td>Split an amount-with-symbol column into amount + currency-code columns.</td>
+</tr>
+<tr>
+<td><a href="../date-components-extract/">date-components-extract</a></td>
+<td>Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/date-components-extract.html</td>
+<td>Extract date elements (year, month, day, hour, etc.) from an ISO-8601 column with timezone realignment.</td>
+</tr>
+<tr>
+<td><a href="../date-difference/">date-difference</a></td>
+<td>Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/date-difference.html</td>
+<td>Compute difference between dates with optional weekend/bank-holiday exclusion (per country calendar).</td>
+</tr>
+<tr>
+<td><a href="../date-formatter/">date-formatter</a></td>
+<td>Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/date-formatter.html</td>
+<td>Format an ISO-8601 date into a custom human-readable string using Java DateFormat patterns.</td>
+</tr>
+<tr>
+<td><a href="../date-parser/">date-parser</a></td>
+<td>Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/date-parser.html</td>
+<td>Parse strings to standard ISO-8601 with Smart Date assistance, locale, and timezone resolution.</td>
+</tr>
+<tr>
+<td><a href="../email-split/">email-split</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/email-split.html</td>
+<td>Split an email column into local part (before @) and domain (after @).</td>
+</tr>
+<tr>
+<td><a href="../enrich-french-departement/">enrich-french-departement</a></td>
+<td>Enrichment</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/enrich-french-departement.html</td>
+<td>Add INSEE demographic, housing, fiscal, employment, and company data for French departments.</td>
+</tr>
+<tr>
+<td><a href="../enrich-french-postcode/">enrich-french-postcode</a></td>
+<td>Enrichment</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/enrich-french-postcode.html</td>
+<td>Enrich a French postcode column with INSEE demographic and city data.</td>
+</tr>
+<tr>
+<td><a href="../enrich-with-build-context/">enrich-with-build-context</a></td>
+<td>Enrichment</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/enrich-with-build-context.html</td>
+<td>Add columns with build-context info (build date, job ID); only populated at run-time.</td>
+</tr>
+<tr>
+<td><a href="../enrich-with-record-context/">enrich-with-record-context</a></td>
+<td>Enrichment</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/enrich-with-record-context.html</td>
+<td>Add columns with record context (partition, file path/name, last modified) for partitioned/file-based datasets; DSS engine only.</td>
+</tr>
+<tr>
+<td><a href="../extract-ngrams/">extract-ngrams</a></td>
+<td>Text / NLP</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/extract-ngrams.html</td>
+<td>Extract n-gram sequences from a text column with simplification and skip-gram options.</td>
+</tr>
+<tr>
+<td><a href="../extract-numbers/">extract-numbers</a></td>
+<td>Strings / Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/extract-numbers.html</td>
+<td>Extract numerical values from a text column to columns or a JSON array.</td>
+</tr>
+<tr>
+<td><a href="../fill-column/">fill-column</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fill-column.html</td>
+<td>Fill all values of a column with a fixed value.</td>
+</tr>
+<tr>
+<td><a href="../fill-empty/">fill-empty</a></td>
+<td>Imputation</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fill-empty.html</td>
+<td>Fill empty cells with a fixed value.</td>
+</tr>
+<tr>
+<td><a href="../fill-empty-with-computed-value/">fill-empty-with-computed-value</a></td>
+<td>Imputation</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fill-empty-with-computed-value.html</td>
+<td>Impute missing values with mean, median, or mode.</td>
+</tr>
+<tr>
+<td><a href="../filter-on-date/">filter-on-date</a></td>
+<td>Filter / Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-date.html</td>
+<td>Filter or clear cells by static date range, relative date range, or date part.</td>
+</tr>
+<tr>
+<td><a href="../filter-on-formula/">filter-on-formula</a></td>
+<td>Filter</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-formula.html</td>
+<td>Filter or clear rows/cells based on a formula evaluating to truthy.</td>
+</tr>
+<tr>
+<td><a href="../filter-on-meaning/">filter-on-meaning</a></td>
+<td>Filter / Meanings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-meaning.html</td>
+<td>Filter or clear rows/cells whose value is invalid for a selected meaning.</td>
+</tr>
+<tr>
+<td><a href="../filter-on-range/">filter-on-range</a></td>
+<td>Filter / Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-range.html</td>
+<td>Filter or clear rows/cells whose value is within a numerical range (inclusive).</td>
+</tr>
+<tr>
+<td><a href="../filter-on-value/">filter-on-value</a></td>
+<td>Filter / Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/filter-on-value.html</td>
+<td>Filter or clear rows/cells matching specific values (complete, substring, regex).</td>
+</tr>
+<tr>
+<td><a href="../find-replace/">find-replace</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/find-replace.html</td>
+<td>Find and replace strings in column(s) with sequential replacements, regex capture groups, and dataset-driven mappings.</td>
+</tr>
+<tr>
+<td><a href="../flag-on-date/">flag-on-date</a></td>
+<td>Flag / Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/flag-on-date.html</td>
+<td>Flag rows whose date matches a static range, relative range, or date part.</td>
+</tr>
+<tr>
+<td><a href="../flag-on-formula/">flag-on-formula</a></td>
+<td>Flag</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/flag-on-formula.html</td>
+<td>Flag rows where a formula evaluates to truthy.</td>
+</tr>
+<tr>
+<td><a href="../flag-on-meaning/">flag-on-meaning</a></td>
+<td>Flag / Meanings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/flag-on-meaning.html</td>
+<td>Flag rows whose value is invalid for a selected meaning.</td>
+</tr>
+<tr>
+<td><a href="../flag-on-range/">flag-on-range</a></td>
+<td>Flag / Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/flag-on-range.html</td>
+<td>Flag rows whose value is within a numerical range.</td>
+</tr>
+<tr>
+<td><a href="../flag-on-value/">flag-on-value</a></td>
+<td>Flag / Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/flag-on-value.html</td>
+<td>Flag rows whose value matches specified values.</td>
+</tr>
+<tr>
+<td><a href="../fold-columns-by-name/">fold-columns-by-name</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fold-columns-by-name.html</td>
+<td>Fold a list of named columns into name+value rows (melt).</td>
+</tr>
+<tr>
+<td><a href="../fold-columns-by-pattern/">fold-columns-by-pattern</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fold-columns-by-pattern.html</td>
+<td>Fold columns selected by regex pattern; supports capture group for fold-name extraction.</td>
+</tr>
+<tr>
+<td><a href="../fold-object/">fold-object</a></td>
+<td>Reshaping / JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fold-object.html</td>
+<td>Split a JSON Object column into key/value rows.</td>
+</tr>
+<tr>
+<td><a href="../formula/">formula</a></td>
+<td>Logic / Math</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/formula.html</td>
+<td>Compute new columns using formulas (math, string, date, conditional).</td>
+</tr>
+<tr>
+<td><a href="../fuzzy-join/">fuzzy-join</a></td>
+<td>Join (deprecated)</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/fuzzy-join.html</td>
+<td>Memory-based fuzzy left join with another small dataset (deprecated; use fuzzy-join recipe).</td>
+</tr>
+<tr>
+<td><a href="../generate-big-data/">generate-big-data</a></td>
+<td>Generation</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/generate-big-data.html</td>
+<td>Generate Big Data out of small data by replicating rows with synthesized values.</td>
+</tr>
+<tr>
+<td><a href="../geo-distance/">geo-distance</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geo-distance.html</td>
+<td>Compute geodesic distance between geospatial column and fixed geopoint/geometry/another column.</td>
+</tr>
+<tr>
+<td><a href="../geo-info-extractor/">geo-info-extractor</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geo-info-extractor.html</td>
+<td>Extract centroid point, length, and area from a geometry column.</td>
+</tr>
+<tr>
+<td><a href="../geo-join/">geo-join</a></td>
+<td>Join (deprecated)</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geo-join.html</td>
+<td>Memory-based geographic nearest-neighbour join (deprecated; use geo-join recipe).</td>
+</tr>
+<tr>
+<td><a href="../geoip/">geoip</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geoip.html</td>
+<td>Resolve an IP address to country, region, city, postal, lat/lon, GeoPoint, timezone via GeoLite City.</td>
+</tr>
+<tr>
+<td><a href="../geopoint-buffer/">geopoint-buffer</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geopoint-buffer.html</td>
+<td>Create a rectangular or circular buffer polygon around each geopoint.</td>
+</tr>
+<tr>
+<td><a href="../geopoint-create/">geopoint-create</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geopoint-create.html</td>
+<td>Create a GeoPoint column from latitude/longitude columns (WKT format).</td>
+</tr>
+<tr>
+<td><a href="../geopoint-extract/">geopoint-extract</a></td>
+<td>Geographic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/geopoint-extract.html</td>
+<td>Extract latitude and longitude columns from a GeoPoint column.</td>
+</tr>
+<tr>
+<td><a href="../grok/">grok</a></td>
+<td>Strings / Logs</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/grok.html</td>
+<td>Extract chunks from a column using grok patterns and/or regular expressions with named captures.</td>
+</tr>
+<tr>
+<td><a href="../holidays-computer/">holidays-computer</a></td>
+<td>Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/holidays-computer.html</td>
+<td>Flag school holiday, bank holiday, or weekend for a date column with country-specific calendars.</td>
+</tr>
+<tr>
+<td><a href="../invalid-split/">invalid-split</a></td>
+<td>Filter / Meanings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/invalid-split.html</td>
+<td>Move column values invalid for a meaning into a separate column.</td>
+</tr>
+<tr>
+<td><a href="../join/">join</a></td>
+<td>Join (deprecated)</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/join.html</td>
+<td>Memory-based left join with another small dataset (deprecated; use join recipe).</td>
+</tr>
+<tr>
+<td><a href="../jsonpath/">jsonpath</a></td>
+<td>JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/jsonpath.html</td>
+<td>Extract data from a JSON column using JSONPath syntax.</td>
+</tr>
+<tr>
+<td><a href="../long-tail/">long-tail</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/long-tail.html</td>
+<td>Group long-tail values into a generic 'Others' bucket using an allow-list.</td>
+</tr>
+<tr>
+<td><a href="../mean/">mean</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/mean.html</td>
+<td>Line-by-line arithmetic mean over multiple numeric columns (ignores empties).</td>
+</tr>
+<tr>
+<td><a href="../meaning-translate/">meaning-translate</a></td>
+<td>Meanings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/meaning-translate.html</td>
+<td>Replace values according to a 'Value mapping' meaning.</td>
+</tr>
+<tr>
+<td><a href="../measure-normalize/">measure-normalize</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/measure-normalize.html</td>
+<td>Normalize a measurement (mass, volume, surface).</td>
+</tr>
+<tr>
+<td><a href="../merge-long-tail-values/">merge-long-tail-values</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/merge-long-tail-values.html</td>
+<td>Merge values below a certain appearance threshold.</td>
+</tr>
+<tr>
+<td><a href="../move-columns/">move-columns</a></td>
+<td>Columns</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/move-columns.html</td>
+<td>Move one or more columns relative to another column or to begin/end.</td>
+</tr>
+<tr>
+<td><a href="../negate/">negate</a></td>
+<td>Logic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/negate.html</td>
+<td>Transform a boolean value into its negation.</td>
+</tr>
+<tr>
+<td><a href="../number-clipping/">number-clipping</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/number-clipping.html</td>
+<td>Clip or clear outliers above/below numeric bounds.</td>
+</tr>
+<tr>
+<td><a href="../numerical-combinations/">numerical-combinations</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/numerical-combinations.html</td>
+<td>Generate every pair of numeric columns combined with +, -, x, /.</td>
+</tr>
+<tr>
+<td><a href="../numerical-format-convert/">numerical-format-convert</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/numerical-format-convert.html</td>
+<td>Convert numbers between Raw / French / English / Italian / Swiss locale formats.</td>
+</tr>
+<tr>
+<td><a href="../object-nest/">object-nest</a></td>
+<td>JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/object-nest.html</td>
+<td>Combine N input columns into a single JSON object column.</td>
+</tr>
+<tr>
+<td><a href="../object-unnest-json/">object-unnest-json</a></td>
+<td>JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/object-unnest-json.html</td>
+<td>Unnest (flatten) a JSON object/array column to top-level columns with depth and array-flatten options.</td>
+</tr>
+<tr>
+<td><a href="../pattern-extract/">pattern-extract</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/pattern-extract.html</td>
+<td>Extract chunks from a column using a regular expression with named or numbered capture groups.</td>
+</tr>
+<tr>
+<td><a href="../pivot/">pivot</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/pivot.html</td>
+<td>Pivot processor: transpose rows into columns, widening the dataset using index/labels/values.</td>
+</tr>
+<tr>
+<td><a href="../python-custom/">python-custom</a></td>
+<td>Custom code</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/python-custom.html</td>
+<td>Execute a custom Python function (Cell/Row/Rows mode, Jython or real Python with vectorized pandas).</td>
+</tr>
+<tr>
+<td><a href="../querystring-split/">querystring-split</a></td>
+<td>Strings / Web</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/querystring-split.html</td>
+<td>Split an HTTP query string into one column per key=value chunk.</td>
+</tr>
+<tr>
+<td><a href="../remove-empty/">remove-empty</a></td>
+<td>Filter</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/remove-empty.html</td>
+<td>Remove or keep rows for which selected cells are empty.</td>
+</tr>
+<tr>
+<td><a href="../round/">round</a></td>
+<td>Numerical</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/round.html</td>
+<td>Round decimals (round/floor/ceil) by significant digits or decimal places.</td>
+</tr>
+<tr>
+<td><a href="../simplify-text/">simplify-text</a></td>
+<td>Text / NLP</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/simplify-text.html</td>
+<td>Normalize, stem, clear stop words, alphabetic-sort words in a text column.</td>
+</tr>
+<tr>
+<td><a href="../split/">split</a></td>
+<td>Reshaping / Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/split.html</td>
+<td>Split a column on each delimiter occurrence into prefixed numbered columns or array.</td>
+</tr>
+<tr>
+<td><a href="../split-fold/">split-fold</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/split-fold.html</td>
+<td>Split a column on a separator and fold values into multiple rows.</td>
+</tr>
+<tr>
+<td><a href="../split-into-chunks/">split-into-chunks</a></td>
+<td>Text / RAG</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/split-into-chunks.html</td>
+<td>Recursively split text into chunks (with overlap and separator list) for embedding/RAG.</td>
+</tr>
+<tr>
+<td><a href="../split-unfold/">split-unfold</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/split-unfold.html</td>
+<td>Split a column on a separator into multiple binary (dummified) columns.</td>
+</tr>
+<tr>
+<td><a href="../string-transform/">string-transform</a></td>
+<td>Strings</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/string-transform.html</td>
+<td>Encode/decode/transform strings: case, URL/XML/Unicode (un)escape, trim, capitalize, normalize, truncate.</td>
+</tr>
+<tr>
+<td><a href="../switch-case/">switch-case</a></td>
+<td>Logic</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/switch-case.html</td>
+<td>Replace input values according to key-value rules with default and normalization modes.</td>
+</tr>
+<tr>
+<td><a href="../tokenizer/">tokenizer</a></td>
+<td>Text / NLP</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/tokenizer.html</td>
+<td>Tokenize a text column into array, one token per row, or one token per column with simplification options.</td>
+</tr>
+<tr>
+<td><a href="../transpose/">transpose</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/transpose.html</td>
+<td>Turn rows into columns (limited to 100 rows).</td>
+</tr>
+<tr>
+<td><a href="../triggered-unfold/">triggered-unfold</a></td>
+<td>Reshaping / Sessions</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/triggered-unfold.html</td>
+<td>Reassemble rows when a specific trigger value is encountered (session reconstruction).</td>
+</tr>
+<tr>
+<td><a href="../unfold/">unfold</a></td>
+<td>Reshaping</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/unfold.html</td>
+<td>Transform values of a column into binary columns (one-hot / dummification).</td>
+</tr>
+<tr>
+<td><a href="../unfold-array/">unfold-array</a></td>
+<td>Reshaping / JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/unfold-array.html</td>
+<td>Transform a JSON array column into per-value occurrence count columns.</td>
+</tr>
+<tr>
+<td><a href="../unixtimestamp-parser/">unixtimestamp-parser</a></td>
+<td>Dates</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/unixtimestamp-parser.html</td>
+<td>Convert UNIX timestamps (seconds or milliseconds) to ISO-8601 dates.</td>
+</tr>
+<tr>
+<td><a href="../up-down-fill/">up-down-fill</a></td>
+<td>Imputation</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/up-down-fill.html</td>
+<td>Fill empty cells with previous (or next) non-empty value.</td>
+</tr>
+<tr>
+<td><a href="../url-split/">url-split</a></td>
+<td>Strings / Web</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/url-split.html</td>
+<td>Split a URL into protocol, host, port, path, querystring, anchor columns.</td>
+</tr>
+<tr>
+<td><a href="../user-agent/">user-agent</a></td>
+<td>Web</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/user-agent.html</td>
+<td>Classify a User-Agent string into type, brand, category, version, os, osversion, osflavor.</td>
+</tr>
+<tr>
+<td><a href="../visitor-id/">visitor-id</a></td>
+<td>Web</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/visitor-id.html</td>
+<td>Generate a best-effort visitor id from IP, user-agent, language, timezone.</td>
+</tr>
+<tr>
+<td><a href="../zip-arrays/">zip-arrays</a></td>
+<td>JSON</td>
+<td>https://doc.dataiku.com/dss/latest/preparation/processors/zip-arrays.html</td>
+<td>Zip N JSON-array columns into a JSON array of objects.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/m-deane/py-iku" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
