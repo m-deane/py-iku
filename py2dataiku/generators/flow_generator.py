@@ -402,8 +402,15 @@ class FlowGenerator(BaseFlowGenerator):
             # Visual processor for computed columns (assign, where, mask, map(dict),
             # replace(dict), explode, binop assigns).
             proc_name = trans.suggested_processor or "CreateColumnWithGREL"
-            output_col = trans.parameters.get("output_column") or (
-                trans.columns[0] if trans.columns else "new_column"
+            # Bug #1: ``_handle_binop`` writes ``params['column']`` for
+            # ``df['new'] = expr`` derivations. Older callers used
+            # ``output_column`` or ``trans.columns[0]``. Try all three so
+            # binop / assign / map / replace paths converge on a non-stub
+            # column name.
+            output_col = (
+                trans.parameters.get("output_column")
+                or trans.parameters.get("column")
+                or (trans.columns[0] if trans.columns else "new_column")
             )
 
             if proc_name == "Unfold":

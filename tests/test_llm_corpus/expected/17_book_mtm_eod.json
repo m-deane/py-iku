@@ -3,9 +3,10 @@
   "category": "trading_domain",
   "expected_recipe_types": [
     "grouping",
-    "join"
+    "join",
+    "prepare"
   ],
-  "expected_dataset_count": 4,
+  "expected_dataset_count": 5,
   "expected_outputs": [
     "book_pnl"
   ],

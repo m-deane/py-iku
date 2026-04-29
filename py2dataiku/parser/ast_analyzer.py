@@ -1829,12 +1829,67 @@ class CodeAnalyzer:
         )
 
     def _handle_binop(self, node: ast.BinOp, target: str) -> None:
-        """Handle binary operations like df['a'] + df['b']."""
+        """Handle ``df['new'] = <BinOp over df columns>``.
+
+        Bug #1 fix: previously emitted a stub transformation with no GREL
+        expression and no source dataframe, so the generator silently
+        dropped the derivation. Downstream GROUPING / sort steps that
+        referenced the new column ended up aggregating over a column
+        that didn't exist — flow shape looked right, semantics broken.
+
+        We now:
+        1. Parse the target column out of the ``df['col']`` subscript
+           that produced ``target`` (`_handle_assignment` formats it
+           as ``"df['col']"``).
+        2. Walk the BinOp tree for any ``df['x']`` subscript to identify
+           the source dataframe.
+        3. Translate the BinOp to a GREL expression via the existing
+           ``_translate_to_grel`` translator (which handles +, -, *, /,
+           and recurses into nested column references).
+        4. Emit a COLUMN_CREATE transformation carrying the column name,
+           the GREL expression, and the source df. The generator then
+           produces a PREPARE step with CreateColumnWithGREL.
+        """
+        # Parse target into source df + new column name.
+        df_name = ""
+        column = ""
+        if isinstance(target, str) and "[" in target and "]" in target:
+            base, sep, rest = target.partition("[")
+            df_name = base
+            # rest looks like 'mtm_value']
+            stripped = rest.rstrip("]").strip()
+            if (stripped.startswith("'") and stripped.endswith("'")) or (
+                stripped.startswith('"') and stripped.endswith('"')
+            ):
+                column = stripped[1:-1]
+            else:
+                column = stripped
+
+        # Walk the BinOp for the first subscripted dataframe to anchor
+        # the source df when the target string didn't carry one.
+        if not df_name:
+            for descendant in ast.walk(node):
+                if isinstance(descendant, ast.Subscript) and isinstance(
+                    descendant.value, ast.Name
+                ):
+                    df_name = descendant.value.id
+                    break
+
+        # Translate the expression to GREL.
+        grel = _translate_to_grel(node, df_name) if df_name else None
+
+        params: dict[str, Any] = {"operation": "binop"}
+        if column:
+            params["column"] = column
+        if grel:
+            params["expression"] = grel
+
         self.transformations.append(
             Transformation(
                 transformation_type=TransformationType.COLUMN_CREATE,
-                target_dataframe=target,
-                parameters={"operation": "binop"},
+                source_dataframe=df_name or None,
+                target_dataframe=df_name or target,
+                parameters=params,
                 source_line=self.current_line,
                 suggested_processor="CreateColumnWithGREL",
             )
@@ -2909,6 +2964,7 @@ def _translate_grel_node(node: ast.expr, df_name: str) -> Optional[str]:
         return _translate_compare(node, df_name)
 
     # Bitwise AND/OR (pandas ``&`` / ``|``)
+    # AND arithmetic +, -, *, /, % for derived-column GREL (Bug #1).
     if isinstance(node, ast.BinOp):
         if isinstance(node.op, ast.BitAnd):
             left = _translate_grel_node(node.left, df_name)
@@ -2922,6 +2978,23 @@ def _translate_grel_node(node: ast.expr, df_name: str) -> Optional[str]:
             if left is None or right is None:
                 return None
             return f"({left}) || ({right})"
+        # Arithmetic: GREL accepts +, -, *, / directly. Wrap each
+        # operand in parens so precedence matches Python's.
+        arith_ops = {
+            ast.Add: "+",
+            ast.Sub: "-",
+            ast.Mult: "*",
+            ast.Div: "/",
+            ast.Mod: "%",
+            ast.Pow: "**",  # GREL exponent
+        }
+        for op_cls, sym in arith_ops.items():
+            if isinstance(node.op, op_cls):
+                left = _translate_grel_node(node.left, df_name)
+                right = _translate_grel_node(node.right, df_name)
+                if left is None or right is None:
+                    return None
+                return f"({left}) {sym} ({right})"
 
     # Logical AND/OR (rare in pandas — usually short-circuits at row-eval)
     if isinstance(node, ast.BoolOp):
