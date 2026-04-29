@@ -542,6 +542,23 @@ class FlowGenerator(BaseFlowGenerator):
         )
         recipe.source_lines = [trans.source_line] if trans.source_line else []
 
+        # Promote to FUZZY_JOIN when the source idiom was pd.merge_asof
+        # (carries the as-of direction in trans.parameters['join_kind']).
+        # Direction (backward/forward/nearest) is preserved as a recipe
+        # note so a downstream user can configure the matching window.
+        if trans.parameters.get("join_kind") == "asof":
+            recipe.recipe_type = RecipeType.FUZZY_JOIN
+            direction = trans.parameters.get("direction", "backward")
+            by = trans.parameters.get("by")
+            note = (
+                f"pd.merge_asof(direction='{direction}'"
+                + (f", by={by}" if by else "")
+                + ") -> FUZZY_JOIN. Configure DSS Fuzzy Join's "
+                "nearest-match tolerance to mirror as-of semantics."
+            )
+            recipe.notes.append(note)
+            recipe.name = f"fuzzy_join_{self.recipe_counter}"
+
         self.flow.add_recipe(recipe)
         return output_name
 

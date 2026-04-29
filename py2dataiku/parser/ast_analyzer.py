@@ -293,6 +293,10 @@ class CodeAnalyzer:
                 self._handle_read_data(node, target, "excel")
             elif method_name == "merge" and obj_name == "pd":
                 self._handle_pd_merge(node, target)
+            elif method_name == "merge_asof" and obj_name == "pd":
+                # pd.merge_asof routes to FUZZY_JOIN with the
+                # ``direction`` kwarg captured (defaults to 'backward').
+                self._handle_pd_merge_asof(node, target)
             elif method_name == "concat" and obj_name == "pd":
                 self._handle_concat(node, target)
             elif method_name in ("cut", "qcut") and obj_name == "pd":
@@ -978,6 +982,64 @@ class CodeAnalyzer:
         self.transformations.append(
             Transformation.merge(
                 left or "", right or "", target, on, left_on, right_on, how, self.current_line
+            )
+        )
+
+    def _handle_pd_merge_asof(self, node: ast.Call, target: str) -> None:
+        """Handle ``pd.merge_asof()`` -> FUZZY_JOIN (DSS Fuzzy Join recipe).
+
+        DSS's Fuzzy Join recipe supports a non-equality join key (e.g.,
+        nearest-match within a tolerance), which is the closest visual
+        equivalent to pandas' as-of join. The ``direction`` kwarg
+        ('backward' default, 'forward', 'nearest') is captured in
+        parameters so downstream code can render the right hint; ``on``
+        / ``left_on`` / ``right_on`` / ``by`` are all carried through.
+        """
+        left = None
+        right = None
+        on = None
+        left_on = None
+        right_on = None
+        by = None
+        direction = "backward"  # pandas default
+
+        if len(node.args) >= 2:
+            left = self._get_name(node.args[0])
+            right = self._get_name(node.args[1])
+
+        for kw in node.keywords:
+            if kw.arg == "on":
+                on = self._get_list_value(kw.value)
+            elif kw.arg == "left_on":
+                left_on = self._get_list_value(kw.value)
+            elif kw.arg == "right_on":
+                right_on = self._get_list_value(kw.value)
+            elif kw.arg == "by":
+                by = self._get_list_value(kw.value)
+            elif kw.arg == "direction" and isinstance(kw.value, ast.Constant):
+                direction = kw.value.value
+
+        self.transformations.append(
+            Transformation(
+                transformation_type=TransformationType.JOIN,
+                source_dataframe=left or "",
+                target_dataframe=target,
+                parameters={
+                    "right": right or "",
+                    "on": on,
+                    "left_on": left_on,
+                    "right_on": right_on,
+                    "by": by,
+                    "direction": direction,
+                    "join_kind": "asof",
+                },
+                source_line=self.current_line,
+                suggested_recipe="fuzzyjoin",
+                notes=[
+                    f"pd.merge_asof(direction='{direction}') -> FUZZY_JOIN; "
+                    "DSS Fuzzy Join supports nearest-match keys, the closest "
+                    "visual equivalent to pandas as-of join."
+                ],
             )
         )
 
